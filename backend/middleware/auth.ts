@@ -1,17 +1,6 @@
-import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { User } from '../db/index.js';
-
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('FATAL: JWT_SECRET environment variable is not set');
-}
-
-interface JwtPayload {
-  id: string;
-  role: string;
-  email: string;
-}
+import { validateAccessToken } from '../services/session.js';
 
 // ── HTTP middleware ───────────────────────────────────────────────────────────
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
@@ -32,19 +21,21 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  // JWT path
+  // Access token path (new session-based auth)
   if (!header.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Authorization required' });
     return;
   }
   const token = header.slice(7);
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    req.user = payload;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid or expired token' });
+  
+  const sessionData = validateAccessToken(token);
+  if (!sessionData) {
+    res.status(401).json({ error: 'Invalid or expired access token' });
+    return;
   }
+  
+  req.user = { id: sessionData.userId, email: sessionData.email, role: sessionData.role };
+  next();
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
@@ -73,21 +64,13 @@ export function authenticateSocket(socket: Socket, next: (err?: Error) => void):
   if (!token) {
     return next(new Error('Authentication required'));
   }
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    socket.data.userId = payload.id;
-    socket.data.role = payload.role;
-    next();
-  } catch {
-    next(new Error('Invalid token'));
+  
+  const sessionData = validateAccessToken(token);
+  if (!sessionData) {
+    return next(new Error('Invalid token'));
   }
-}
-
-// ── Token helpers ─────────────────────────────────────────────────────────────
-export function signToken(user: { _id: any; role: string; email: string }): string {
-  return jwt.sign(
-    { id: user._id.toString(), role: user.role, email: user.email },
-    JWT_SECRET!,
-    { expiresIn: '7d' }
-  );
+  
+  socket.data.userId = sessionData.userId;
+  socket.data.role = sessionData.role;
+  next();
 }

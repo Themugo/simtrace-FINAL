@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { User, Subscription, PasswordReset } from '../db/index.js';
-import { signToken, authenticate } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
+import { createSession, refreshAccessToken, revokeSession, revokeAllUserSessions, getSession } from '../services/session.js';
 
 const router = Router();
 
@@ -25,7 +26,16 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await User.create({ name, email: email.toLowerCase(), passwordHash, role: 'user', phone });
     await Subscription.create({ user: user._id, plan: 'free', status: 'active' });
-    res.status(201).json({ token: signToken(user), user: sanitize(user) });
+    
+    const session = await createSession({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    
+    res.status(201).json({ ...session, user: sanitize(user) });
   } catch (err: any) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
     next(err);
@@ -40,7 +50,16 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    res.json({ token: signToken(user), user: sanitize(user) });
+    
+    const session = await createSession({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+    
+    res.json({ ...session, user: sanitize(user) });
   } catch (err: any) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
     next(err);
@@ -147,7 +166,15 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
     reset.used = true;
     await reset.save();
 
-    res.json({ message: 'Password reset successfully.', token: signToken(user), user: sanitize(user) });
+    const session = await createSession({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    res.json({ message: 'Password reset successfully.', ...session, user: sanitize(user) });
   } catch (err: any) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
     next(err);
@@ -155,11 +182,47 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
 });
 
 // ── POST /api/auth/refresh ─────────────────────────────────────────────────────
-router.post('/refresh', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = await User.findById(req.user!.id).select('-passwordHash -apiKey');
+    const { refreshToken } = z.object({ refreshToken: z.string().min(1) }).parse(req.body);
+    
+    const sessionData = await getSession(refreshToken);
+    if (!sessionData) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+    
+    const newSession = await refreshAccessToken(refreshToken);
+    if (!newSession) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+    
+    const user = await User.findById(sessionData.userId).select('-passwordHash -apiKey');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ token: signToken(user), user: sanitize(user) });
+    
+    res.json({ ...newSession, user: sanitize(user) });
+  } catch (err: any) {
+    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
+    next(err);
+  }
+});
+
+// ── POST /api/auth/logout ─────────────────────────────────────────────────────
+router.post('/logout', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { refreshToken } = z.object({ refreshToken: z.string().min(1) }).parse(req.body);
+    await revokeSession(refreshToken);
+    res.json({ message: 'Logged out successfully' });
+  } catch (err: any) {
+    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
+    next(err);
+  }
+});
+
+// ── POST /api/auth/logout-all ───────────────────────────────────────────────────
+router.post('/logout-all', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await revokeAllUserSessions(req.user!.id);
+    res.json({ message: 'Logged out from all devices successfully' });
   } catch (err) { next(err); }
 });
 
