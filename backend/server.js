@@ -1,0 +1,207 @@
+import "dotenv/config";
+import express from "express";
+import http from "http";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import mongoSanitize from "express-mongo-sanitize";
+import pino from "pino";
+import pinoHttp from "pino-http";
+import { connectDB } from "./db/index.js";
+import { seedPlans } from "./services/billing.js";
+import { initIO } from "./services/socket.js";
+import { authenticateSocket } from "./middleware/auth.js";
+
+// Route imports
+import authRoutes      from "./routes/auth.js";
+import deviceRoutes    from "./routes/devices.js";
+import imeiRoutes      from "./routes/imei.js";
+import trackRoutes     from "./routes/track.js";
+import alertRoutes     from "./routes/alerts.js";
+import aiRoutes        from "./routes/ai.js";
+import billingRoutes   from "./routes/billing.js";
+import adsRoutes       from "./routes/ads.js";
+import partnerRoutes   from "./routes/partner.js";
+import adminRoutes     from "./routes/admin.js";
+import communityRoutes from "./routes/community.js";
+import lockRoutes      from "./routes/lock.js";
+import { startCron }    from "./services/cron.js";
+
+const app    = express();
+const server = http.createServer(app);
+const isProd = process.env.NODE_ENV === "production";
+
+// Trust Railway/Heroku/Vercel proxy — required for rate-limiter to see real IPs
+app.set("trust proxy", 1);
+
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false,   // CSP managed by Vercel/Nginx (API server only)
+  crossOriginEmbedderPolicy: false,
+}));
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(",").map(s => s.trim());
+app.use(cors({
+  origin: (origin, cb) => (!origin || allowedOrigins.includes(origin) ? cb(null, true) : cb(Object.assign(new Error("Not allowed by CORS"), { status: 403 }))),
+  credentials: true,
+}));
+
+// ── Structured logging ────────────────────────────────────────────────────────
+export const logger = pino({
+  level: isProd ? "info" : "debug",
+  ...(isProd ? {} : { transport: { target: "pino-pretty", options: { colorize: true } } }),
+});
+app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/health" } }));
+
+// ── Stripe webhook — MUST be before express.json() (needs raw body) ───────────
+// Express Routers ARE callable as functions. We rewrite the path so the router
+// sees "/stripe-webhook" relative to its own mount point.
+app.post(
+  "/api/billing/stripe-webhook",
+  express.raw({ type: "application/json" }),
+  (req, res, next) => {
+    req.url = "/stripe-webhook";   // strip the /api/billing prefix for the router
+    billingRoutes(req, res, next);
+  }
+);
+
+// ── Body parsing ──────────────────────────────────────────────────────────────
+app.use(express.json({ limit: "50kb" }));
+
+// ── NoSQL injection protection ────────────────────────────────────────────────
+// Strips keys with $ or . from user input — blocks $where/$gt injection attacks
+app.use(mongoSanitize({ replaceWith: "_" }));
+
+// ── Rate limiters ─────────────────────────────────────────────────────────────
+// Global: 200 req/15min per IP
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false }));
+
+// Auth: 20 req/15min (brute-force protection)
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: "Too many auth attempts" } });
+
+// IMEI check: 30 req/min per IP (prevents blacklist enumeration)
+const imeiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: { error: "IMEI check rate limit exceeded — try again in a minute" } });
+
+// Track: 120 req/min per IP (mobile agents ping every 30s per device)
+const trackLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, message: { error: "Ping rate limit exceeded" } });
+
+// AI: 30 req/min (independent of per-user monthly quota)
+const aiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: { error: "AI rate limit exceeded" } });
+
+// ── M-Pesa callback IP whitelist ─────────────────────────────────────────────
+// Safaricom publishes their callback IPs — only accept callbacks from them
+const MPESA_CALLBACK_IPS = new Set([
+  "196.201.214.200", "196.201.214.206", "196.201.213.114",
+  "196.201.214.207", "196.201.214.208", "196.201.213.44",
+  "196.201.212.127", "196.201.212.138", "196.201.212.129",
+  "196.201.212.136", "196.201.212.74",  "196.201.212.69",
+]);
+
+function mpesaIpWhitelist(req, res, next) {
+  if (process.env.MPESA_ENV !== "production") return next(); // bypass in sandbox
+  const ip = req.ip || req.connection.remoteAddress;
+  const clean = ip?.replace("::ffff:", "");
+  if (MPESA_CALLBACK_IPS.has(clean)) return next();
+  logger.warn({ ip: clean }, "M-Pesa callback rejected — IP not whitelisted");
+  return res.status(403).json({ error: "Forbidden" });
+}
+
+// ── Routes ────────────────────────────────────────────────────────────────────
+app.get("/health", (_, res) => res.json({ status: "ok", ts: Date.now(), env: isProd ? "production" : "development" }));
+
+app.use("/api/auth",      authLimiter,  authRoutes);
+app.use("/api/devices",               deviceRoutes);
+app.use("/api/devices",               lockRoutes);     // lock/unlock/commands on /api/devices/:id/*
+app.use("/api/imei",    imeiLimiter,  imeiRoutes);
+app.use("/api/track",   trackLimiter, trackRoutes);
+app.use("/api/alerts",                alertRoutes);
+app.use("/api/ai",      aiLimiter,    aiRoutes);
+// Apply M-Pesa IP whitelist specifically to callback endpoint
+app.post("/api/billing/mpesa-callback", mpesaIpWhitelist);
+app.use("/api/billing",               billingRoutes);
+app.use("/api/ads",                   adsRoutes);
+app.use("/api/partner",               partnerRoutes);
+app.use("/api/admin",                 adminRoutes);
+app.use("/api/community",             communityRoutes);
+
+// ── Socket.io ─────────────────────────────────────────────────────────────────
+const io = initIO(server, allowedOrigins);
+io.use(authenticateSocket);
+
+io.on("connection", (socket) => {
+  const { userId, role } = socket.data;
+  socket.join(`user:${userId}`);
+  if (role === "admin") socket.join("role:admin");
+
+  socket.on("subscribe_device", (imei) => {
+    if (typeof imei === "string" && /^\d{15,17}$/.test(imei)) {
+      socket.join(`device:${imei}`);
+    }
+  });
+
+  // Admin map: subscribe to ALL device updates via role:admin room
+  // (track.js already emits to "role:admin" for every ping)
+  socket.on("subscribe_all_admin", () => {
+    if (role === "admin") {
+      socket.join("role:admin"); // already joined — no-op, but makes intent clear
+    }
+  });
+
+  socket.on("disconnect", () => {
+    if (!isProd) console.log(`Socket disconnected: ${socket.id}`);
+  });
+
+  if (!isProd) console.log(`Socket connected: ${socket.id} user:${userId} role:${role}`);
+});
+
+// ── Global error handler ──────────────────────────────────────────────────────
+app.use((err, req, res, _next) => {
+  // Always log full error server-side
+  req.log ? req.log.error({ err }, `${req.method} ${req.path}`) : console.error(err);
+
+  const status  = err.status || 500;
+  const message = isProd && status === 500
+    ? "Internal server error"     // never leak stack traces in production
+    : err.message || "Internal server error";
+
+  res.status(status).json({ error: message });
+});
+
+// ── DB connection with retry ──────────────────────────────────────────────────
+async function connectWithRetry(retries = 5, delay = 3000) {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      await connectDB();
+      return;
+    } catch (err) {
+      if (i === retries) throw err;
+      console.warn(`MongoDB connection failed (attempt ${i}/${retries}) — retrying in ${delay}ms…`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
+
+// ── Graceful shutdown + uncaught error handlers ───────────────────────────────
+process.on("unhandledRejection", (reason) => {
+  console.error("[UnhandledRejection]", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[UncaughtException]", err);
+  process.exit(1);
+});
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received — shutting down gracefully");
+  server.close(() => process.exit(0));
+});
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 4000;
+connectWithRetry().then(() => {
+  seedPlans();
+  startCron();
+  server.listen(PORT, () => console.log(`SimTrace API → port ${PORT} [${isProd ? "production" : "development"}]`));
+}).catch(err => {
+  console.error("Failed to connect to MongoDB after retries:", err);
+  process.exit(1);
+});

@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# env files
+.env
+.env.*
+
+# logs
+logs/
+*.log
+
+# build outputs
+dist/
+build/
+frontend/dist/
+
+# OS files
+.DS_Store
+Thumbs.db

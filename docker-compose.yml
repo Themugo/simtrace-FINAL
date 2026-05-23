@@ -1,0 +1,78 @@
+# SimTrace local development stack
+# ⚠️  DO NOT put real secrets here — use .env file or Railway/Vercel secret injection
+# Copy .env.example to .env and fill in values before running
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"   # localhost only — never expose to 0.0.0.0 in prod
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-simtrace}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:?MONGO_ROOT_PASS is required}
+      MONGO_INITDB_DATABASE: simtrace
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"     # localhost only — put Nginx/Caddy in front for prod
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      # Compose reads from .env file automatically
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-simtrace}:${MONGO_ROOT_PASS}@mongo:27017/simtrace?authSource=admin
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      PORT: 4000
+      NODE_ENV: ${NODE_ENV:-development}
+      TRACK_REQUIRE_AUTH: ${TRACK_REQUIRE_AUTH:-false}
+      # Africa's Talking SMS
+      AT_API_KEY: ${AT_API_KEY:-}
+      AT_USERNAME: ${AT_USERNAME:-sandbox}
+      AT_SENDER_ID: ${AT_SENDER_ID:-SimTrace}
+      # SendGrid
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      FROM_EMAIL: ${FROM_EMAIL:-alerts@simtrace.site}
+      # Anthropic
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY is required}
+      # M-Pesa
+      MPESA_CONSUMER_KEY: ${MPESA_CONSUMER_KEY:-}
+      MPESA_CONSUMER_SECRET: ${MPESA_CONSUMER_SECRET:-}
+      MPESA_SHORTCODE: ${MPESA_SHORTCODE:-174379}
+      MPESA_PASSKEY: ${MPESA_PASSKEY:-}
+      MPESA_ENV: ${MPESA_ENV:-sandbox}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:4000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      # Stripe
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # Sentry
+      SENTRY_DSN: ${SENTRY_DSN:-}
+
+volumes:
+  mongo_data:
+  redis_data:
