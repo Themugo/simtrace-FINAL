@@ -1,0 +1,187 @@
+// routes/selfieCapture.js - Selfie capture and thief identification API endpoints
+import { Router } from "express";
+import { z } from "zod";
+import { authenticate } from "../middleware/auth.js";
+import {
+  captureSelfie,
+  analyzeSelfie,
+  getSelfieCapture,
+  getSelfieCapturesByDevice,
+  getSelfieCapturesByUser,
+  getPendingCaptures,
+  getThiefCaptures,
+  reportThief,
+  updateThiefReport,
+  resolveThiefReport,
+  getThiefReport,
+  getThiefReportsByDevice,
+  getThiefReportsByUser,
+  getPendingThiefReports,
+  getInvestigatingThiefReports,
+} from "../services/selfieCapture.js";
+
+const router = Router();
+
+// ── Selfie Capture Management ─────────────────────────────────────────────────────────
+router.post("/", async (req, res, next) => {
+  try {
+    const schema = z.object({
+      deviceId: z.string(),
+      userId: z.string(),
+      captureDate: z.date(),
+      captureLocation: z.object({
+        latitude: z.number(),
+        longitude: z.number(),
+        accuracy: z.number(),
+      }),
+      imageUrl: z.string(),
+    });
+
+    const data = schema.parse(req.body);
+    const capture = await captureSelfie({ ...data, createdBy: req.user?.id });
+    res.status(201).json(capture);
+  } catch (err) {
+    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    next(err);
+  }
+});
+
+router.post("/:captureId/analyze", authenticate, async (req, res, next) => {
+  try {
+    const { captureId } = req.params;
+    const capture = await analyzeSelfie(captureId);
+    res.json(capture);
+  } catch (err) { next(err); }
+});
+
+router.get("/:captureId", authenticate, async (req, res, next) => {
+  try {
+    const { captureId } = req.params;
+    const capture = await getSelfieCapture(captureId);
+    res.json(capture);
+  } catch (err) { next(err); }
+});
+
+router.get("/device/:deviceId", authenticate, async (req, res, next) => {
+  try {
+    const { deviceId } = req.params;
+    const captures = await getSelfieCapturesByDevice(deviceId);
+    res.json({ captures, count: captures.length });
+  } catch (err) { next(err); }
+});
+
+router.get("/user/:userId", authenticate, async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const captures = await getSelfieCapturesByUser(userId);
+    res.json({ captures, count: captures.length });
+  } catch (err) { next(err); }
+});
+
+router.get("/pending", authenticate, async (req, res, next) => {
+  try {
+    const captures = await getPendingCaptures();
+    res.json({ captures, count: captures.length });
+  } catch (err) { next(err); }
+});
+
+router.get("/thieves", authenticate, async (req, res, next) => {
+  try {
+    const captures = await getThiefCaptures();
+    res.json({ captures, count: captures.length });
+  } catch (err) { next(err); }
+});
+
+// ── Thief Report Management ───────────────────────────────────────────────────────────
+router.post("/reports", authenticate, async (req, res, next) => {
+  try {
+    const schema = z.object({
+      deviceId: z.string(),
+      userId: z.string(),
+      selfieCaptureId: z.string(),
+      reportReason: z.string(),
+      reportedTo: z.array(z.string()),
+      thiefIdentified: z.boolean().optional(),
+      thiefUserId: z.string().optional(),
+      thiefName: z.string().optional(),
+      thiefPhone: z.string().optional(),
+      thiefAddress: z.string().optional(),
+      evidence: z.array(z.object({
+        type: z.string(),
+        url: z.string(),
+        description: z.string(),
+      })).optional(),
+    });
+
+    const data = schema.parse(req.body);
+    const report = await reportThief({ ...data, createdBy: req.user.id });
+    res.status(201).json(report);
+  } catch (err) {
+    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    next(err);
+  }
+});
+
+router.patch("/reports/:reportId", authenticate, async (req, res, next) => {
+  try {
+    const { reportId } = req.params;
+    const report = await updateThiefReport(reportId, req.body, req.user.id);
+    res.json(report);
+  } catch (err) { next(err); }
+});
+
+router.post("/reports/:reportId/resolve", authenticate, async (req, res, next) => {
+  try {
+    const schema = z.object({
+      resolution: z.string(),
+    });
+
+    const { reportId } = req.params;
+    const data = schema.parse(req.body);
+    const report = await resolveThiefReport(reportId, data.resolution, req.user.id);
+    res.json(report);
+  } catch (err) {
+    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    next(err);
+  }
+});
+
+router.get("/reports/:reportId", authenticate, async (req, res, next) => {
+  try {
+    const { reportId } = req.params;
+    const report = await getThiefReport(reportId);
+    res.json(report);
+  } catch (err) { next(err); }
+});
+
+router.get("/reports/device/:deviceId", authenticate, async (req, res, next) => {
+  try {
+    const { deviceId } = req.params;
+    const reports = await getThiefReportsByDevice(deviceId);
+    res.json({ reports, count: reports.length });
+  } catch (err) { next(err); }
+});
+
+router.get("/reports/user/:userId", authenticate, async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const reports = await getThiefReportsByUser(userId);
+    res.json({ reports, count: reports.length });
+  } catch (err) { next(err); }
+});
+
+router.get("/reports/pending", authenticate, async (req, res, next) => {
+  try {
+    const reports = await getPendingThiefReports();
+    res.json({ reports, count: reports.length });
+  } catch (err) { next(err); }
+});
+
+router.get("/reports/investigating", authenticate, async (req, res, next) => {
+  try {
+    const reports = await getInvestigatingThiefReports();
+    res.json({ reports, count: reports.length });
+  } catch (err) { next(err); }
+});
+
+export default router;

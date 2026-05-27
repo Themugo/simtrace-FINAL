@@ -1,0 +1,18 @@
+{
+  "name": "@simtrace/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for SimTrace platform",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "simtrace",
+    "types",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT"
+}
