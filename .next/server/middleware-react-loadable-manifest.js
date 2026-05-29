@@ -1,1 +1,0 @@
-self.__REACT_LOADABLE_MANIFEST="{\"app\\\\pricing\\\\page.js -> @stripe/stripe-js\":{\"id\":\"app\\\\pricing\\\\page.js -> @stripe/stripe-js\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_stripe_stripe-js_lib_index_mjs.js\"]}}"
