@@ -9,7 +9,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "validate-env": "node scripts/validate-env.js"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.53.1",

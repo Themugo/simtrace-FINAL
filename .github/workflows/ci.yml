@@ -98,6 +98,19 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
+      - name: Wait for deployment
+        run: sleep 60
+
+      - name: Health check
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.simtrace.site/health)
+          if [ $response -eq 200 ]; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed with status $response"
+            exit 1
+          fi
+
   # ── Deploy frontend to Vercel ─────────────────────────────────────────────
   deploy-frontend:
     name: Deploy → Vercel
@@ -114,5 +127,18 @@ jobs:
           vercel-token:    ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id:   ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./frontend
+          working-directory: ./
           vercel-args: '--prod'
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://simtrace.site)
+          if [ $response -eq 200 ]; then
+            echo "✅ Frontend health check passed"
+          else
+            echo "❌ Frontend health check failed with status $response"
+            exit 1
+          fi
