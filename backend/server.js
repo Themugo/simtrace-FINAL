@@ -13,6 +13,7 @@ import { initIO } from "./services/socket.js";
 import { authenticateSocket } from "./middleware/auth.js";
 import { sanitizeInput } from "./middleware/validation.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import "./sentry.js";
 
 // Route imports
 import authRoutes      from "./routes/auth.js";
@@ -27,6 +28,7 @@ import partnerRoutes   from "./routes/partner.js";
 import adminRoutes     from "./routes/admin.js";
 import communityRoutes from "./routes/community.js";
 import lockRoutes      from "./routes/lock.js";
+import healthRoutes    from "./routes/health.js";
 import { startCron }    from "./services/cron.js";
 
 const app    = express();
@@ -113,7 +115,7 @@ function mpesaIpWhitelist(req, res, next) {
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.get("/health", (_, res) => res.json({ status: "ok", ts: Date.now(), env: isProd ? "production" : "development" }));
+app.use("/api/health", healthRoutes);
 
 app.use("/api/auth",      authLimiter,  authRoutes);
 app.use("/api/devices",               deviceRoutes);
