@@ -4,11 +4,6 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@simtrace_api_url",
-    "NEXT_PUBLIC_SOCKET_URL": "@simtrace_socket_url",
-    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key"
-  },
   "headers": [
     {
       "source": "/(.*)",
