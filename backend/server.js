@@ -15,18 +15,18 @@ import { sanitizeInput } from "./middleware/validation.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 // Route imports
-import authRoutes      from "./routes/auth.ts";
-import deviceRoutes    from "./routes/devices.ts";
-import imeiRoutes      from "./routes/imei.ts";
-import trackRoutes     from "./routes/track.ts";
-import alertRoutes     from "./routes/alerts.ts";
-import aiRoutes        from "./routes/ai.ts";
-import billingRoutes   from "./routes/billing.ts";
-import adsRoutes       from "./routes/ads.ts";
-import partnerRoutes   from "./routes/partner.ts";
-import adminRoutes     from "./routes/admin.ts";
-import communityRoutes from "./routes/community.ts";
-import lockRoutes      from "./routes/lock.ts";
+import authRoutes      from "./routes/auth.js";
+import deviceRoutes    from "./routes/devices.js";
+import imeiRoutes      from "./routes/imei.js";
+import trackRoutes     from "./routes/track.js";
+import alertRoutes     from "./routes/alerts.js";
+import aiRoutes        from "./routes/ai.js";
+import billingRoutes   from "./routes/billing.js";
+import adsRoutes       from "./routes/ads.js";
+import partnerRoutes   from "./routes/partner.js";
+import adminRoutes     from "./routes/admin.js";
+import communityRoutes from "./routes/community.js";
+import lockRoutes      from "./routes/lock.js";
 import { startCron }    from "./services/cron.js";
 
 const app    = express();
