@@ -11,20 +11,22 @@ import { connectDB } from "./db/index.js";
 import { seedPlans } from "./services/billing.js";
 import { initIO } from "./services/socket.js";
 import { authenticateSocket } from "./middleware/auth.js";
+import { sanitizeInput } from "./middleware/validation.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 // Route imports
-import authRoutes      from "./routes/auth.js";
-import deviceRoutes    from "./routes/devices.js";
-import imeiRoutes      from "./routes/imei.js";
-import trackRoutes     from "./routes/track.js";
-import alertRoutes     from "./routes/alerts.js";
-import aiRoutes        from "./routes/ai.js";
-import billingRoutes   from "./routes/billing.js";
-import adsRoutes       from "./routes/ads.js";
-import partnerRoutes   from "./routes/partner.js";
-import adminRoutes     from "./routes/admin.js";
-import communityRoutes from "./routes/community.js";
-import lockRoutes      from "./routes/lock.js";
+import authRoutes      from "./routes/auth.ts";
+import deviceRoutes    from "./routes/devices.ts";
+import imeiRoutes      from "./routes/imei.ts";
+import trackRoutes     from "./routes/track.ts";
+import alertRoutes     from "./routes/alerts.ts";
+import aiRoutes        from "./routes/ai.ts";
+import billingRoutes   from "./routes/billing.ts";
+import adsRoutes       from "./routes/ads.ts";
+import partnerRoutes   from "./routes/partner.ts";
+import adminRoutes     from "./routes/admin.ts";
+import communityRoutes from "./routes/community.ts";
+import lockRoutes      from "./routes/lock.ts";
 import { startCron }    from "./services/cron.js";
 
 const app    = express();
@@ -46,6 +48,9 @@ app.use(cors({
   origin: (origin, cb) => (!origin || allowedOrigins.includes(origin) ? cb(null, true) : cb(Object.assign(new Error("Not allowed by CORS"), { status: 403 }))),
   credentials: true,
 }));
+
+// ── Input sanitization ─────────────────────────────────────────────────────────
+app.use(sanitizeInput);
 
 // ── Structured logging ────────────────────────────────────────────────────────
 export const logger = pino({
@@ -155,18 +160,11 @@ io.on("connection", (socket) => {
   if (!isProd) console.log(`Socket connected: ${socket.id} user:${userId} role:${role}`);
 });
 
+// ── 404 handler ────────────────────────────────────────────────────────────────
+app.use(notFoundHandler);
+
 // ── Global error handler ──────────────────────────────────────────────────────
-app.use((err, req, res, _next) => {
-  // Always log full error server-side
-  req.log ? req.log.error({ err }, `${req.method} ${req.path}`) : console.error(err);
-
-  const status  = err.status || 500;
-  const message = isProd && status === 500
-    ? "Internal server error"     // never leak stack traces in production
-    : err.message || "Internal server error";
-
-  res.status(status).json({ error: message });
-});
+app.use(errorHandler);
 
 // ── DB connection with retry ──────────────────────────────────────────────────
 async function connectWithRetry(retries = 5, delay = 3000) {
