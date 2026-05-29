@@ -13,7 +13,11 @@ logs/
 dist/
 build/
 frontend/dist/
+.next/
+coverage/
 
 # OS files
 .DS_Store
 Thumbs.db
+.vercel
+.env*
