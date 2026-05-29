@@ -12,7 +12,7 @@ import { seedPlans } from "./services/billing.js";
 import { initIO } from "./services/socket.js";
 import { authenticateSocket } from "./middleware/auth.js";
 import { sanitizeInput } from "./middleware/validation.js";
-import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { errorHandler, notFoundHandler, generateRequestId } from "./middleware/errorHandler.js";
 import "./sentry.js";
 
 // Route imports
@@ -53,6 +53,13 @@ app.use(cors({
 
 // ── Input sanitization ─────────────────────────────────────────────────────────
 app.use(sanitizeInput);
+
+// ── Request ID middleware ───────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  req.id = generateRequestId();
+  res.setHeader('X-Request-ID', req.id);
+  next();
+});
 
 // ── Structured logging ────────────────────────────────────────────────────────
 export const logger = pino({

@@ -2,25 +2,48 @@
  * Global error handling middleware
  * Catches and formats errors consistently across the application
  */
+import crypto from 'crypto';
+
+// Generate unique request ID for tracking
+export const generateRequestId = () => crypto.randomUUID();
 
 export const errorHandler = (err, req, res, next) => {
-  // Log error for debugging
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('Error:', err);
-  }
+  const requestId = req.id || generateRequestId();
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  // Log error with structured data
+  const errorLog = {
+    requestId,
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    path: req.path,
+    statusCode: err.statusCode || 500,
+    error: {
+      name: err.name,
+      message: err.message,
+      ...(isDev && { stack: err.stack })
+    },
+    user: req.user?.id || 'anonymous',
+    ip: req.ip || req.connection.remoteAddress
+  };
+
+  // Log to console (in production, this would go to a logging service)
+  console.error('[ERROR]', JSON.stringify(errorLog));
 
   // Handle specific error types
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       error: 'Validation Error',
-      details: err.message
+      details: err.message,
+      requestId
     });
   }
 
   if (err.name === 'CastError') {
     return res.status(400).json({
       error: 'Invalid ID format',
-      details: err.message
+      details: err.message,
+      requestId
     });
   }
 
@@ -29,28 +52,59 @@ export const errorHandler = (err, req, res, next) => {
     const field = Object.keys(err.keyPattern)[0];
     return res.status(409).json({
       error: 'Duplicate entry',
-      details: `${field} already exists`
+      details: `${field} already exists`,
+      requestId
     });
   }
 
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       error: 'Invalid token',
-      details: 'Please provide a valid authentication token'
+      details: 'Please provide a valid authentication token',
+      requestId
     });
   }
 
   if (err.name === 'TokenExpiredError') {
     return res.status(401).json({
       error: 'Token expired',
-      details: 'Please login again'
+      details: 'Please login again',
+      requestId
     });
   }
 
   if (err.name === 'UnauthorizedError') {
     return res.status(401).json({
       error: 'Unauthorized',
-      details: 'Authentication required'
+      details: 'Authentication required',
+      requestId
+    });
+  }
+
+  // Handle custom AppError instances
+  if (err.isOperational) {
+    return res.status(err.statusCode).json({
+      error: err.message,
+      ...(isDev && { details: err.details }),
+      requestId
+    });
+  }
+
+  // Handle MongoDB connection errors
+  if (err.name === 'MongooseError' || err.name === 'MongoError') {
+    return res.status(503).json({
+      error: 'Database error',
+      details: 'Unable to connect to database',
+      requestId
+    });
+  }
+
+  // Handle Redis connection errors
+  if (err.message && err.message.includes('Redis')) {
+    return res.status(503).json({
+      error: 'Cache error',
+      details: 'Unable to connect to cache service',
+      requestId
     });
   }
 
@@ -60,7 +114,8 @@ export const errorHandler = (err, req, res, next) => {
 
   res.status(statusCode).json({
     error: statusCode === 500 ? 'Internal server error' : message,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+    requestId,
+    ...(isDev && { stack: err.stack })
   });
 };
 
@@ -68,9 +123,12 @@ export const errorHandler = (err, req, res, next) => {
  * 404 Not Found handler
  */
 export const notFoundHandler = (req, res) => {
+  const requestId = req.id || generateRequestId();
+  
   res.status(404).json({
     error: 'Not Found',
-    details: `Route ${req.method} ${req.path} not found`
+    details: `Route ${req.method} ${req.path} not found`,
+    requestId
   });
 };
 
