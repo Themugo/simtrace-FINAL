@@ -4,9 +4,9 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { Device, TheftReport, Ping } from '../db/index.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
-import { computeRiskScore } from '../services/intelligence.js';
-import { sendAlert } from '../services/notify.js';
-import { checkDeviceLimit } from '../services/billing.js';
+import { computeRiskScore } from '../services/intelligence';
+import { sendAlert } from '../services/notify';
+import { checkDeviceLimit } from '../services/billing';
 
 const router = Router();
 

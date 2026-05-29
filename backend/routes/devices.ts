@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { Device, Ping, TheftReport } from '../db/index.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
-import { computeRiskScore } from '../services/intelligence.js';
+import { computeRiskScore } from '../services/intelligence';
 
 const router = Router();
 

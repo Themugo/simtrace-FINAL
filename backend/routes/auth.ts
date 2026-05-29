@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import { User, Subscription, PasswordReset } from '../db/index.js';
 import { authenticate } from '../middleware/auth.js';
-import { createSession, refreshAccessToken, revokeSession, revokeAllUserSessions, getSession } from '../services/session.js';
+import { createSession, refreshAccessToken, revokeSession, revokeAllUserSessions, getSession } from '../services/session';
 
 const router = Router();
 

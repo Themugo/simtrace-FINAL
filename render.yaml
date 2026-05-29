@@ -1,0 +1,30 @@
+# Render.com deployment configuration for SimTrace Backend
+
+services:
+  - type: web
+    name: simtrace-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        value: mongodb+srv://Simtrace:db_SimTrace2026@cluster0.dcq23oe.mongodb.net/?appName=Cluster0
+      - key: REDIS_URL
+        value: redis://default:mUURAq9ywHAazxdPYBrd1LPszW899SjY@easy-thick-rhythmic-79880.db.redis.io:18437
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PORT
+        value: 4000
+      - key: ALLOWED_ORIGINS
+        value: https://simtrace.vercel.app
+      - key: FRONTEND_URL
+        value: https://simtrace.vercel.app
+      - key: BACKEND_URL
+        value: https://simtrace-backend.onrender.com
+      - key: TRACK_REQUIRE_AUTH
+        value: true
