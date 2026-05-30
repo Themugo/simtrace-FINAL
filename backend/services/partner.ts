@@ -1,23 +1,23 @@
-// services/partner.js — SimTrace Telecom & Agency Integration Engine
+// services/partner.ts — SimTrace Telecom & Agency Integration Engine
 import crypto from "crypto";
 import { Partner, Device, Alert, TheftReport } from "../db/index.js";
 
 // ── Generate a secure API key ─────────────────────────────────────────────────
-export function generateApiKey() {
+export function generateApiKey(): string {
   return "st_" + crypto.randomBytes(28).toString("hex");
 }
 
 // ── Validate partner API key + track usage ────────────────────────────────────
-export async function validatePartnerKey(apiKey) {
+export async function validatePartnerKey(apiKey: string) {
   const partner = await Partner.findOne({ apiKey, status: "active" });
   if (!partner) return null;
 
   // Reset monthly counter on new month
-  const now      = new Date();
+  const now = new Date();
   const lastReset = new Date(partner.lastReset);
   if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
     partner.apiCallsMonth = 0;
-    partner.lastReset     = now;
+    partner.lastReset = now;
   }
 
   // Enforce rate limit
@@ -36,38 +36,38 @@ export async function validatePartnerKey(apiKey) {
 }
 
 // ── Bulk IMEI check (for telecoms ingesting subscriber devices) ───────────────
-export async function bulkImeiCheck(imeis) {
+export async function bulkImeiCheck(imeis: string[]) {
   const results = await Device.find({ imei: { $in: imeis } })
     .select("imei status lastSeen")
     .lean();
 
-  const map = Object.fromEntries(results.map(d => [d.imei, d]));
+  const map = Object.fromEntries(results.map((d: any) => [d.imei, d]));
 
   return imeis.map(imei => ({
     imei,
     registered: !!map[imei],
-    status:     map[imei]?.status || "unknown",
-    lastSeen:   map[imei]?.lastSeen || null,
-    risk:       map[imei]?.status === "stolen" || map[imei]?.status === "blacklisted" ? "HIGH" : "LOW",
+    status: map[imei]?.status || "unknown",
+    lastSeen: map[imei]?.lastSeen || null,
+    risk: map[imei]?.status === "stolen" || map[imei]?.status === "blacklisted" ? "HIGH" : "LOW",
   }));
 }
 
 // ── Webhook delivery to partner ───────────────────────────────────────────────
-export async function deliverWebhook(partner, event) {
+export async function deliverWebhook(partner: any, event: any) {
   if (!partner.webhookUrl) return;
 
-  const body    = JSON.stringify({ event, ts: new Date().toISOString() });
-  const sig     = crypto
+  const body = JSON.stringify({ event, ts: new Date().toISOString() });
+  const sig = crypto
     .createHmac("sha256", partner.webhookSecret || "")
     .update(body)
     .digest("hex");
 
   try {
     const res = await fetch(partner.webhookUrl, {
-      method:  "POST",
+      method: "POST",
       headers: {
-        "Content-Type":       "application/json",
-        "X-SimTrace-Sig":     sig,
+        "Content-Type": "application/json",
+        "X-SimTrace-Sig": sig,
         "X-SimTrace-Partner": partner._id.toString(),
       },
       body,
@@ -75,20 +75,20 @@ export async function deliverWebhook(partner, event) {
     });
     console.log(`[Webhook] ${partner.orgName} → ${res.status}`);
   } catch (err) {
-    console.error(`[Webhook] ${partner.orgName} failed:`, err.message);
+    console.error(`[Webhook] ${partner.orgName} failed:`, (err as Error).message);
   }
 }
 
 // ── Broadcast blacklist/recovery events to all active partners ────────────────
-export async function broadcastToPartners(eventType, payload) {
+export async function broadcastToPartners(eventType: string, payload: any) {
   const partners = await Partner.find({ status: "active", webhookUrl: { $exists: true, $ne: "" } });
   await Promise.allSettled(
-    partners.map(p => deliverWebhook(p, { type: eventType, data: payload }))
+    partners.map((p: any) => deliverWebhook(p, { type: eventType, data: payload }))
   );
 }
 
 // ── Partner dashboard stats ───────────────────────────────────────────────────
-export async function getPartnerStats(partnerId) {
+export async function getPartnerStats(partnerId: string) {
   const partner = await Partner.findById(partnerId).populate("user", "name email");
   if (!partner) return null;
 
@@ -97,12 +97,12 @@ export async function getPartnerStats(partnerId) {
 
   return {
     partner: {
-      orgName:       partner.orgName,
-      orgType:       partner.orgType,
-      tier:          partner.tier,
+      orgName: partner.orgName,
+      orgType: partner.orgType,
+      tier: partner.tier,
       apiCallsMonth: partner.apiCallsMonth,
       apiCallsLimit: partner.apiCallsLimit,
-      status:        partner.status,
+      status: partner.status,
     },
     stats: { totalBlacklisted: stolen },
     recentAlerts,
