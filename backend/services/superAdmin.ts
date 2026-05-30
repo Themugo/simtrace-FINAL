@@ -1,4 +1,4 @@
-// services/superAdmin.js - Super admin layer services
+// services/superAdmin.ts - Super admin layer services
 import crypto from "crypto";
 import {
   SuperAdmin,
@@ -8,7 +8,7 @@ import {
 } from "../db/index.js";
 
 // ── Super Admin Management ─────────────────────────────────────────────────────────────
-export async function createSuperAdmin(data) {
+export async function createSuperAdmin(data: any) {
   const superAdminId = `superadmin_${crypto.randomBytes(16).toString("hex")}`;
 
   const superAdmin = await SuperAdmin.create({
@@ -21,18 +21,18 @@ export async function createSuperAdmin(data) {
   return superAdmin;
 }
 
-export async function getSuperAdmin(superAdminId) {
+export async function getSuperAdmin(superAdminId: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId, status: "active" });
   if (!superAdmin) throw new Error("Super admin not found");
   return superAdmin;
 }
 
-export async function getSuperAdminByPersonalEmail(personalEmail) {
+export async function getSuperAdminByPersonalEmail(personalEmail: string) {
   const superAdmin = await SuperAdmin.findOne({ personalEmail, status: "active" });
   return superAdmin;
 }
 
-export async function getSuperAdminByOfficialEmail(officialEmail) {
+export async function getSuperAdminByOfficialEmail(officialEmail: string) {
   const superAdmin = await SuperAdmin.findOne({
     "officialEmails.email": officialEmail,
     status: "active",
@@ -40,7 +40,7 @@ export async function getSuperAdminByOfficialEmail(officialEmail) {
   return superAdmin;
 }
 
-export async function updateSuperAdmin(superAdminId, updates) {
+export async function updateSuperAdmin(superAdminId: string, updates: any) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
@@ -61,7 +61,7 @@ export async function updateSuperAdmin(superAdminId, updates) {
   return updated;
 }
 
-export async function lockSuperAdmin(superAdminId) {
+export async function lockSuperAdmin(superAdminId: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
@@ -76,7 +76,7 @@ export async function lockSuperAdmin(superAdminId) {
   return superAdmin;
 }
 
-export async function unlockSuperAdmin(superAdminId) {
+export async function unlockSuperAdmin(superAdminId: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
@@ -88,12 +88,12 @@ export async function unlockSuperAdmin(superAdminId) {
 }
 
 // ── Official Email Management ───────────────────────────────────────────────────────────
-export async function addOfficialEmail(superAdminId, emailData) {
+export async function addOfficialEmail(superAdminId: string, emailData: any) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
   // Check if email already exists
-  const existingEmail = superAdmin.officialEmails.find((e) => e.email === emailData.email);
+  const existingEmail = superAdmin.officialEmails.find((e: any) => e.email === emailData.email);
   if (existingEmail) throw new Error("Official email already exists");
 
   // If this is the first email, make it primary
@@ -102,7 +102,7 @@ export async function addOfficialEmail(superAdminId, emailData) {
 
   // If setting as primary, remove primary from others
   if (isPrimary) {
-    superAdmin.officialEmails.forEach((e) => {
+    superAdmin.officialEmails.forEach((e: any) => {
       e.isPrimary = false;
     });
   }
@@ -123,11 +123,11 @@ export async function addOfficialEmail(superAdminId, emailData) {
   return superAdmin;
 }
 
-export async function removeOfficialEmail(superAdminId, email) {
+export async function removeOfficialEmail(superAdminId: string, email: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
-  const emailIndex = superAdmin.officialEmails.findIndex((e) => e.email === email);
+  const emailIndex = superAdmin.officialEmails.findIndex((e: any) => e.email === email);
   if (emailIndex === -1) throw new Error("Official email not found");
 
   // Prevent removing the only official email
@@ -137,7 +137,7 @@ export async function removeOfficialEmail(superAdminId, email) {
 
   // If removing primary, set another as primary
   if (superAdmin.officialEmails[emailIndex].isPrimary) {
-    superAdmin.officialEmails[emailIndex + 1]?.isPrimary = true;
+    superAdmin.officialEmails[emailIndex + 1]!.isPrimary = true;
   }
 
   superAdmin.officialEmails.splice(emailIndex, 1);
@@ -147,15 +147,15 @@ export async function removeOfficialEmail(superAdminId, email) {
   return superAdmin;
 }
 
-export async function setPrimaryOfficialEmail(superAdminId, email) {
+export async function setPrimaryOfficialEmail(superAdminId: string, email: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
-  const emailObj = superAdmin.officialEmails.find((e) => e.email === email);
+  const emailObj = superAdmin.officialEmails.find((e: any) => e.email === email);
   if (!emailObj) throw new Error("Official email not found");
 
   // Remove primary from all
-  superAdmin.officialEmails.forEach((e) => {
+  superAdmin.officialEmails.forEach((e: any) => {
     e.isPrimary = false;
   });
 
@@ -167,15 +167,15 @@ export async function setPrimaryOfficialEmail(superAdminId, email) {
   return superAdmin;
 }
 
-export async function setBackupOfficialEmail(superAdminId, email) {
+export async function setBackupOfficialEmail(superAdminId: string, email: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
-  const emailObj = superAdmin.officialEmails.find((e) => e.email === email);
+  const emailObj = superAdmin.officialEmails.find((e: any) => e.email === email);
   if (!emailObj) throw new Error("Official email not found");
 
   // Remove backup from all
-  superAdmin.officialEmails.forEach((e) => {
+  superAdmin.officialEmails.forEach((e: any) => {
     e.isBackup = false;
   });
 
@@ -187,11 +187,11 @@ export async function setBackupOfficialEmail(superAdminId, email) {
   return superAdmin;
 }
 
-export async function verifyOfficialEmail(superAdminId, email) {
+export async function verifyOfficialEmail(superAdminId: string, email: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
-  const emailObj = superAdmin.officialEmails.find((e) => e.email === email);
+  const emailObj = superAdmin.officialEmails.find((e: any) => e.email === email);
   if (!emailObj) throw new Error("Official email not found");
 
   emailObj.verified = true;
@@ -202,7 +202,7 @@ export async function verifyOfficialEmail(superAdminId, email) {
 }
 
 // ── System Settings Management ─────────────────────────────────────────────────────────
-export async function updateSystemSettings(superAdminId, settings) {
+export async function updateSystemSettings(superAdminId: string, settings: any) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
@@ -216,7 +216,7 @@ export async function updateSystemSettings(superAdminId, settings) {
   return superAdmin;
 }
 
-export async function getSystemSettings(superAdminId) {
+export async function getSystemSettings(superAdminId: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
@@ -224,14 +224,14 @@ export async function getSystemSettings(superAdminId) {
 }
 
 // ── Admin Management ───────────────────────────────────────────────────────────────────
-export async function getManagedAdmins(superAdminId) {
+export async function getManagedAdmins(superAdminId: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId }).populate("managedAdmins");
   if (!superAdmin) throw new Error("Super admin not found");
 
   return superAdmin.managedAdmins;
 }
 
-export async function getAdminStatistics(superAdminId) {
+export async function getAdminStatistics(superAdminId: string) {
   const superAdmin = await SuperAdmin.findById(superAdminId);
   if (!superAdmin) throw new Error("Super admin not found");
 
@@ -254,7 +254,7 @@ export async function getAdminStatistics(superAdminId) {
     total: totalAdmins,
     active: activeAdmins,
     suspended: suspendedAdmins,
-    byRole: adminsByRole.reduce((acc, item) => {
+    byRole: adminsByRole.reduce((acc: any, item: any) => {
       acc[item._id] = item.count;
       return acc;
     }, {}),
@@ -262,7 +262,7 @@ export async function getAdminStatistics(superAdminId) {
 }
 
 // ── Login History ─────────────────────────────────────────────────────────────────────
-export async function recordLogin(superAdminId, ipAddress, userAgent, success) {
+export async function recordLogin(superAdminId: string, ipAddress: string, userAgent: string, success: boolean) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
@@ -288,7 +288,7 @@ export async function recordLogin(superAdminId, ipAddress, userAgent, success) {
   return superAdmin;
 }
 
-export async function getLoginHistory(superAdminId, limit = 50) {
+export async function getLoginHistory(superAdminId: string, limit = 50) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
