@@ -1,11 +1,11 @@
-// services/reseller.js - Phone Reseller & Repair Shop Portal
+// services/reseller.ts - Phone Reseller & Repair Shop Portal
 // Business portal for phone resellers and repair shops
 
 import { Reseller, Device, User } from "../db/index.js";
 import { getIO } from "./socket.js";
 
 // ── Reseller Management ─────────────────────────────────────────────────────────
-export async function createResellerProfile(data) {
+export async function createResellerProfile(data: any) {
   const {
     userId,
     businessName,
@@ -42,7 +42,7 @@ export async function createResellerProfile(data) {
   return reseller;
 }
 
-export async function getResellerProfile(resellerId) {
+export async function getResellerProfile(resellerId: string) {
   const reseller = await Reseller.findById(resellerId)
     .populate("user", "name email")
     .populate("inventory.device")
@@ -51,7 +51,7 @@ export async function getResellerProfile(resellerId) {
   return reseller;
 }
 
-export async function getResellerByUser(userId) {
+export async function getResellerByUser(userId: string) {
   const reseller = await Reseller.findOne({ user: userId })
     .populate("inventory.device")
     .populate("verifiedBy", "name email");
@@ -59,7 +59,7 @@ export async function getResellerByUser(userId) {
   return reseller;
 }
 
-export async function updateResellerProfile(resellerId, updates) {
+export async function updateResellerProfile(resellerId: string, updates: any) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
@@ -75,7 +75,7 @@ export async function updateResellerProfile(resellerId, updates) {
 
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      reseller[key] = updates[key];
+      (reseller as any)[key] = updates[key];
     }
   }
 
@@ -85,30 +85,30 @@ export async function updateResellerProfile(resellerId, updates) {
   return reseller;
 }
 
-export async function verifyReseller(resellerId, verifiedBy) {
+export async function verifyReseller(resellerId: string, verifiedBy: string) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  reseller.verified = true;
-  reseller.verifiedAt = new Date();
-  reseller.verifiedBy = verifiedBy;
+  (reseller as any).verified = true;
+  (reseller as any).verifiedAt = new Date();
+  (reseller as any).verifiedBy = verifiedBy;
   reseller.updatedAt = new Date();
   await reseller.save();
 
   // Notify via socket
-  getIO().to(`user:${reseller.user}`).emit("reseller_verified", {
+  getIO().to(`user:${(reseller as any).user}`).emit("reseller_verified", {
     resellerId,
-    businessName: reseller.businessName,
+    businessName: (reseller as any).businessName,
   });
 
   return reseller;
 }
 
-export async function updateResellerStatus(resellerId, status) {
+export async function updateResellerStatus(resellerId: string, status: string) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  reseller.status = status;
+  (reseller as any).status = status;
   reseller.updatedAt = new Date();
   await reseller.save();
 
@@ -116,14 +116,14 @@ export async function updateResellerStatus(resellerId, status) {
 }
 
 // ── Inventory Management ───────────────────────────────────────────────────────
-export async function addInventoryItem(resellerId, item) {
+export async function addInventoryItem(resellerId: string, item: any) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
   const device = await Device.findById(item.deviceId);
   if (!device) throw new Error("Device not found");
 
-  reseller.inventory.push({
+  (reseller as any).inventory.push({
     imei: device.imei,
     device: item.deviceId,
     status: item.status || "in_stock",
@@ -137,11 +137,11 @@ export async function addInventoryItem(resellerId, item) {
   return reseller;
 }
 
-export async function updateInventoryItem(resellerId, inventoryId, updates) {
+export async function updateInventoryItem(resellerId: string, inventoryId: string, updates: any) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  const item = reseller.inventory.id(inventoryId);
+  const item = (reseller as any).inventory.id(inventoryId);
   if (!item) throw new Error("Inventory item not found");
 
   if (updates.status) item.status = updates.status;
@@ -153,22 +153,22 @@ export async function updateInventoryItem(resellerId, inventoryId, updates) {
   return reseller;
 }
 
-export async function removeInventoryItem(resellerId, inventoryId) {
+export async function removeInventoryItem(resellerId: string, inventoryId: string) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  reseller.inventory.pull(inventoryId);
+  (reseller as any).inventory.pull(inventoryId);
   reseller.updatedAt = new Date();
   await reseller.save();
 
   return reseller;
 }
 
-export async function recordTransaction(resellerId, transaction) {
+export async function recordTransaction(resellerId: string, transaction: any) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  reseller.transactions.push({
+  (reseller as any).transactions.push({
     type: transaction.type,
     imei: transaction.imei,
     amount: transaction.amount,
@@ -182,7 +182,7 @@ export async function recordTransaction(resellerId, transaction) {
 }
 
 // ── Reseller Queries ───────────────────────────────────────────────────────────
-export async function getResellersByType(businessType) {
+export async function getResellersByType(businessType: string) {
   const resellers = await Reseller.find({ businessType })
     .populate("user", "name email")
     .sort({ createdAt: -1 });
@@ -190,7 +190,7 @@ export async function getResellersByType(businessType) {
   return resellers;
 }
 
-export async function getResellersByCountry(country) {
+export async function getResellersByCountry(country: string) {
   const resellers = await Reseller.find({ "address.country": country })
     .populate("user", "name email")
     .sort({ createdAt: -1 });
@@ -214,7 +214,7 @@ export async function getPendingVerification() {
   return resellers;
 }
 
-export async function searchResellers(query) {
+export async function searchResellers(query: string) {
   const resellers = await Reseller.find({
     $or: [
       { businessName: { $regex: query, $options: "i" } },
@@ -231,14 +231,14 @@ export async function searchResellers(query) {
 }
 
 // ── Rating & Reviews ───────────────────────────────────────────────────────────
-export async function addResellerRating(resellerId, rating, review) {
+export async function addResellerRating(resellerId: string, rating: number, review: string) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
   // Update rating (simplified - in production would store individual reviews)
-  const currentTotal = reseller.rating * reseller.reviewCount;
-  reseller.reviewCount += 1;
-  reseller.rating = (currentTotal + rating) / reseller.reviewCount;
+  const currentTotal = (reseller as any).rating * (reseller as any).reviewCount;
+  (reseller as any).reviewCount += 1;
+  (reseller as any).rating = (currentTotal + rating) / (reseller as any).reviewCount;
 
   reseller.updatedAt = new Date();
   await reseller.save();
@@ -289,11 +289,11 @@ export async function getResellerStatistics() {
     pendingVerification,
     activeResellers,
     suspendedResellers,
-    resellersByType: resellersByType.map(r => ({
+    resellersByType: resellersByType.map((r: any) => ({
       type: r._id,
       count: r.count,
     })),
-    resellersByCountry: resellersByCountry.map(r => ({
+    resellersByCountry: resellersByCountry.map((r: any) => ({
       country: r._id,
       count: r.count,
     })),
@@ -303,7 +303,7 @@ export async function getResellerStatistics() {
 }
 
 // ── Device Verification for Resellers ───────────────────────────────────────────
-export async function verifyDeviceForReseller(imei) {
+export async function verifyDeviceForReseller(imei: string) {
   const device = await Device.findOne({ imei });
   if (!device) {
     return {
@@ -313,7 +313,7 @@ export async function verifyDeviceForReseller(imei) {
   }
 
   // Check if device is blacklisted
-  const isBlacklisted = device.status === "blacklisted" || device.stolen;
+  const isBlacklisted = (device as any).status === "blacklisted" || (device as any).stolen;
 
   // Check regulatory blocks
   const { RegulatoryBlock } = await import("../db/index.js");
@@ -329,12 +329,12 @@ export async function verifyDeviceForReseller(imei) {
       imei: device.imei,
       make: device.make,
       model: device.model,
-      status: device.status,
-      stolen: device.stolen,
+      status: (device as any).status,
+      stolen: (device as any).stolen,
     },
     blacklisted: isBlacklisted,
     regulatoryBlocks: blocks.length,
-    blocks: blocks.map(b => ({
+    blocks: blocks.map((b: any) => ({
       authority: b.authority,
       blockType: b.blockType,
       blockReason: b.blockReason,
