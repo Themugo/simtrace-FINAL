@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import crypto from "crypto";
 import jwt    from "jsonwebtoken";
@@ -10,8 +10,15 @@ import { checkDeviceLimit } from "../services/billing.js";
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 // ── Luhn algorithm — validates IMEI check digit ───────────────────────────────
-function luhnValid(imei) {
+function luhnValid(imei: string): boolean {
   let sum = 0;
   for (let i = 0; i < imei.length; i++) {
     let d = parseInt(imei[imei.length - 1 - i]);
@@ -21,10 +28,8 @@ function luhnValid(imei) {
   return sum % 10 === 0;
 }
 
-
-
 // POST /api/imei/register — owner registers their device
-router.post("/register", authenticate, async (req, res, next) => {
+router.post("/register", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei:         z.string().min(15).max(17),
@@ -42,7 +47,7 @@ router.post("/register", authenticate, async (req, res, next) => {
     if (existing) return res.status(409).json({ error: "Device already registered" });
 
     // Enforce plan device limit
-    const limit = await checkDeviceLimit(req.user.id);
+    const limit = await checkDeviceLimit(req.user!.id);
     if (!limit.canAdd) {
       return res.status(402).json({
         error:       "Device limit reached for your plan",
@@ -56,7 +61,7 @@ router.post("/register", authenticate, async (req, res, next) => {
     }
 
     const deviceKey = crypto.randomBytes(32).toString("hex");
-    const device = await Device.create({ ...data, owner: req.user.id, status: "active", deviceKey });
+    const device = await Device.create({ ...data, owner: req.user!.id, status: "active", deviceKey });
 
     res.status(201).json({
       ...device.toObject(),
@@ -64,14 +69,13 @@ router.post("/register", authenticate, async (req, res, next) => {
       _keyWarning: "Store deviceKey securely on the device. It cannot be retrieved again.",
     });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-
 // POST /api/imei/report-stolen — report a device as stolen
-router.post("/report-stolen", authenticate, async (req, res, next) => {
+router.post("/report-stolen", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei:        z.string().min(15).max(17),
@@ -86,33 +90,29 @@ router.post("/report-stolen", authenticate, async (req, res, next) => {
     // Create report
     const report = await TheftReport.create({
       imei, description, policeRef,
-      reportedBy: req.user.id,
+      reportedBy: req.user!.id,
     });
 
     // Notify device owner and ops team
     await sendAlert({
       type:    "theft_report",
       imei,
-      userId:  req.user.id,
+      userId:  req.user!.id,
       message: `Device ${imei} has been reported stolen. Case #${report._id}`,
     });
 
     res.status(201).json({ reportId: report._id, message: "Device reported stolen and blacklisted" });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-
-// GET /api/imei/:imei — public lookup (IMEI check)
-// ⚠️  NEVER return owner PII to unauthenticated callers
-
-
-router.get("/my-reports", authenticate, async (req, res, next) => {
+// GET /api/imei/my-reports — all theft reports for devices owned by current user
+router.get("/my-reports", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     // Get all devices owned by user
-    const devices = await Device.find({ owner: req.user.id }).select("imei make model status _id").lean();
+    const devices = await Device.find({ owner: req.user!.id }).select("imei make model status _id").lean();
     const imeis   = devices.map(d => d.imei);
 
     // Fetch all reports in one query
@@ -127,7 +127,10 @@ router.get("/my-reports", authenticate, async (req, res, next) => {
     res.json({ reports: enriched });
   } catch (err) { next(err); }
 });
-router.get("/:imei", async (req, res, next) => {
+
+// GET /api/imei/:imei — public lookup (IMEI check)
+// ⚠️  NEVER return owner PII to unauthenticated callers
+router.get("/:imei", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     if (!/^\d{15,17}$/.test(imei)) {
@@ -140,7 +143,7 @@ router.get("/:imei", async (req, res, next) => {
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
-        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
         callerId   = payload.id;
         callerRole = payload.role;
       } catch { /* unauthenticated — fine */ }
@@ -153,7 +156,7 @@ router.get("/:imei", async (req, res, next) => {
     const isOwner = device?.owner && callerId && device.owner.toString() === callerId;
     const isAdmin = callerRole === "admin" || callerRole === "law_enforcement";
 
-    const response = {
+    const response: any = {
       imei,
       found:      !!device,
       status:     device?.status ?? "unknown",
@@ -175,9 +178,8 @@ router.get("/:imei", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-
 // PATCH /api/imei/:imei/status — admin: update device status
-router.patch("/:imei/status", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/:imei/status", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { status } = z.object({
       status: z.enum(["active", "stolen", "recovered", "blacklisted"])
@@ -199,14 +201,13 @@ router.patch("/:imei/status", authenticate, requireAdmin, async (req, res, next)
 
     res.json(device);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-
 // GET /api/imei/:imei/history — location history for a device
-router.get("/:imei/history", authenticate, async (req, res, next) => {
+router.get("/:imei/history", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 100, 500);
     const pings = await Ping.find({ imei: req.params.imei })
@@ -218,5 +219,3 @@ router.get("/:imei/history", authenticate, async (req, res, next) => {
 });
 
 export default router;
-
-// GET /api/imei/my-reports — all theft reports for devices owned by current user

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import bcrypt     from "bcryptjs";
 import crypto     from "crypto";
 import { z }      from "zod";
@@ -6,6 +6,20 @@ import { User, Subscription, PasswordReset } from "../db/index.js";
 import { signToken, authenticate }            from "../middleware/auth.js";
 
 const router = Router();
+
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
+interface SanitizedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 const registerSchema = z.object({
@@ -16,7 +30,7 @@ const registerSchema = z.object({
 });
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
-router.post("/register", async (req, res, next) => {
+router.post("/register", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, email, password, phone } = registerSchema.parse(req.body);
     if (await User.findOne({ email })) return res.status(409).json({ error: "Email already registered" });
@@ -25,13 +39,13 @@ router.post("/register", async (req, res, next) => {
     await Subscription.create({ user: user._id, plan: "free", status: "active" });
     res.status(201).json({ token: signToken(user), user: sanitize(user) });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
-router.post("/login", async (req, res, next) => {
+router.post("/login", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(req.body);
     const user = await User.findOne({ email: email.toLowerCase() });
@@ -40,47 +54,47 @@ router.post("/login", async (req, res, next) => {
     }
     res.json({ token: signToken(user), user: sanitize(user) });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── GET /api/auth/me ──────────────────────────────────────────────────────────
-router.get("/me", authenticate, async (req, res, next) => {
+router.get("/me", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const user = await User.findById(req.user.id).select("-passwordHash -apiKey");
+    const user = await User.findById(req.user!.id).select("-passwordHash -apiKey");
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) { next(err); }
 });
 
 // ── PATCH /api/auth/update-profile ───────────────────────────────────────────
-router.patch("/update-profile", authenticate, async (req, res, next) => {
+router.patch("/update-profile", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { phone, name } = z.object({
       phone: z.string().max(20).optional(),
       name:  z.string().min(2).max(80).optional(),
     }).parse(req.body);
-    const update = {};
+    const update: any = {};
     if (phone !== undefined) update.phone = phone;
     if (name  !== undefined) update.name  = name;
-    const user = await User.findByIdAndUpdate(req.user.id, update, { new: true }).select("-passwordHash -apiKey");
+    const user = await User.findByIdAndUpdate(req.user!.id, update, { new: true }).select("-passwordHash -apiKey");
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/auth/change-password ───────────────────────────────────────────
-router.post("/change-password", authenticate, async (req, res, next) => {
+router.post("/change-password", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { currentPassword, newPassword } = z.object({
       currentPassword: z.string().min(1),
       newPassword:     z.string().min(8).max(128),
     }).parse(req.body);
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user!.id);
     if (!user) return res.status(404).json({ error: "User not found" });
     if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
       return res.status(401).json({ error: "Current password is incorrect" });
@@ -89,14 +103,14 @@ router.post("/change-password", authenticate, async (req, res, next) => {
     await user.save();
     res.json({ message: "Password updated successfully" });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/auth/forgot-password ───────────────────────────────────────────
 // Generates a secure 1-hour token and sends reset link via SendGrid
-router.post("/forgot-password", async (req, res, next) => {
+router.post("/forgot-password", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = z.object({ email: z.string().email() }).parse(req.body);
     // Always respond 200 — never reveal if email is registered (anti-enumeration)
@@ -119,17 +133,17 @@ router.post("/forgot-password", async (req, res, next) => {
 
         await sendResetEmail(user.email, user.name, resetUrl);
       } catch (err) {
-        console.error("[forgot-password] Error:", err.message);
+        console.error("[forgot-password] Error:", err instanceof Error ? err.message : String(err));
       }
     });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/auth/reset-password ────────────────────────────────────────────
-router.post("/reset-password", async (req, res, next) => {
+router.post("/reset-password", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { token, newPassword } = z.object({
       token:       z.string().length(64),
@@ -152,17 +166,17 @@ router.post("/reset-password", async (req, res, next) => {
     // Sign new token so user is logged in immediately after reset
     res.json({ message: "Password reset successfully.", token: signToken(user), user: sanitize(user) });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function sanitize(user) {
+function sanitize(user: any): SanitizedUser {
   return { id: user._id, name: user.name, email: user.email, role: user.role };
 }
 
-async function sendResetEmail(to, name, resetUrl) {
+async function sendResetEmail(to: string, name: string, resetUrl: string): Promise<void> {
   if (!process.env.SENDGRID_API_KEY) {
     // Dev fallback — log to console
     console.log(`[Password Reset] Link for ${to}: ${resetUrl}`);
@@ -208,13 +222,12 @@ async function sendResetEmail(to, name, resetUrl) {
 
 // ── POST /api/auth/refresh — extend session with a fresh token ────────────────
 // Client calls this before the 7d token expires to get a new one
-router.post("/refresh", authenticate, async (req, res, next) => {
+router.post("/refresh", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const user = await User.findById(req.user.id).select("-passwordHash -apiKey");
+    const user = await User.findById(req.user!.id).select("-passwordHash -apiKey");
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ token: signToken(user), user: sanitize(user) });
   } catch (err) { next(err); }
 });
-
 
 export default router;

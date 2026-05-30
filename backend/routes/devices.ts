@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z }      from "zod";
 import { Device, Ping, TheftReport } from "../db/index.js";
 import { authenticate, requireAdmin }  from "../middleware/auth.js";
@@ -6,10 +6,17 @@ import { computeRiskScore }            from "../services/intelligence.js";
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 // GET /api/devices — list devices owned by current user (admin sees all)
-router.get("/", authenticate, async (req, res, next) => {
+router.get("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const filter  = req.user.role === "admin" ? {} : { owner: req.user.id };
+    const filter  = req.user!.role === "admin" ? {} : { owner: req.user!.id };
     const devices = await Device.find(filter)
       .populate("owner", "name email")
       .sort({ lastSeen: -1 });
@@ -19,7 +26,7 @@ router.get("/", authenticate, async (req, res, next) => {
 
 // GET /api/devices/public-stats — public homepage stats (no auth required)
 // ⚠️  MUST be before /:id or "public-stats" gets matched as an id
-router.get("/public-stats", async (req, res, next) => {
+router.get("/public-stats", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const [total, recovered, recentPings] = await Promise.all([
       Device.countDocuments(),
@@ -32,7 +39,7 @@ router.get("/public-stats", async (req, res, next) => {
 
 // GET /api/devices/stats — admin dashboard stats
 // ⚠️  MUST be before /:id or "stats" gets matched as an id
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const [total, stolen, recovered, blacklisted, recentPings, openReports] = await Promise.all([
       Device.countDocuments(),
@@ -48,7 +55,7 @@ router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
 
 // PATCH /api/devices/bulk-status — admin bulk status update
 // ⚠️  MUST be before /:id
-router.patch("/bulk-status", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/bulk-status", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { ids, status } = z.object({
       ids:    z.array(z.string()).min(1).max(100),
@@ -58,19 +65,19 @@ router.patch("/bulk-status", authenticate, requireAdmin, async (req, res, next) 
     const result = await Device.updateMany({ _id: { $in: ids } }, { status });
     res.json({ updated: result.modifiedCount, status });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // GET /api/devices/:id — single device detail with riskScore, lastPings, reports
-router.get("/:id", authenticate, async (req, res, next) => {
+router.get("/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const device = await Device.findById(req.params.id).populate("owner", "name email");
     if (!device) return res.status(404).json({ error: "Device not found" });
 
-    const isOwner = device.owner?._id.toString() === req.user.id;
-    if (!isOwner && req.user.role !== "admin" && req.user.role !== "law_enforcement") {
+    const isOwner = device.owner?._id.toString() === req.user!.id;
+    if (!isOwner && req.user!.role !== "admin" && req.user!.role !== "law_enforcement") {
       return res.status(403).json({ error: "Access denied" });
     }
 
@@ -87,13 +94,13 @@ router.get("/:id", authenticate, async (req, res, next) => {
 });
 
 // DELETE /api/devices/:id — remove a device (owner or admin)
-router.delete("/:id", authenticate, async (req, res, next) => {
+router.delete("/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const device = await Device.findById(req.params.id);
     if (!device) return res.status(404).json({ error: "Device not found" });
 
-    const isOwner = device.owner?.toString() === req.user.id;
-    if (!isOwner && req.user.role !== "admin") {
+    const isOwner = device.owner?.toString() === req.user!.id;
+    if (!isOwner && req.user!.role !== "admin") {
       return res.status(403).json({ error: "Access denied" });
     }
 
@@ -103,13 +110,13 @@ router.delete("/:id", authenticate, async (req, res, next) => {
 });
 
 // GET /api/devices/:id/evidence — photos captured by the mobile agent
-router.get("/:id/evidence", authenticate, async (req, res, next) => {
+router.get("/:id/evidence", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const device = await Device.findById(req.params.id).lean();
     if (!device) return res.status(404).json({ error: "Device not found" });
 
-    const isOwner = device.owner?.toString() === req.user.id;
-    if (!isOwner && req.user.role !== "admin" && req.user.role !== "law_enforcement") {
+    const isOwner = device.owner?.toString() === req.user!.id;
+    if (!isOwner && req.user!.role !== "admin" && req.user!.role !== "law_enforcement") {
       return res.status(403).json({ error: "Access denied" });
     }
 

@@ -1,15 +1,22 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { Alert, Device } from "../db/index.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 // GET /api/alerts/unread-count  ← MUST be before /:id
-router.get("/unread-count", authenticate, async (req, res, next) => {
+router.get("/unread-count", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const filter = { read: false };
-    if (req.user.role !== "admin") {
-      const myDevices = await Device.find({ owner: req.user.id }).select("imei").lean();
+    const filter: any = { read: false };
+    if (req.user!.role !== "admin") {
+      const myDevices = await Device.find({ owner: req.user!.id }).select("imei").lean();
       filter.imei = { $in: myDevices.map(d => d.imei) };
     }
     const count = await Alert.countDocuments(filter);
@@ -18,7 +25,7 @@ router.get("/unread-count", authenticate, async (req, res, next) => {
 });
 
 // PATCH /api/alerts/read-all  ← MUST be before /:id
-router.patch("/read-all", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/read-all", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     await Alert.updateMany({ read: false }, { read: true });
     res.json({ message: "All alerts marked read" });
@@ -26,18 +33,18 @@ router.patch("/read-all", authenticate, requireAdmin, async (req, res, next) => 
 });
 
 // GET /api/alerts — paginated alert list (admin sees all, user sees own device alerts)
-router.get("/", authenticate, async (req, res, next) => {
+router.get("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const page   = Math.max(1, Number(req.query.page) || 1);
     const limit  = Math.min(Number(req.query.limit) || 50, 200);
-    const imei   = req.query.imei;
-    const type   = req.query.type;
+    const imei   = req.query.imei as string;
+    const type   = req.query.type as string;
     const unread = req.query.unread === "true";
 
-    const filter = {};
-    if (req.user.role !== "admin") {
+    const filter: any = {};
+    if (req.user!.role !== "admin") {
       // non-admins only see alerts for their own devices
-            const myDevices  = await Device.find({ owner: req.user.id }).select("imei").lean();
+      const myDevices  = await Device.find({ owner: req.user!.id }).select("imei").lean();
       filter.imei = { $in: myDevices.map(d => d.imei) };
     }
     if (imei)  filter.imei = imei;
@@ -54,7 +61,7 @@ router.get("/", authenticate, async (req, res, next) => {
 });
 
 // PATCH /api/alerts/:id/read  ← after named routes
-router.patch("/:id/read", authenticate, async (req, res, next) => {
+router.patch("/:id/read", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const alert = await Alert.findByIdAndUpdate(req.params.id, { read: true }, { new: true });
     if (!alert) return res.status(404).json({ error: "Alert not found" });

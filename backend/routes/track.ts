@@ -1,21 +1,26 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import crypto from "crypto";
 import { Ping, Device } from "../db/index.js";
 import { getIO } from "../services/socket.js";
 import { runIntelligence } from "../services/intelligence.js";
 import pino from "pino";
+
 const log = pino({ level: "info" }).child({ service: "track" });
 
 const router = Router();
+
+interface PingRequest extends Request {
+  pingVerified?: boolean;
+}
 
 // ── Device key auth middleware ─────────────────────────────────────────────────
 // Mobile agent must send X-Device-Key: <deviceKey> in every ping request.
 // The key is returned once on device registration (POST /api/imei/register).
 // If the key is missing or wrong, we still accept the ping but mark it unverified
 // so intelligence can weight it lower. In a stricter mode, set TRACK_REQUIRE_AUTH=true.
-async function deviceKeyAuth(req, res, next) {
-  const key  = req.headers["x-device-key"];
+async function deviceKeyAuth(req: PingRequest, res: Response, next: NextFunction) {
+  const key  = req.headers["x-device-key"] as string;
   const imei = req.body?.imei;
 
   if (!key || !imei) {
@@ -58,7 +63,7 @@ const pingSchema = z.object({
 });
 
 // POST /api/track — called by the mobile agent on the tracked device
-router.post("/", deviceKeyAuth, async (req, res, next) => {
+router.post("/", deviceKeyAuth, async (req: PingRequest, res: Response, next: NextFunction) => {
   try {
     const data = pingSchema.parse(req.body);
 
@@ -107,7 +112,7 @@ router.post("/", deviceKeyAuth, async (req, res, next) => {
 
     res.json({ success: true, pingId: ping._id });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });

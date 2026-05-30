@@ -1,5 +1,5 @@
-// routes/publicApi.js - Public API Key Management endpoints
-import { Router } from "express";
+// routes/publicApi.ts - Public API Key Management endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -19,8 +19,15 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 // ── API Key Management ───────────────────────────────────────────────────────────
-router.post("/keys", authenticate, async (req, res, next) => {
+router.post("/keys", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       keyName: z.string().min(1).max(100),
@@ -33,17 +40,17 @@ router.post("/keys", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const apiKey = await createApiKey({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(apiKey);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/keys/:id", authenticate, async (req, res, next) => {
+router.get("/keys/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const key = await getApiKey(id);
@@ -56,22 +63,22 @@ router.get("/keys/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/keys", authenticate, async (req, res, next) => {
+router.get("/keys", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { organizationId } = req.query;
 
     let keys;
     if (organizationId) {
-      keys = await getApiKeysByOrganization(organizationId);
+      keys = await getApiKeysByOrganization(organizationId as string);
     } else {
-      keys = await getApiKeysByUser(req.user.id);
+      keys = await getApiKeysByUser(req.user!.id);
     }
 
     res.json({ keys, count: keys.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/keys/:id", authenticate, async (req, res, next) => {
+router.patch("/keys/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const key = await updateApiKey(id, req.body);
@@ -79,7 +86,7 @@ router.patch("/keys/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/keys/:id/revoke", authenticate, async (req, res, next) => {
+router.post("/keys/:id/revoke", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const key = await revokeApiKey(id);
@@ -87,7 +94,7 @@ router.post("/keys/:id/revoke", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.delete("/keys/:id", authenticate, async (req, res, next) => {
+router.delete("/keys/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const key = await deleteApiKey(id);
@@ -96,7 +103,7 @@ router.delete("/keys/:id", authenticate, async (req, res, next) => {
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getApiKeyStatistics();
     res.json(stats);
@@ -104,7 +111,7 @@ router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── Available Scopes ─────────────────────────────────────────────────────────────
-router.get("/scopes", async (req, res, next) => {
+router.get("/scopes", async (req: Request, res: Response, next: NextFunction) => {
   try {
     res.json(API_SCOPES);
   } catch (err) { next(err); }

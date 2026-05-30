@@ -1,6 +1,6 @@
 import express from "express";
 import Stripe from "stripe";
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { Subscription, Payment } from "../db/index.js";
@@ -11,34 +11,42 @@ import {
 } from "../services/billing.js";
 
 const router = Router();
+
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 // ── Public ────────────────────────────────────────────────────────────────────
-router.get("/plans", (req, res) => res.json({ plans: PLANS }));
+router.get("/plans", (req: Request, res: Response) => res.json({ plans: PLANS }));
 
 // ── Authenticated ─────────────────────────────────────────────────────────────
-router.get("/subscription", authenticate, async (req, res, next) => {
+router.get("/subscription", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const sub  = await getUserSubscription(req.user.id);
+    const sub  = await getUserSubscription(req.user!.id);
     const plan = PLANS.find(p => p.id === sub.plan) || PLANS[0];
-    const limit = await checkDeviceLimit(req.user.id);
+    const limit = await checkDeviceLimit(req.user!.id);
     res.json({ ...sub.toObject(), planDetails: plan, ...limit });
   } catch (err) { next(err); }
 });
 
-router.get("/device-limit", authenticate, async (req, res, next) => {
-  try { res.json(await checkDeviceLimit(req.user.id)); }
+router.get("/device-limit", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try { res.json(await checkDeviceLimit(req.user!.id)); }
   catch (err) { next(err); }
 });
 
-router.get("/invoices", authenticate, async (req, res, next) => {
+router.get("/invoices", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const invoices = await Payment.find({ user: req.user.id, type: { $ne: "api_call" } })
+    const invoices = await Payment.find({ user: req.user!.id, type: { $ne: "api_call" } })
       .sort({ createdAt: -1 }).limit(50).lean();
     res.json(invoices);
   } catch (err) { next(err); }
 });
 
 // ── M-Pesa STK Push — plan upgrade ───────────────────────────────────────────
-router.post("/upgrade-mpesa", authenticate, async (req, res, next) => {
+router.post("/upgrade-mpesa", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { planId, phone } = z.object({
       planId: z.enum(["pro", "business"]),
@@ -50,7 +58,7 @@ router.post("/upgrade-mpesa", authenticate, async (req, res, next) => {
 
     // Store intended plan on subscription — confirmed on callback
     await Subscription.findOneAndUpdate(
-      { user: req.user.id },
+      { user: req.user!.id },
       { plan: planId, mpesaPhone: phone, updatedAt: new Date() },
       { upsert: true }
     );
@@ -60,22 +68,22 @@ router.post("/upgrade-mpesa", authenticate, async (req, res, next) => {
       amountKES:   plan.priceKES,
       description: `SimTrace ${plan.name} - 1 month`,
       reference:   `ST-${planId.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`,
-      userId:      req.user.id,
+      userId:      req.user!.id,
       paymentType: "subscription",
     });
 
     res.json({ message: "STK push sent. Check your phone.", ...result });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── M-Pesa STK Push — extra device slot ──────────────────────────────────────
-router.post("/extra-device-mpesa", authenticate, async (req, res, next) => {
+router.post("/extra-device-mpesa", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { phone } = z.object({ phone: z.string().min(9) }).parse(req.body);
-    const sub  = await getUserSubscription(req.user.id);
+    const sub  = await getUserSubscription(req.user!.id);
     const plan = PLANS.find(p => p.id === sub.plan) || PLANS[0];
 
     if (!plan.extraDeviceKES) {
@@ -87,20 +95,20 @@ router.post("/extra-device-mpesa", authenticate, async (req, res, next) => {
       amountKES:   plan.extraDeviceKES,
       description: "SimTrace extra device slot",
       reference:   `ST-DEVICE-${Date.now().toString(36).toUpperCase()}`,
-      userId:      req.user.id,
+      userId:      req.user!.id,
       paymentType: "extra_device",
     });
 
     res.json({ message: `STK push sent — KES ${plan.extraDeviceKES} for 1 extra device slot`, ...result });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Stripe payment intent ─────────────────────────────────────────────────────
 
-router.get("/mpesa-status/:checkoutId", authenticate, async (req, res, next) => {
+router.get("/mpesa-status/:checkoutId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { checkoutId } = req.params;
 
@@ -123,29 +131,29 @@ router.get("/mpesa-status/:checkoutId", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.post("/upgrade-stripe", authenticate, async (req, res, next) => {
+router.post("/upgrade-stripe", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { planId } = z.object({ planId: z.enum(["pro", "business"]) }).parse(req.body);
     const plan = PLANS.find(p => p.id === planId);
     const result = await createStripeIntent({
       amountUSD:   plan.priceUSD,
-      userId:      req.user.id,
+      userId:      req.user!.id,
       description: `SimTrace ${plan.name}`,
       planId,
     });
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Stripe webhook — MUST be mounted with express.raw() in server.js ──────────
-router.post("/stripe-webhook", express.raw({ type: "application/json" }), async (req, res) => {
+router.post("/stripe-webhook", express.raw({ type: "application/json" }), async (req: Request, res: Response) => {
   const sig    = req.headers["stripe-signature"];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-  let event;
+  let event: any;
 
   try {
     if (secret && sig && stripe) {
@@ -154,7 +162,7 @@ router.post("/stripe-webhook", express.raw({ type: "application/json" }), async 
       event = JSON.parse(req.body.toString());
     }
   } catch (err) {
-    return res.status(400).json({ error: `Webhook error: ${err.message}` });
+    return res.status(400).json({ error: `Webhook error: ${err instanceof Error ? err.message : String(err)}` });
   }
 
   try {
@@ -185,14 +193,14 @@ router.post("/stripe-webhook", express.raw({ type: "application/json" }), async 
 });
 
 // ── Admin revenue ─────────────────────────────────────────────────────────────
-router.get("/revenue", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/revenue", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try { res.json(await getRevenueStats()); }
   catch (err) { next(err); }
 });
 
 // ── M-Pesa callback — Safaricom posts here ────────────────────────────────────
 // IP whitelist enforced in server.js via mpesaIpWhitelist middleware
-router.post("/mpesa-callback", async (req, res) => {
+router.post("/mpesa-callback", async (req: Request, res: Response) => {
   try {
     await processMpesaCallback(req.body);
     res.json({ ResultCode: 0, ResultDesc: "Success" });

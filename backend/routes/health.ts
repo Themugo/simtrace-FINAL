@@ -1,11 +1,22 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 
 const router = Router();
 
+interface HealthCheck {
+  uptime: number;
+  message: string;
+  timestamp: number;
+  environment: string;
+  services: {
+    database: string;
+    redis: string;
+  };
+}
+
 // GET /api/health - Health check endpoint
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const healthCheck = {
+    const healthCheck: HealthCheck = {
       uptime: process.uptime(),
       message: 'OK',
       timestamp: Date.now(),
@@ -48,7 +59,7 @@ router.get('/', async (req, res) => {
       uptime: process.uptime(),
       message: 'ERROR',
       timestamp: Date.now(),
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });
