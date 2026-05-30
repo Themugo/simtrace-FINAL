@@ -1,18 +1,19 @@
-# Enterprise User Dashboard Prototype
+# Business User Dashboard Prototype (Enterprise Plan)
 
 ## Overview
-Dashboard prototype for enterprise users with advanced features and integrations.
+Dashboard prototype for business users on Enterprise plan (1,000 devices) with advanced features.
 
 ## Dashboard Layout
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  [Logo] SimTrace Enterprise  [Search] [Notifications] [Profile]│
+│  [Logo] SimTrace Business  [Search] [Notifications] [Profile]│
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  Executive Dashboard - GlobalTech Inc.               │    │
-│  │  Enterprise Plan | 5,234 devices | 150 team members │    │
+│  │  Enterprise Plan ($499/month) | 5,234/1,000 devices used│    │
+│  │  150 team members | [Upgrade to Unlimited]            │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
@@ -32,6 +33,19 @@ Dashboard prototype for enterprise users with advanced features and integrations
 │  │  │ +8% this    │  │ -5% this    │  │ +2% this    │  │    │
 │  │  │ month       │  │ week        │  │ month       │  │    │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘  │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  Plan Usage (Over Limit - Upgrade Required)           │    │
+│  │                                                      │    │
+│  │  Devices: 5,234/1,000 used (523%) ████████████████████│    │
+│  │  Team Members: 150/50 used (300%) ████████████████████│    │
+│  │  API Calls: 45,678/50,000 used (91%) ████████████████░░│    │
+│  │                                                      │    │
+│  │  ⚠️  You have exceeded your plan limits.              │    │
+│  │      Upgrade to Unlimited plan for unrestricted access │    │
+│  │                                                      │    │
+│  │  [Upgrade to Unlimited Plan - Custom Pricing]         │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │

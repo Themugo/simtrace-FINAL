@@ -1,7 +1,7 @@
 # Business User Dashboard Prototype
 
 ## Overview
-Dashboard prototype for business users with multiple devices and team members.
+Dashboard prototype for business users with tiered plans (Starter/Professional/Business/Enterprise/Unlimited).
 
 ## Dashboard Layout
 
@@ -12,8 +12,9 @@ Dashboard prototype for business users with multiple devices and team members.
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  Welcome back, Sarah!                               │    │
-│  │  Acme Corp - Business Plan                         │    │
-│  │  25 devices tracked, 5 team members                │    │
+│  │  Acme Corp - Professional Plan ($79/month)         │    │
+│  │  25/50 devices used, 5 team members                 │    │
+│  │  [Upgrade Plan]                                      │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 │  ┌──────────────────────┐  ┌──────────────────────┐        │
@@ -24,8 +25,24 @@ Dashboard prototype for business users with multiple devices and team members.
 │  │  [Invite Member]     │  │  Lisa reported theft  │        │
 │  │  [Generate Report]   │  │  Tom updated device    │        │
 │  │  [View All Devices]  │  │    assignment          │        │
-│  │                      │  │                      │        │
+│  │  [Upgrade Plan]      │  │                      │        │
 │  └──────────────────────┘  └──────────────────────┘        │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  Plan Usage                                         │    │
+│  │                                                      │    │
+│  │  Devices: 25/50 used (50%) ████████░░░░░░░░░░░░░░░░░  │    │
+│  │  Team Members: 5/10 used (50%) ████████░░░░░░░░░░░░░░░░░  │    │
+│  │  API Calls: 1,234/10,000 used (12%) ██░░░░░░░░░░░░░░░░░░  │    │
+│  │                                                      │    │
+│  │  Available Plans:                                   │    │
+│  │  • Starter (10 devices) - $29/month                 │    │
+│  │  • Professional (50 devices) - $79/month [Current]  │    │
+│  │  • Business (250 devices) - $199/month              │    │
+│  │  • Enterprise (1,000 devices) - $499/month           │    │
+│  │  • Unlimited (unlimited devices) - Custom           │    │
+│  │                                                      │    │
+│  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │  Device Overview                                    │    │
@@ -212,10 +229,11 @@ Dashboard prototype for business users with multiple devices and team members.
 │  │                                                      │    │
 │  │  Billing                                             │    │
 │  │  ┌─────────────────────────────────────────────┐    │    │
-│  │  │ Plan: Business ($49/month)                   │    │    │
-│  │  │ Devices: 25/100 used                         │    │    │
+│  │  │ Current Plan: Professional ($79/month)       │    │    │
+│  │  │ Devices: 25/50 used                         │    │    │
 │  │  │ Team Members: 5/10 used                      │    │    │
 │  │  │ Next Billing: February 1, 2024               │    │    │
+│  │  │ [Upgrade Plan] [Downgrade Plan]              │    │    │
 │  │  │ [Manage Subscription] [View Invoices]        │    │    │
 │  │  └─────────────────────────────────────────────┘    │    │
 │  │                                                      │    │

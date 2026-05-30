@@ -9,8 +9,8 @@ This directory contains UI/UX prototypes for the SimTrace platform.
 
 **Contents:**
 - Individual User (Device Owner)
-- Business User (Small Business)
-- Enterprise User (Large Organization)
+- Business User (Tiered Plans - Starter/Professional/Business/Enterprise/Unlimited)
+- Law Enforcement User (Agency-wide access)
 - Telecom User (Telecom Provider)
 - Admin User (System Administrator)
 - Support User (Customer Support)
@@ -32,6 +32,8 @@ This directory contains UI/UX prototypes for the SimTrace platform.
 - Two-Factor Authentication (2FA)
 - Password Recovery
 - Sign Up Flow
+- Business Login
+- Law Enforcement Login
 - Admin Login
 
 **Use For:**
@@ -61,18 +63,27 @@ This directory contains UI/UX prototypes for the SimTrace platform.
 ---
 
 ### 4. Business User Dashboard (`business-user-dashboard.md`)
-**Purpose:** Dashboard prototype for business users
+**Purpose:** Dashboard prototype for business users with tiered plans
 
 **Contents:**
-- Main Dashboard
+- Main Dashboard with plan usage
 - Device Management Page
 - Team Management Page
 - Reports Page
-- Settings Page
+- Settings with plan management
+
+**Plans:**
+- Starter: 10 devices, $29/month
+- Professional: 50 devices, $79/month
+- Business: 250 devices, $199/month
+- Enterprise: 1,000 devices, $499/month
+- Unlimited: Unlimited devices, custom pricing
 
 **Use For:**
 - Designing business user interface
-- Implementing team collaboration features
+- Implementing tiered pricing model
+- Plan upgrade/downgrade flows
+- Team collaboration features
 - Report generation
 
 ---

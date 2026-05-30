@@ -36,14 +36,21 @@ This document defines the user personas for the SimTrace platform.
 
 ---
 
-### 2. Business User (Small Business)
+### 2. Business User (Tiered Plans)
 
 **Profile:**
 - **Name:** Sarah Johnson
 - **Role:** Business owner with company devices
 - **Use Case:** Track company devices, manage fleet, monitor usage
-- **Devices:** 10-50 devices
-- **Technical Skill:** Intermediate
+- **Devices:** Variable based on plan (10-10,000+ devices)
+- **Technical Skill:** Intermediate to Advanced
+
+**Plans:**
+- **Starter:** 10 devices, $29/month
+- **Professional:** 50 devices, $79/month
+- **Business:** 250 devices, $199/month
+- **Enterprise:** 1,000 devices, $499/month
+- **Unlimited:** Unlimited devices, custom pricing
 
 **Goals:**
 - Track all company devices
@@ -51,12 +58,14 @@ This document defines the user personas for the SimTrace platform.
 - Manage device assignments
 - Generate reports
 - Set up alerts
+- Scale as business grows
 
 **Pain Points:**
 - Managing multiple devices
 - Tracking device assignments
 - Generating reports
 - Understanding analytics
+- Scaling with growth
 
 **Dashboard Needs:**
 - Device list with status
@@ -65,42 +74,43 @@ This document defines the user personas for the SimTrace platform.
 - Report generation
 - Bulk operations
 - Team management
+- Plan management and upgrades
 
 ---
 
-### 3. Enterprise User (Large Organization)
+### 3. Law Enforcement User
 
 **Profile:**
-- **Name:** Michael Chen
-- **Role:** IT Manager at large organization
-- **Use Case:** Enterprise device management, compliance, security
-- **Devices:** 100-10,000 devices
-- **Technical Skill:** Advanced
+- **Name:** Detective James Wilson
+- **Role:** Law enforcement officer
+- **Use Case:** Track stolen devices, investigate crimes, coordinate with other agencies
+- **Devices:** Unlimited (agency-wide access)
+- **Technical Skill:** Intermediate
 
 **Goals:**
-- Enterprise-wide device tracking
-- Compliance reporting
-- Security monitoring
-- Integration with existing systems
-- Advanced analytics
-- Custom workflows
+- Track stolen devices
+- Investigate device-related crimes
+- Coordinate with other agencies
+- Generate reports for cases
+- Access historical data
+- Real-time alerts on stolen devices
 
 **Pain Points:**
-- Scalability issues
-- Integration complexity
-- Compliance requirements
-- Security concerns
-- Custom reporting needs
+- Data sharing between agencies
+- Real-time tracking needs
+- Legal compliance
+- Evidence preservation
+- Case management integration
 
 **Dashboard Needs:**
-- Advanced device management
-- Compliance dashboards
-- Security monitoring
-- API access
-- Custom reports
-- Integration settings
-- Role-based access control
-- Audit logs
+- Stolen device tracking
+- Case management integration
+- Agency coordination tools
+- Legal compliance features
+- Evidence preservation
+- Real-time alerts
+- Report generation for court
+- Agency-wide search
 
 ---
 
@@ -250,7 +260,7 @@ This document defines the user personas for the SimTrace platform.
    - Visit simtrace.site/business
    - Click "Sign Up for Business"
    - Enter company details
-   - Select plan
+   - Select plan (Starter/Professional/Business/Enterprise/Unlimited)
    - Complete registration
 
 2. **Invite Team**
@@ -265,7 +275,7 @@ This document defines the user personas for the SimTrace platform.
    - Enter device details
    - Assign to team member
    - Save device
-   - Repeat for multiple devices
+   - Repeat for multiple devices (or use bulk import)
 
 4. **Monitor Devices**
    - View device dashboard
@@ -273,7 +283,13 @@ This document defines the user personas for the SimTrace platform.
    - View location history
    - Set up alerts
 
-5. **Generate Reports**
+5. **Scale Plan**
+   - Monitor device usage
+   - When approaching plan limit, upgrade plan
+   - Select higher tier for more devices
+   - Continue operations seamlessly
+
+6. **Generate Reports**
    - Go to Reports
    - Select report type
    - Set date range
@@ -282,42 +298,42 @@ This document defines the user personas for the SimTrace platform.
 
 ---
 
-### Enterprise User Journey
+### Law Enforcement User Journey
 
-1. **Contact Sales**
-   - Visit simtrace.site/enterprise
-   - Contact sales team
-   - Discuss requirements
-   - Get custom quote
-   - Sign contract
+1. **Agency Registration**
+   - Visit simtrace.site/law-enforcement
+   - Submit agency credentials
+   - Verify agency status
+   - Complete registration
+   - Receive agency account
 
-2. **Onboarding**
-   - Work with onboarding team
-   - Configure integration
-   - Set up SSO
-   - Configure RBAC
-   - Train team
+2. **Case Setup**
+   - Create new case
+   - Enter case details
+   - Add case number
+   - Set case priority
+   - Assign to officer
 
-3. **Integrate Systems**
-   - Access API documentation
-   - Generate API keys
-   - Implement integration
-   - Test integration
-   - Go live
+3. **Add Stolen Devices**
+   - Add device to case
+   - Enter IMEI and details
+   - Mark as stolen
+   - Set up alerts
+   - Share with other agencies
 
-4. **Manage Devices**
-   - Use bulk import
-   - Configure device groups
-   - Set up policies
-   - Monitor compliance
-   - Generate reports
+4. **Track Devices**
+   - Monitor device location
+   - View location history
+   - Set up geofences
+   - Receive real-time alerts
+   - Coordinate with other agencies
 
-5. **Monitor Security**
-   - View security dashboard
-   - Review alerts
-   - Investigate incidents
-   - Update policies
-   - Generate compliance reports
+5. **Generate Reports**
+   - Generate case report
+   - Include device tracking data
+   - Export for court
+   - Share with prosecutors
+   - Archive case
 
 ---
 
@@ -377,12 +393,14 @@ This document defines the user personas for the SimTrace platform.
 - Usage analytics
 - Alerts and notifications
 - Quick actions
+- Plan usage meter
 
 **Devices Page**
 - Device list with filters
 - Bulk operations
 - Device assignments
 - Device groups
+- Plan limit indicator
 
 **Team Management**
 - Team member list
@@ -399,49 +417,53 @@ This document defines the user personas for the SimTrace platform.
 **Settings**
 - Company settings
 - Billing management
+- Plan management and upgrades
 - Integration settings
 - Security settings
 
-### Enterprise User Interface
+### Law Enforcement Interface
 
 **Dashboard**
-- Executive overview
-- Key metrics
-- Compliance status
-- Security alerts
-- System health
+- Active cases overview
+- Stolen device tracking
+- Agency coordination
+- Real-time alerts
+- Case priority indicators
 
-**Device Management**
-- Advanced device list
-- Device groups
-- Bulk operations
-- Policy management
-- Compliance tracking
+**Case Management**
+- Case list with status
+- Case details and evidence
+- Device tracking per case
+- Agency collaboration
+- Legal compliance tools
 
-**Analytics**
-- Advanced analytics
-- Custom dashboards
-- Data export
-- API usage
+**Device Tracking**
+- Stolen device database
+- Real-time location tracking
+- Geofence alerts
+- Agency-wide search
+- Historical tracking data
 
-**Security**
-- Security monitoring
-- Access logs
-- Audit trails
-- Threat detection
-- Compliance reports
+**Agency Coordination**
+- Inter-agency communication
+- Shared device lists
+- Alert sharing
+- Case collaboration
+- Evidence sharing
 
-**Integrations**
-- API management
-- Webhook configuration
-- SSO settings
-- Third-party integrations
+**Reports**
+- Case reports for court
+- Device tracking reports
+- Agency activity reports
+- Legal compliance reports
+- Export for prosecution
 
 **Settings**
-- Enterprise settings
-- RBAC configuration
-- Compliance settings
-- Billing management
+- Agency settings
+- Officer management
+- Legal compliance configuration
+- Evidence preservation settings
+- Agency integration settings
 
 ---
 
@@ -479,6 +501,16 @@ This document defines the user personas for the SimTrace platform.
 - Chinese (Simplified)
 - Japanese
 - Arabic
+
+### Law Enforcement Specific Features
+
+- Case management integration
+- Evidence preservation
+- Legal compliance (chain of custody)
+- Inter-agency data sharing
+- Court-ready reporting
+- Secure communication channels
+- Audit trails for legal proceedings
 
 ### Localization
 

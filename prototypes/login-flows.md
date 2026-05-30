@@ -63,7 +63,7 @@ This document defines the login and authentication flows for the SimTrace platfo
 │                                         │
 │  [        Sign In        ]             │
 │                                         │
-│  Need a business account? Contact sales │
+│  Need a business account? Sign up       │
 │                                         │
 └─────────────────────────────────────────┘
 ```
@@ -74,6 +74,41 @@ This document defines the login and authentication flows for the SimTrace platfo
 3. System validates credentials
 4. Checks if account is active business account
 5. If valid, redirect to business dashboard
+6. If invalid, show error message
+
+---
+
+### Law Enforcement Login
+
+**Screen 1: Login Page**
+
+```
+┌─────────────────────────────────────────┐
+│  [Logo] SimTrace Law Enforcement        │
+├─────────────────────────────────────────┤
+│                                         │
+│  Agency Login                            │
+│                                         │
+│  Agency Email: [_______________]        │
+│  Agency ID: [_________________]          │
+│  Password: [_________________]          │
+│                                         │
+│  [ ] Remember me                        │
+│  Forgot password?                       │
+│                                         │
+│  [        Sign In        ]             │
+│                                         │
+│  Need agency access? Register agency    │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+**Flow:**
+1. User enters agency email, agency ID, and password
+2. Clicks "Sign In"
+3. System validates credentials and agency ID
+4. Checks if agency is verified and active
+5. If valid, redirect to law enforcement dashboard
 6. If invalid, show error message
 
 ---
