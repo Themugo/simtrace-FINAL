@@ -163,7 +163,7 @@ export default function AddDeviceScreen() {
           <Text style={styles.infoText}>
             • Dial *#06# on your phone
             • Check the box your device came in
-            • Go to Settings > About Phone on your device
+            • Go to Settings &gt; About Phone on your device
           </Text>
         </View>
       </View>

@@ -1,6 +1,7 @@
 // ── Digital Twin Device Model ───────────────────────────────────────────────────────
 // Persistent device profiles for predictive AI and anomaly detection
 
+// @ts-ignore - Import from JS file
 import { DeviceLocation, TrackingEvent } from '../../db/index.js';
 
 export interface DeviceDigitalTwin {

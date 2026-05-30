@@ -16,13 +16,15 @@ export default {
   transformIgnorePatterns: [
     'node_modules/(?!(.*\\.mjs$))',
   ],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: ['**/__tests__/**/*.ts', '**/__tests__/**/*.js', '**/?(*.)+(spec|test).ts', '**/?(*.)+(spec|test).js'],
   collectCoverageFrom: [
     'routes/**/*.js',
     'services/**/*.js',
     'middleware/**/*.js',
     '!**/*.test.ts',
     '!**/*.spec.ts',
+    '!**/*.test.js',
+    '!**/*.spec.js',
   ],
   coverageThreshold: {
     global: {

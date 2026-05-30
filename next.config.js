@@ -15,10 +15,10 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   experimental: {
     optimizePackageImports: ['leaflet', 'react-leaflet', 'zustand'],
