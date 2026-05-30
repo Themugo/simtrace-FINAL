@@ -29,9 +29,8 @@ jobs:
         run: npm install --prefer-offline
 
       - name: Check for syntax errors
-        run: node --input-type=module -e "
-          import('./server.js').catch(e => { console.error(e); process.exit(1); })
-        " || true
+        run: |
+          node --input-type=module -e "import('./server.js').catch(e => { console.error(e); process.exit(1); })" || exit 0
         env:
           MONGO_URI: mongodb://localhost:27017/simtrace_test
           JWT_SECRET: test_secret_for_ci_only_do_not_use
@@ -40,7 +39,7 @@ jobs:
 
       - name: Verify all route files parse
         run: |
-          for f in routes/*.js services/*.js middleware/*.js; do
+          for f in routes/*.ts services/*.ts middleware/*.ts; do
             node --input-type=module -e "import('./${f}')" 2>&1 | grep -v "^$" || true
           done
 
