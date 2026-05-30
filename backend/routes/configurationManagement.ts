@@ -1,5 +1,5 @@
-// routes/configurationManagement.js - Agency, Country, and Policy Configuration API endpoints
-import { Router } from "express";
+// routes/configurationManagement.ts - Agency, Country, and Policy Configuration API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -35,8 +35,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Agency Configuration Management ─────────────────────────────────────────────────
-router.post("/agency", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/agency", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -188,15 +196,15 @@ router.post("/agency", authenticate, requireAdmin, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const config = await createAgencyConfig({ ...data, createdBy: req.user.id });
+    const config = await createAgencyConfig({ ...data, createdBy: req.user!.id });
     res.status(201).json(config);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/agency/:agencyId", authenticate, async (req, res, next) => {
+router.get("/agency/:agencyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
     const config = await getAgencyConfig(agencyId);
@@ -204,7 +212,7 @@ router.get("/agency/:agencyId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/agency/country/:country", authenticate, async (req, res, next) => {
+router.get("/agency/country/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
     const configs = await getAgencyConfigByCountry(country);
@@ -212,125 +220,80 @@ router.get("/agency/country/:country", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/agency/:agencyId", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/agency/:agencyId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const config = await updateAgencyConfig(agencyId, req.body, req.user.id);
+    const config = await updateAgencyConfig(agencyId, req.body, req.user!.id);
     res.json(config);
   } catch (err) { next(err); }
 });
 
-router.post("/agency/:agencyId/api-keys", authenticate, async (req, res, next) => {
+router.post("/agency/:agencyId/api-key", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agencyId } = req.params;
+    const apiKey = await generateApiKey(agencyId);
+    res.json({ apiKey });
+  } catch (err) { next(err); }
+});
+
+router.delete("/agency/:agencyId/api-key", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agencyId } = req.params;
+    const config = await revokeApiKey(agencyId);
+    res.json(config);
+  } catch (err) { next(err); }
+});
+
+router.post("/validate-api-key", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
-      name: z.string(),
-      permissions: z.array(z.string()).optional(),
-      rateLimitOverride: z.number().optional(),
-      expiresAt: z.date().optional(),
+      apiKey: z.string(),
     });
 
-    const { agencyId } = req.params;
     const data = schema.parse(req.body);
-    const result = await generateApiKey(agencyId, data);
-    res.status(201).json(result);
+    const result = await validateApiKey(data.apiKey);
+    res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/agency/:agencyId/api-keys/:keyId", authenticate, async (req, res, next) => {
-  try {
-    const { agencyId, keyId } = req.params;
-    const key = await revokeApiKey(agencyId, keyId);
-    res.json(key);
-  } catch (err) { next(err); }
-});
-
-router.get("/agency/:agencyId/effective-config", authenticate, async (req, res, next) => {
-  try {
-    const { agencyId } = req.params;
-    const config = await getAgencyConfig(agencyId);
-    const effectiveConfig = await getEffectiveConfig(agencyId, config.country);
-    res.json(effectiveConfig);
-  } catch (err) { next(err); }
-});
-
-// ── Country Configuration Management ───────────────────────────────────────────────
-router.post("/country", authenticate, requireAdmin, async (req, res, next) => {
+// ── Country Configuration Management ─────────────────────────────────────────────────
+router.post("/country", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       countryCode: z.string(),
       countryName: z.string(),
-      legal: z.object({
+      region: z.string().optional(),
+      currency: z.string().optional(),
+      language: z.string().optional(),
+      dateFormat: z.string().optional(),
+      timeFormat: z.string().optional(),
+      timezone: z.string().optional(),
+      emergencyNumber: z.string().optional(),
+      policeNumber: z.string().optional(),
+      defaultAgencyId: z.string().optional(),
+      regulations: z.object({
         dataProtectionLaw: z.string().optional(),
-        dataRetentionRequirement: z.number().optional(),
-        requiresDataResidency: z.boolean().optional(),
-        dataResidencyLocation: z.string().optional(),
-        encryptionRequired: z.boolean().optional(),
-        auditLoggingRequired: z.boolean().optional(),
+        imeiBlockingRequired: z.boolean().optional(),
+        policeReportRequired: z.boolean().optional(),
+        courtOrderRequired: z.boolean().optional(),
         consentRequired: z.boolean().optional(),
-        rightToBeForgotten: z.boolean().optional(),
-        dataPortability: z.boolean().optional(),
+        dataResidencyRequired: z.boolean().optional(),
       }).optional(),
-      police: z.object({
-        hierarchyStructure: z.array(z.string()).optional(),
-        obNumberFormat: z.string().optional(),
-        reportConfirmationRequired: z.boolean().optional(),
-        nationwideAlertEnabled: z.boolean().optional(),
-        caseTransferEnabled: z.boolean().optional(),
-        interpolIntegration: z.boolean().optional(),
-      }).optional(),
-      missingPerson: z.object({
-        adultThreshold: z.number().optional(),
-        childThreshold: z.number().optional(),
-        elderlyThreshold: z.number().optional(),
-        immediateDeclarationConditions: z.array(z.string()).optional(),
-        requiresPoliceReport: z.boolean().optional(),
-        notifyFamily: z.boolean().optional(),
-        notifyEmbassy: z.boolean().optional(),
-      }).optional(),
-      emergency: z.object({
-        emergencyNumber: z.string().optional(),
-        panicModeEnabled: z.boolean().optional(),
-        guardianSystemEnabled: z.boolean().optional(),
-        parentChildTrackingEnabled: z.boolean().optional(),
-      }).optional(),
-      telecom: z.object({
-        defaultProvider: z.string().optional(),
-        supportedProviders: z.array(z.string()).optional(),
-        locationAccuracy: z.enum(["low", "medium", "high"]).optional(),
-        locationRefreshInterval: z.number().optional(),
-        requiresWarrant: z.boolean().optional(),
-      }).optional(),
-      court: z.object({
-        courtTypes: z.array(z.string()).optional(),
-        caseTypes: z.array(z.string()).optional(),
-        integrationEnabled: z.boolean().optional(),
-        apiEndpoint: z.string().optional(),
-      }).optional(),
-      currency: z.object({
-        code: z.string().optional(),
-        symbol: z.string().optional(),
-        paymentMethods: z.array(z.string()).optional(),
-      }).optional(),
-      language: z.object({
-        default: z.string().optional(),
-        supported: z.array(z.string()).optional(),
-      }).optional(),
-      timezone: z.string(),
     });
 
     const data = schema.parse(req.body);
-    const config = await createCountryConfig({ ...data, createdBy: req.user.id });
+    const config = await createCountryConfig({ ...data, createdBy: req.user!.id });
     res.status(201).json(config);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/country/:countryCode", authenticate, async (req, res, next) => {
+router.get("/country/:countryCode", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { countryCode } = req.params;
     const config = await getCountryConfig(countryCode);
@@ -338,23 +301,23 @@ router.get("/country/:countryCode", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/country", authenticate, async (req, res, next) => {
+router.get("/countries", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const configs = await getAllCountryConfigs();
     res.json({ configs, count: configs.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/country/:countryCode", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/country/:countryCode", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { countryCode } = req.params;
-    const config = await updateCountryConfig(countryCode, req.body, req.user.id);
+    const config = await updateCountryConfig(countryCode, req.body, req.user!.id);
     res.json(config);
   } catch (err) { next(err); }
 });
 
 // ── Policy Engine Management ────────────────────────────────────────────────────────
-router.post("/policies", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/policies", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policyId: z.string(),
@@ -375,17 +338,17 @@ router.post("/policies", authenticate, requireAdmin, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const rule = await createPolicyRule({ ...data, createdBy: req.user.id });
+    const rule = await createPolicyRule({ ...data, createdBy: req.user!.id });
     res.status(201).json(rule);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/policies", authenticate, async (req, res, next) => {
+router.get("/policies", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const filters = {};
+    const filters: any = {};
     if (req.query.policyType) filters.policyType = req.query.policyType;
     if (req.query.agencyId) filters["scope.agencyId"] = req.query.agencyId;
     if (req.query.countryCode) filters["scope.countryCode"] = req.query.countryCode;
@@ -395,7 +358,7 @@ router.get("/policies", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/policies/scope", authenticate, async (req, res, next) => {
+router.get("/policies/scope", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string().optional(),
@@ -407,12 +370,12 @@ router.get("/policies/scope", authenticate, async (req, res, next) => {
     const rules = await getPolicyRulesByScope(scope);
     res.json({ rules, count: rules.length });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/policies/evaluate", authenticate, async (req, res, next) => {
+router.post("/policies/evaluate", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       context: z.any(),
@@ -423,20 +386,20 @@ router.post("/policies/evaluate", authenticate, async (req, res, next) => {
     const result = await evaluatePolicy(data.context, data.eventType);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/policies/:policyId", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/policies/:policyId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { policyId } = req.params;
-    const rule = await updatePolicyRule(policyId, req.body, req.user.id);
+    const rule = await updatePolicyRule(policyId, req.body, req.user!.id);
     res.json(rule);
   } catch (err) { next(err); }
 });
 
-router.post("/policies/:policyId/enable", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/policies/:policyId/enable", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { policyId } = req.params;
     const rule = await enablePolicyRule(policyId);
@@ -444,7 +407,7 @@ router.post("/policies/:policyId/enable", authenticate, requireAdmin, async (req
   } catch (err) { next(err); }
 });
 
-router.post("/policies/:policyId/disable", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/policies/:policyId/disable", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { policyId } = req.params;
     const rule = await disablePolicyRule(policyId);
@@ -453,7 +416,7 @@ router.post("/policies/:policyId/disable", authenticate, requireAdmin, async (re
 });
 
 // ── Security Checks ─────────────────────────────────────────────────────────────────
-router.post("/security/check-rate-limit", authenticate, async (req, res, next) => {
+router.post("/security/check-rate-limit", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -465,12 +428,12 @@ router.post("/security/check-rate-limit", authenticate, async (req, res, next) =
     const result = await checkRateLimit(data.agencyId, data.endpoint, data.userIp);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/security/check-ip-access", authenticate, async (req, res, next) => {
+router.post("/security/check-ip-access", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -481,12 +444,12 @@ router.post("/security/check-ip-access", authenticate, async (req, res, next) =>
     const result = await checkIPAccess(data.agencyId, data.userIp);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/security/check-time-access", authenticate, async (req, res, next) => {
+router.post("/security/check-time-access", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -496,12 +459,12 @@ router.post("/security/check-time-access", authenticate, async (req, res, next) 
     const result = await checkTimeBasedAccess(data.agencyId);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/security/validate-password", authenticate, async (req, res, next) => {
+router.post("/security/validate-password", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       password: z.string(),
@@ -512,12 +475,12 @@ router.post("/security/validate-password", authenticate, async (req, res, next) 
     const result = await validatePassword(data.password, data.agencyId);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/security/mask-data", authenticate, async (req, res, next) => {
+router.post("/security/mask-data", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       data: z.any(),
@@ -528,13 +491,13 @@ router.post("/security/mask-data", authenticate, async (req, res, next) => {
     const masked = await maskData(data.data, data.agencyId);
     res.json({ masked });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Integration Helpers ─────────────────────────────────────────────────────────────
-router.get("/integration/:agencyId/:provider", authenticate, async (req, res, next) => {
+router.get("/integration/:agencyId/:provider", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyId, provider } = req.params;
     const integration = await getIntegrationConfig(agencyId, provider);
@@ -542,7 +505,7 @@ router.get("/integration/:agencyId/:provider", authenticate, async (req, res, ne
   } catch (err) { next(err); }
 });
 
-router.post("/integration/map-fields", authenticate, async (req, res, next) => {
+router.post("/integration/map-fields", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       data: z.any(),
@@ -553,12 +516,12 @@ router.post("/integration/map-fields", authenticate, async (req, res, next) => {
     const mapped = await mapFields(data.data, data.mapping);
     res.json({ mapped });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/webhooks/trigger", authenticate, async (req, res, next) => {
+router.post("/webhooks/trigger", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -570,13 +533,13 @@ router.post("/webhooks/trigger", authenticate, async (req, res, next) => {
     await triggerWebhooks(data.agencyId, data.event, data.payload);
     res.json({ success: true });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getConfigurationStatistics();
     res.json(stats);
