@@ -1,6 +1,6 @@
-import { Router }   from "express";
-import { z }        from "zod";
-import jwt          from "jsonwebtoken";
+import { Router, Request, Response, NextFunction } from "express";
+import { z } from "zod";
+import jwt from "jsonwebtoken";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { Device, Ping, Alert, TheftReport, Payment } from "../db/index.js";
 import { computeRiskScore } from "../services/intelligence.js";
@@ -14,10 +14,17 @@ import { PLANS, getUserSubscription } from "../services/billing.js";
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 // ── AI quota enforcement ──────────────────────────────────────────────────────
 // Counts AI calls made by a user in the current calendar month
-async function checkAiQuota(userId) {
-  const sub  = await getUserSubscription(userId);
+async function checkAiQuota(userId: string) {
+  const sub = await getUserSubscription(userId);
   const plan = PLANS.find(p => p.id === sub.plan) || PLANS[0];
 
   // 0 = unlimited (pro+ plans)
@@ -39,7 +46,7 @@ async function checkAiQuota(userId) {
   return { allowed: used < plan.aiReportsPerMonth, used, limit: plan.aiReportsPerMonth, plan: plan.id };
 }
 
-async function recordAiCall(userId, callType) {
+async function recordAiCall(userId: string, callType: string) {
   if (!userId) return;
   await Payment.create({
     user:        userId,
@@ -53,7 +60,7 @@ async function recordAiCall(userId, callType) {
 }
 
 // ── POST /api/ai/imei-report ──────────────────────────────────────────────────
-router.post("/imei-report", async (req, res, next) => {
+router.post("/imei-report", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = z.object({ imei: z.string().min(15).max(17) }).parse(req.body);
 
@@ -62,7 +69,7 @@ router.post("/imei-report", async (req, res, next) => {
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
-        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
         userId = payload.id;
       } catch { /* anonymous — still allow 1 check */ }
     }
@@ -92,15 +99,15 @@ router.post("/imei-report", async (req, res, next) => {
 
     res.json({ report, riskScore });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/ai/triage ── admin only ─────────────────────────────────────────
-router.post("/triage", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/triage", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const limit  = Math.min(Number(req.body?.limit) || 20, 50);
+    const limit = Math.min(Number(req.body?.limit) || 20, 50);
     const alerts = await Alert.find({ read: false }).sort({ ts: -1 }).limit(limit);
     if (!alerts.length) return res.json({ triage: [] });
 
@@ -110,12 +117,12 @@ router.post("/triage", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── POST /api/ai/explain-alert ────────────────────────────────────────────────
-router.post("/explain-alert", authenticate, async (req, res, next) => {
+router.post("/explain-alert", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { alertId } = z.object({ alertId: z.string() }).parse(req.body);
 
-    const quota = await checkAiQuota(req.user.id);
-    if (!quota.allowed && req.user.role !== "admin") {
+    const quota = await checkAiQuota(req.user!.id);
+    if (!quota.allowed && req.user!.role !== "admin") {
       return res.status(429).json({
         error: `AI quota reached (${quota.used}/${quota.limit}/month). Upgrade to Pro.`,
         code:  "AI_QUOTA_EXCEEDED",
@@ -126,18 +133,18 @@ router.post("/explain-alert", authenticate, async (req, res, next) => {
     if (!alert) return res.status(404).json({ error: "Alert not found" });
 
     const explanation = await explainAlert(alert);
-    await recordAiCall(req.user.id, "explain_alert");
+    await recordAiCall(req.user!.id, "explain_alert");
 
     res.json({ explanation });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/ai/chat ─────────────────────────────────────────────────────────
 // Per-user daily chat quota: free=5 msgs/day, pro+=unlimited
-router.post("/chat", async (req, res, next) => {
+router.post("/chat", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       messages: z.array(z.object({
@@ -153,7 +160,7 @@ router.post("/chat", async (req, res, next) => {
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
-        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
         userId = payload.id;
 
         // Daily chat quota for free users
@@ -164,7 +171,7 @@ router.post("/chat", async (req, res, next) => {
             description: "ai_call:chat",
             createdAt:   { $gte: today },
           });
-          const sub  = await getUserSubscription(userId);
+          const sub = await getUserSubscription(userId);
           const plan = PLANS.find(p => p.id === sub.plan) || PLANS[0];
           const dailyLimit = plan.aiReportsPerMonth > 0 ? 10 : 50; // free=10/day, pro=50/day
 
@@ -189,16 +196,14 @@ router.post("/chat", async (req, res, next) => {
 
     res.json({ reply });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-export default router;
-
 // ── POST /api/ai/chat/stream — streaming version of chat ─────────────────────
 // Uses Server-Sent Events to stream Claude's response token by token
-router.post("/chat/stream", async (req, res, next) => {
+router.post("/chat/stream", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { messages } = z.object({
       messages: z.array(z.object({
@@ -212,7 +217,7 @@ router.post("/chat/stream", async (req, res, next) => {
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
-        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
         userId = payload.id;
 
         if (payload.role === "user") {
@@ -220,7 +225,7 @@ router.post("/chat/stream", async (req, res, next) => {
           const chatCount = await Payment.countDocuments({
             user: userId, description: "ai_call:chat", createdAt: { $gte: today },
           });
-          const sub  = await getUserSubscription(userId);
+          const sub = await getUserSubscription(userId);
           const plan = PLANS.find(p => p.id === sub.plan) || PLANS[0];
           const dailyLimit = plan.aiReportsPerMonth > 0 ? 50 : 10;
           if (chatCount >= dailyLimit) {
@@ -262,7 +267,7 @@ router.post("/chat/stream", async (req, res, next) => {
       return res.end();
     }
 
-    const reader = upstream.body.getReader();
+    const reader = upstream.body!.getReader();
     const decoder = new TextDecoder();
     let fullText = "";
 
@@ -293,8 +298,10 @@ router.post("/chat/stream", async (req, res, next) => {
     if (userId) await recordAiCall(userId, "chat");
     res.end();
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     if (!res.headersSent) next(err);
     else res.end();
   }
 });
+
+export default router;

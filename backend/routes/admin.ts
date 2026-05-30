@@ -1,12 +1,19 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { User, Subscription, Device } from "../db/index.js";
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 // GET /api/admin/users
-router.get("/users", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/users", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const users = await User.find().select("-passwordHash -apiKey").sort({ createdAt: -1 }).lean();
 
@@ -23,13 +30,13 @@ router.get("/users", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // PATCH /api/admin/users/:id/role
-router.patch("/users/:id/role", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/users/:id/role", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { role } = z.object({
       role: z.enum(["user", "admin", "telecom", "law_enforcement"])
     }).parse(req.body);
 
-    if (req.params.id === req.user.id) {
+    if (req.params.id === req.user!.id) {
       return res.status(400).json({ error: "Cannot change your own role" });
     }
 
@@ -37,7 +44,7 @@ router.patch("/users/:id/role", authenticate, requireAdmin, async (req, res, nex
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });

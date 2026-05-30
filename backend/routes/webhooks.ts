@@ -1,5 +1,5 @@
-// routes/webhooks.js - Webhook System API endpoints
-import { Router } from "express";
+// routes/webhooks.ts - Webhook System API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -19,8 +19,15 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
 // ── Webhook Subscription Management ───────────────────────────────────────────────
-router.post("/subscriptions", authenticate, async (req, res, next) => {
+router.post("/subscriptions", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       url: z.string().url(),
@@ -31,17 +38,17 @@ router.post("/subscriptions", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const subscription = await createWebhookSubscription({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(subscription);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/subscriptions/:id", authenticate, async (req, res, next) => {
+router.get("/subscriptions/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const subscription = await getWebhookSubscription(id);
@@ -54,14 +61,14 @@ router.get("/subscriptions/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/subscriptions", authenticate, async (req, res, next) => {
+router.get("/subscriptions", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const subscriptions = await getWebhookSubscriptionsByUser(req.user.id);
+    const subscriptions = await getWebhookSubscriptionsByUser(req.user!.id);
     res.json({ subscriptions, count: subscriptions.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/subscriptions/:id", authenticate, async (req, res, next) => {
+router.patch("/subscriptions/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const subscription = await updateWebhookSubscription(id, req.body);
@@ -69,7 +76,7 @@ router.patch("/subscriptions/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.delete("/subscriptions/:id", authenticate, async (req, res, next) => {
+router.delete("/subscriptions/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const subscription = await deleteWebhookSubscription(id);
@@ -77,7 +84,7 @@ router.delete("/subscriptions/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/subscriptions/:id/regenerate-secret", authenticate, async (req, res, next) => {
+router.post("/subscriptions/:id/regenerate-secret", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const subscription = await regenerateWebhookSecret(id);
@@ -85,7 +92,7 @@ router.post("/subscriptions/:id/regenerate-secret", authenticate, async (req, re
   } catch (err) { next(err); }
 });
 
-router.post("/subscriptions/:id/test", authenticate, async (req, res, next) => {
+router.post("/subscriptions/:id/test", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const delivery = await testWebhook(id);
@@ -94,7 +101,7 @@ router.post("/subscriptions/:id/test", authenticate, async (req, res, next) => {
 });
 
 // ── Webhook Delivery Logs ───────────────────────────────────────────────────────
-router.get("/subscriptions/:id/logs", authenticate, async (req, res, next) => {
+router.get("/subscriptions/:id/logs", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const logs = await getWebhookDeliveryLogs(id);
@@ -102,7 +109,7 @@ router.get("/subscriptions/:id/logs", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/logs/:id/retry", authenticate, async (req, res, next) => {
+router.post("/logs/:id/retry", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const delivery = await retryFailedWebhook(id);
@@ -111,7 +118,7 @@ router.post("/logs/:id/retry", authenticate, async (req, res, next) => {
 });
 
 // ── Manual Webhook Trigger ───────────────────────────────────────────────────────
-router.post("/trigger", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/trigger", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       event: z.string(),
@@ -123,13 +130,13 @@ router.post("/trigger", authenticate, requireAdmin, async (req, res, next) => {
 
     res.json({ deliveries, count: deliveries.length });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getWebhookStatistics();
     res.json(stats);
@@ -137,7 +144,7 @@ router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── Available Events ─────────────────────────────────────────────────────────────
-router.get("/events", async (req, res, next) => {
+router.get("/events", async (req: Request, res: Response, next: NextFunction) => {
   try {
     res.json({ events: WEBHOOK_EVENTS });
   } catch (err) { next(err); }

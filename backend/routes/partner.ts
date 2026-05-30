@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import crypto from "crypto";
 import { authenticate, requireAdmin, requireRole } from "../middleware/auth.js";
@@ -7,21 +7,32 @@ import { generateApiKey, bulkImeiCheck, getPartnerStats, validatePartnerKey } fr
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
+
+interface PartnerRequest extends Request {
+  partner?: any;
+}
+
 // ── Partner API key middleware ─────────────────────────────────────────────────
-async function partnerAuth(req, res, next) {
-  const key = req.headers["x-partner-key"];
+async function partnerAuth(req: PartnerRequest, res: Response, next: NextFunction) {
+  const key = req.headers["x-partner-key"] as string;
   if (!key) return res.status(401).json({ error: "Partner API key required" });
   try {
     req.partner = await validatePartnerKey(key);
     if (!req.partner) return res.status(401).json({ error: "Invalid partner key" });
     next();
   } catch (err) {
-    res.status(429).json({ error: err.message });
+    res.status(429).json({ error: err instanceof Error ? err.message : String(err) });
   }
 }
 
 // POST /api/partner/register — apply for partner access
-router.post("/register", authenticate, async (req, res, next) => {
+router.post("/register", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       orgName: z.string().min(2).max(100),
@@ -31,19 +42,19 @@ router.post("/register", authenticate, async (req, res, next) => {
     });
     const data = schema.parse(req.body);
 
-    const existing = await Partner.findOne({ user: req.user.id });
+    const existing = await Partner.findOne({ user: req.user!.id });
     if (existing) return res.status(409).json({ error: "Partner account already exists" });
 
-    const apiKey  = generateApiKey();
+    const apiKey = generateApiKey();
     const partner = await Partner.create({
       ...data,
-      user:    req.user.id,
+      user:    req.user!.id,
       apiKey,
       status:  "pending",   // admin reviews
     });
 
     // Update user role to telecom/law_enforcement
-    await User.findByIdAndUpdate(req.user.id, { role: data.orgType === "law_enforcement" ? "law_enforcement" : "telecom" });
+    await User.findByIdAndUpdate(req.user!.id, { role: data.orgType === "law_enforcement" ? "law_enforcement" : "telecom" });
 
     res.status(201).json({
       message: "Partner application submitted — pending admin review",
@@ -51,34 +62,34 @@ router.post("/register", authenticate, async (req, res, next) => {
       apiKey,                // show once
     });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // GET /api/partner/me — partner profile + usage
-router.get("/me", authenticate, async (req, res, next) => {
+router.get("/me", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const partner = await Partner.findOne({ user: req.user.id });
+    const partner = await Partner.findOne({ user: req.user!.id });
     if (!partner) return res.status(404).json({ error: "No partner account found" });
     res.json(await getPartnerStats(partner._id));
   } catch (err) { next(err); }
 });
 
 // POST /api/partner/imei/check — single IMEI check via partner key
-router.post("/imei/check", partnerAuth, async (req, res, next) => {
+router.post("/imei/check", partnerAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = z.object({ imei: z.string().min(15).max(17) }).parse(req.body);
     const [result] = await bulkImeiCheck([imei]);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // POST /api/partner/imei/bulk — bulk IMEI check (up to 500)
-router.post("/imei/bulk", partnerAuth, async (req, res, next) => {
+router.post("/imei/bulk", partnerAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imeis } = z.object({
       imeis: z.array(z.string().min(15).max(17)).min(1).max(500),
@@ -91,44 +102,36 @@ router.post("/imei/bulk", partnerAuth, async (req, res, next) => {
       results,
     });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-// ── Admin routes — MUST be before /:id routes ───────────────────────────────────
-
-
-
-
-
-
-
 // ── Per-partner /:id routes — AFTER named routes ────────────────────────────────
 
 // PATCH /api/partner/:id/webhook — update webhook URL
-router.patch("/:id/webhook", authenticate, async (req, res, next) => {
+router.patch("/:id/webhook", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { webhookUrl } = z.object({ webhookUrl: z.string().url() }).parse(req.body);
     const partner = await Partner.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
+      { _id: req.params.id, user: req.user!.id },
       { webhookUrl, webhookSecret: generateApiKey() },
       { new: true }
     );
     if (!partner) return res.status(404).json({ error: "Partner not found" });
     res.json({ webhookUrl: partner.webhookUrl, webhookSecret: partner.webhookSecret });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // POST /api/partner/:id/regenerate-key — rotate API key
-router.post("/:id/regenerate-key", authenticate, async (req, res, next) => {
+router.post("/:id/regenerate-key", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const newKey = generateApiKey();
     const partner = await Partner.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
+      { _id: req.params.id, user: req.user!.id },
       { apiKey: newKey },
       { new: true }
     );
@@ -138,9 +141,9 @@ router.post("/:id/regenerate-key", authenticate, async (req, res, next) => {
 });
 
 // POST /api/partner/:id/webhook-test — send a test payload to the partner's webhook URL
-router.post("/:id/webhook-test", authenticate, async (req, res, next) => {
+router.post("/:id/webhook-test", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const partner = await Partner.findOne({ _id: req.params.id, user: req.user.id });
+    const partner = await Partner.findOne({ _id: req.params.id, user: req.user!.id });
     if (!partner)          return res.status(404).json({ error: "Partner not found" });
     if (!partner.webhookUrl) return res.status(400).json({ error: "No webhook URL configured" });
 
@@ -187,7 +190,7 @@ router.post("/:id/webhook-test", authenticate, async (req, res, next) => {
         success:    false,
         latencyMs:  Date.now() - startTime,
         webhookUrl: partner.webhookUrl,
-        message:    fetchErr.message,
+        message:    fetchErr instanceof Error ? fetchErr.message : String(fetchErr),
       });
     }
   } catch (err) { next(err); }
