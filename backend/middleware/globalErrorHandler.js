@@ -122,6 +122,3 @@ export function workerErrorHandler(error, jobId, workerName) {
     timestamp: new Date().toISOString(),
   };
 }
-
-// Export error codes
-export { ErrorCodes };
