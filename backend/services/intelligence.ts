@@ -4,7 +4,7 @@ import { sendAlert } from "./notify.js";
 import { narrateFraudPattern } from "./ai.js";
 
 // ── Risk scoring ──────────────────────────────────────────────────────────────
-export async function computeRiskScore(imei) {
+export async function computeRiskScore(imei: string): Promise<number> {
   const device = await Device.findOne({ imei });
   if (!device) return 0;
 
@@ -20,7 +20,7 @@ export async function computeRiskScore(imei) {
   if (recentPings.length === 0) return Math.min(score, 100);
 
   // SIM swaps in last 24h
-  const simSet = new Set(recentPings.map(p => p.simIccid).filter(Boolean));
+  const simSet = new Set(recentPings.map((p: any) => p.simIccid).filter(Boolean));
   if (simSet.size > 1) score += simSet.size * 15;
 
   // Impossible location jumps (>500 km/h between pings)
@@ -33,17 +33,17 @@ export async function computeRiskScore(imei) {
   }
 
   // Carrier-hop anomaly
-  const opSet = new Set(recentPings.map(p => p.networkOp).filter(Boolean));
+  const opSet = new Set(recentPings.map((p: any) => p.networkOp).filter(Boolean));
   if (opSet.size > 2) score += 10;
 
   return Math.min(score, 100);
 }
 
 // ── Main intelligence runner — called after every ping ────────────────────────
-export async function runIntelligence({ ping, device }) {
+export async function runIntelligence({ ping, device }: { ping: any; device: any }): Promise<void> {
   if (!device) return;
 
-  const alerts = [];
+  const alerts: any[] = [];
 
   // 1. Blacklist hit
   if (device.status === "stolen" || device.status === "blacklisted") {
@@ -99,7 +99,7 @@ export async function runIntelligence({ ping, device }) {
   if (ping.imei && prevPing) {
     const prevDevice = await Device.findOne({ imei: ping.imei }).select("fingerprint").lean();
     const newFp  = ping.fingerprint || {};
-    const prevFp = prevDevice?.fingerprint || {};
+    const prevFp = (prevDevice as any)?.fingerprint || {};
 
     // If bluetoothMac or networkMac changes — strong cloning signal
     const macChanged =
@@ -123,7 +123,7 @@ export async function runIntelligence({ ping, device }) {
 
   // Deduplication: skip alert if same type fired for this IMEI in last 30 min
   // Prevents alert spam when a stolen device pings every 30s
-  const COOLDOWN_MS = {
+  const COOLDOWN_MS: Record<string, number> = {
     blacklist_ping:  30 * 60 * 1000,  // 30 min — one alert per half hour
     sim_swap:        60 * 60 * 1000,  // 1 hour — SIM swap only once per hour
     location_jump:   15 * 60 * 1000,  // 15 min
@@ -131,7 +131,7 @@ export async function runIntelligence({ ping, device }) {
     theft_report:    24 * 60 * 60 * 1000, // once per day
   };
 
-  const deduped = [];
+  const deduped: any[] = [];
   for (const a of alerts) {
     const cooldown  = COOLDOWN_MS[a.type] || 30 * 60 * 1000;
     const since     = new Date(Date.now() - cooldown);
@@ -163,7 +163,7 @@ export async function runIntelligence({ ping, device }) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function haversineKm(lat1, lng1, lat2, lng2) {
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
@@ -172,9 +172,10 @@ function haversineKm(lat1, lng1, lat2, lng2) {
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-const toRad = (d) => (d * Math.PI) / 180;
 
-function alertMessage({ type, payload }) {
+const toRad = (d: number) => (d * Math.PI) / 180;
+
+function alertMessage({ type, payload }: { type: string; payload: any }): string {
   switch (type) {
     case "blacklist_ping":   return `Blacklisted device pinged at [${payload.lat.toFixed(4)}, ${payload.lng.toFixed(4)}]`;
     case "sim_swap":         return `SIM swap detected: ${payload.oldSim} → ${payload.newSim}`;
