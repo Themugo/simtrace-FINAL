@@ -464,7 +464,7 @@ class DigitalTwinManager {
     imei: string,
     riskHistory: RiskHistoryEntry[],
     behaviorProfile: BehaviorProfile
-  ): Promise<number {
+  ): Promise<number> {
     let score = 0.5; // Base score
 
     // Factor in recent risk history
