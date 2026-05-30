@@ -1,4 +1,4 @@
-// services/selfieCapture.js - Selfie capture and thief identification services
+// services/selfieCapture.ts - Selfie capture and thief identification services
 import crypto from "crypto";
 import cryptoJS from "crypto-js";
 import {
@@ -9,7 +9,7 @@ import {
 } from "../db/index.js";
 
 // ── Selfie Capture Management ─────────────────────────────────────────────────────────
-export async function captureSelfie(data) {
+export async function captureSelfie(data: any) {
   const captureId = `capture_${crypto.randomBytes(16).toString("hex")}`;
 
   // Generate image hash for deduplication
@@ -39,7 +39,7 @@ export async function captureSelfie(data) {
   });
 
   // Record unlock attempt on lock
-  await recordUnlockAttempt(lock.lockId, data.captureLocation);
+  await recordUnlockAttempt((lock as any).lockId, data.captureLocation);
 
   // Trigger AI analysis
   await analyzeSelfie(captureId);
@@ -47,7 +47,7 @@ export async function captureSelfie(data) {
   return capture;
 }
 
-export async function analyzeSelfie(captureId) {
+export async function analyzeSelfie(captureId: string) {
   const capture = await SelfieCapture.findOne({ captureId });
   if (!capture) throw new Error("Capture not found");
 
@@ -60,20 +60,20 @@ export async function analyzeSelfie(captureId) {
   // - Custom ML model
 
   // Simulate AI analysis
-  const aiResult = await performAIAnalysis(capture.imageUrl);
+  const aiResult = await performAIAnalysis((capture as any).imageUrl);
 
-  capture.aiAnalyzed = true;
-  capture.aiAnalysisDate = new Date();
-  capture.identified = aiResult.identified;
-  capture.matchedUserId = aiResult.matchedUserId;
-  capture.confidenceScore = aiResult.confidenceScore;
-  capture.isThief = aiResult.isThief;
-  capture.status = aiResult.identified ? "identified" : "analyzed";
+  (capture as any).aiAnalyzed = true;
+  (capture as any).aiAnalysisDate = new Date();
+  (capture as any).identified = aiResult.identified;
+  (capture as any).matchedUserId = aiResult.matchedUserId;
+  (capture as any).confidenceScore = aiResult.confidenceScore;
+  (capture as any).isThief = aiResult.isThief;
+  (capture as any).status = aiResult.identified ? "identified" : "analyzed";
   capture.updatedAt = new Date();
   await capture.save();
 
   // If thief identified, auto-report
-  if (capture.isThief) {
+  if ((capture as any).isThief) {
     await autoReportThief(captureId);
   }
 
@@ -81,7 +81,7 @@ export async function analyzeSelfie(captureId) {
 }
 
 // Placeholder for AI analysis - integrate with actual AI service
-async function performAIAnalysis(imageUrl) {
+async function performAIAnalysis(imageUrl: string) {
   // TODO: Replace with actual AI service integration
   // This would typically:
   // 1. Download the image
@@ -98,18 +98,18 @@ async function performAIAnalysis(imageUrl) {
   };
 }
 
-export async function getSelfieCapture(captureId) {
+export async function getSelfieCapture(captureId: string) {
   const capture = await SelfieCapture.findOne({ captureId });
   if (!capture) throw new Error("Capture not found");
   return capture;
 }
 
-export async function getSelfieCapturesByDevice(deviceId) {
+export async function getSelfieCapturesByDevice(deviceId: string) {
   const captures = await SelfieCapture.find({ deviceId }).sort({ captureDate: -1 });
   return captures;
 }
 
-export async function getSelfieCapturesByUser(userId) {
+export async function getSelfieCapturesByUser(userId: string) {
   const captures = await SelfieCapture.find({ userId }).sort({ captureDate: -1 });
   return captures;
 }
@@ -125,7 +125,7 @@ export async function getThiefCaptures() {
 }
 
 // ── Thief Report Management ───────────────────────────────────────────────────────────
-export async function reportThief(data) {
+export async function reportThief(data: any) {
   const reportId = `report_${crypto.randomBytes(16).toString("hex")}`;
 
   const report = await ThiefReport.create({
@@ -139,9 +139,9 @@ export async function reportThief(data) {
   // Update selfie capture as reported
   const capture = await SelfieCapture.findById(data.selfieCaptureId);
   if (capture) {
-    capture.thiefReported = true;
-    capture.thiefReportedTo = data.reportedTo;
-    capture.status = "reported";
+    (capture as any).thiefReported = true;
+    (capture as any).thiefReportedTo = data.reportedTo;
+    (capture as any).status = "reported";
     capture.updatedAt = new Date();
     await capture.save();
   }
@@ -149,11 +149,11 @@ export async function reportThief(data) {
   return report;
 }
 
-export async function autoReportThief(captureId) {
+export async function autoReportThief(captureId: string) {
   const capture = await SelfieCapture.findOne({ captureId });
   if (!capture) throw new Error("Capture not found");
 
-  if (!capture.isThief) {
+  if (!(capture as any).isThief) {
     throw new Error("Capture is not identified as thief");
   }
 
@@ -162,67 +162,67 @@ export async function autoReportThief(captureId) {
 
   const report = await ThiefReport.create({
     reportId,
-    deviceId: capture.deviceId,
-    userId: capture.userId,
+    deviceId: (capture as any).deviceId,
+    userId: (capture as any).userId,
     selfieCaptureId: capture._id,
     reportDate: new Date(),
     reportReason: "AI-identified thief attempting to unlock stolen device",
     reportedTo: ["police", "security-organs"],
-    thiefIdentified: capture.identified,
-    thiefUserId: capture.matchedUserId,
+    thiefIdentified: (capture as any).identified,
+    thiefUserId: (capture as any).matchedUserId,
     status: "investigating",
-    createdBy: capture.userId,
-    updatedBy: capture.userId,
+    createdBy: (capture as any).userId,
+    updatedBy: (capture as any).userId,
   });
 
   // Update capture
-  capture.thiefReported = true;
-  capture.thiefReportedTo = ["police", "security-organs"];
-  capture.status = "reported";
+  (capture as any).thiefReported = true;
+  (capture as any).thiefReportedTo = ["police", "security-organs"];
+  (capture as any).status = "reported";
   capture.updatedAt = new Date();
   await capture.save();
 
   return report;
 }
 
-export async function updateThiefReport(reportId, updates, updatedBy) {
+export async function updateThiefReport(reportId: string, updates: any, updatedBy: string) {
   const report = await ThiefReport.findOne({ reportId });
   if (!report) throw new Error("Report not found");
 
   Object.assign(report, updates);
-  report.updatedBy = updatedBy;
+  (report as any).updatedBy = updatedBy;
   report.updatedAt = new Date();
   await report.save();
 
   return report;
 }
 
-export async function resolveThiefReport(reportId, resolution, resolvedBy) {
+export async function resolveThiefReport(reportId: string, resolution: string, resolvedBy: string) {
   const report = await ThiefReport.findOne({ reportId });
   if (!report) throw new Error("Report not found");
 
-  report.status = "resolved";
-  report.resolution = resolution;
-  report.resolvedAt = new Date();
-  report.resolvedBy = resolvedBy;
+  (report as any).status = "resolved";
+  (report as any).resolution = resolution;
+  (report as any).resolvedAt = new Date();
+  (report as any).resolvedBy = resolvedBy;
   report.updatedAt = new Date();
   await report.save();
 
   return report;
 }
 
-export async function getThiefReport(reportId) {
+export async function getThiefReport(reportId: string) {
   const report = await ThiefReport.findOne({ reportId });
   if (!report) throw new Error("Report not found");
   return report;
 }
 
-export async function getThiefReportsByDevice(deviceId) {
+export async function getThiefReportsByDevice(deviceId: string) {
   const reports = await ThiefReport.find({ deviceId }).sort({ reportDate: -1 });
   return reports;
 }
 
-export async function getThiefReportsByUser(userId) {
+export async function getThiefReportsByUser(userId: string) {
   const reports = await ThiefReport.find({ userId }).sort({ reportDate: -1 });
   return reports;
 }
