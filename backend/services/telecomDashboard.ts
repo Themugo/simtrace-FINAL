@@ -1,4 +1,4 @@
-// services/telecomDashboard.js - Telecom dashboard services
+// services/telecomDashboard.ts - Telecom dashboard services
 import crypto from "crypto";
 import {
   TelecomDashboard,
@@ -6,7 +6,7 @@ import {
 } from "../db/index.js";
 
 // ── Telecom Dashboard Management ─────────────────────────────────────────────────────
-export async function createTelecomDashboard(data) {
+export async function createTelecomDashboard(data: any) {
   const dashboardId = `tdash_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify telecom company exists
@@ -24,18 +24,18 @@ export async function createTelecomDashboard(data) {
   return dashboard;
 }
 
-export async function getTelecomDashboard(dashboardId) {
+export async function getTelecomDashboard(dashboardId: string) {
   const dashboard = await TelecomDashboard.findOne({ dashboardId, status: "active" });
   if (!dashboard) throw new Error("Telecom dashboard not found");
   return dashboard;
 }
 
-export async function getTelecomDashboardByCompany(companyId) {
+export async function getTelecomDashboardByCompany(companyId: string) {
   const dashboard = await TelecomDashboard.findOne({ companyId, status: "active" });
   return dashboard;
 }
 
-export async function updateTelecomDashboard(dashboardId, updates, updatedBy) {
+export async function updateTelecomDashboard(dashboardId: string, updates: any, updatedBy: string) {
   const dashboard = await TelecomDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -49,7 +49,7 @@ export async function updateTelecomDashboard(dashboardId, updates, updatedBy) {
   return dashboard;
 }
 
-export async function updateDashboardWidgets(dashboardId, widgets, updatedBy) {
+export async function updateDashboardWidgets(dashboardId: string, widgets: any, updatedBy: string) {
   const dashboard = await TelecomDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -63,7 +63,7 @@ export async function updateDashboardWidgets(dashboardId, widgets, updatedBy) {
   return dashboard;
 }
 
-export async function updateDashboardSettings(dashboardId, settings, updatedBy) {
+export async function updateDashboardSettings(dashboardId: string, settings: any, updatedBy: string) {
   const dashboard = await TelecomDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -77,13 +77,13 @@ export async function updateDashboardSettings(dashboardId, settings, updatedBy) 
   return dashboard;
 }
 
-export async function addDashboardUser(dashboardId, userId, updatedBy) {
+export async function addDashboardUser(dashboardId: string, userId: string, updatedBy: string) {
   const dashboard = await TelecomDashboard.findOne({ dashboardId });
   if (!dashboard) throw new Error("Telecom dashboard not found");
 
-  if (!dashboard.allowedUsers.includes(userId)) {
-    dashboard.allowedUsers.push(userId);
-    dashboard.updatedBy = updatedBy;
+  if (!(dashboard as any).allowedUsers.includes(userId)) {
+    (dashboard as any).allowedUsers.push(userId);
+    (dashboard as any).updatedBy = updatedBy;
     dashboard.updatedAt = new Date();
     await dashboard.save();
   }
@@ -91,19 +91,19 @@ export async function addDashboardUser(dashboardId, userId, updatedBy) {
   return dashboard;
 }
 
-export async function removeDashboardUser(dashboardId, userId, updatedBy) {
+export async function removeDashboardUser(dashboardId: string, userId: string, updatedBy: string) {
   const dashboard = await TelecomDashboard.findOne({ dashboardId });
   if (!dashboard) throw new Error("Telecom dashboard not found");
 
-  dashboard.allowedUsers = dashboard.allowedUsers.filter((id) => id.toString() !== userId.toString());
-  dashboard.updatedBy = updatedBy;
+  (dashboard as any).allowedUsers = (dashboard as any).allowedUsers.filter((id: string) => id.toString() !== userId.toString());
+  (dashboard as any).updatedBy = updatedBy;
   dashboard.updatedAt = new Date();
   await dashboard.save();
 
   return dashboard;
 }
 
-export async function deleteTelecomDashboard(dashboardId, deletedBy) {
+export async function deleteTelecomDashboard(dashboardId: string, deletedBy: string) {
   const dashboard = await TelecomDashboard.findOneAndDelete({ dashboardId });
   if (!dashboard) throw new Error("Telecom dashboard not found");
   return dashboard;
@@ -115,11 +115,11 @@ export async function getAllTelecomDashboards() {
 }
 
 // ── Dashboard Data Aggregation ───────────────────────────────────────────────────────
-export async function getDashboardData(dashboardId) {
+export async function getDashboardData(dashboardId: string) {
   const dashboard = await TelecomDashboard.findById(dashboardId);
   if (!dashboard) throw new Error("Telecom dashboard not found");
 
-  const company = await TelecomCompany.findById(dashboard.companyId);
+  const company = await TelecomCompany.findById((dashboard as any).companyId);
   if (!company) throw new Error("Telecom company not found");
 
   // TODO: Aggregate data based on widgets
