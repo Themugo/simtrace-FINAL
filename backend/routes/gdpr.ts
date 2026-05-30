@@ -1,5 +1,5 @@
-// routes/gdpr.js - GDPR Compliance API endpoints
-import { Router } from "express";
+// routes/gdpr.ts - GDPR Compliance API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -18,8 +18,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── GDPR Request Management ─────────────────────────────────────────────────────
-router.post("/requests", authenticate, async (req, res, next) => {
+router.post("/requests", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       requestType: z.enum(["data_export", "data_deletion", "access_request", "rectification"]),
@@ -28,17 +36,17 @@ router.post("/requests", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const request = await createGdprRequest({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(request);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/requests/:id", authenticate, async (req, res, next) => {
+router.get("/requests/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const request = await getGdprRequest(id);
@@ -51,22 +59,22 @@ router.get("/requests/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/requests", authenticate, async (req, res, next) => {
+router.get("/requests", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const requests = await getGdprRequestsByUser(req.user.id);
+    const requests = await getGdprRequestsByUser(req.user!.id);
     res.json({ requests, count: requests.length });
   } catch (err) { next(err); }
 });
 
-router.post("/requests/:id/process", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/requests/:id/process", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const request = await processGdprRequest(id, req.user.id);
+    const request = await processGdprRequest(id, req.user!.id);
     res.json(request);
   } catch (err) { next(err); }
 });
 
-router.post("/requests/:id/reject", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/requests/:id/reject", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       reason: z.string(),
@@ -78,12 +86,12 @@ router.post("/requests/:id/reject", authenticate, requireAdmin, async (req, res,
 
     res.json(request);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/requests/:id/export", authenticate, async (req, res, next) => {
+router.get("/requests/:id/export", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const exportUrl = await getExportUrl(id);
@@ -92,7 +100,7 @@ router.get("/requests/:id/export", authenticate, async (req, res, next) => {
 });
 
 // ── Data Residency Management ─────────────────────────────────────────────────────
-router.post("/residency", authenticate, async (req, res, next) => {
+router.post("/residency", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       region: z.enum(["eu", "us", "africa", "asia", "global"]),
@@ -106,40 +114,40 @@ router.post("/residency", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const residency = await setDataResidency({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(residency);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/residency", authenticate, async (req, res, next) => {
+router.get("/residency", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const residency = await getDataResidency(req.user.id);
+    const residency = await getDataResidency(req.user!.id);
     res.json(residency);
   } catch (err) { next(err); }
 });
 
-router.patch("/residency", authenticate, async (req, res, next) => {
+router.patch("/residency", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const residency = await updateDataResidency(req.user.id, req.body);
+    const residency = await updateDataResidency(req.user!.id, req.body);
     res.json(residency);
   } catch (err) { next(err); }
 });
 
 // ── Compliance Check ───────────────────────────────────────────────────────────
-router.get("/compliance", authenticate, async (req, res, next) => {
+router.get("/compliance", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const compliance = await checkGdprCompliance(req.user.id);
+    const compliance = await checkGdprCompliance(req.user!.id);
     res.json(compliance);
   } catch (err) { next(err); }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getGdprStatistics();
     res.json(stats);

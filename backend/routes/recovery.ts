@@ -1,5 +1,5 @@
-// routes/recovery.js - Autonomous Recovery Network API endpoints
-import { Router } from "express";
+// routes/recovery.ts - Autonomous Recovery Network API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin, requireRole } from "../middleware/auth.js";
 import {
@@ -22,8 +22,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Agent Management ─────────────────────────────────────────────────────────────
-router.post("/agents", authenticate, requireRole("admin"), async (req, res, next) => {
+router.post("/agents", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       name: z.string().min(2).max(100),
@@ -46,27 +54,27 @@ router.post("/agents", authenticate, requireRole("admin"), async (req, res, next
 
     res.status(201).json(agent);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/agents", authenticate, async (req, res, next) => {
+router.get("/agents", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { location, capabilities, type, maxLoad } = req.query;
     
-    const criteria = {};
-    if (location) criteria.location = JSON.parse(location);
-    if (capabilities) criteria.capabilities = JSON.parse(capabilities);
+    const criteria: any = {};
+    if (location) criteria.location = JSON.parse(location as string);
+    if (capabilities) criteria.capabilities = JSON.parse(capabilities as string);
     if (type) criteria.type = type;
-    if (maxLoad) criteria.maxLoad = parseInt(maxLoad);
+    if (maxLoad) criteria.maxLoad = parseInt(maxLoad as string);
 
     const agents = await findAvailableAgents(criteria);
     res.json({ agents, count: agents.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/agents/:id/metrics", authenticate, async (req, res, next) => {
+router.patch("/agents/:id/metrics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const agent = await updateAgentMetrics(id);
@@ -75,7 +83,7 @@ router.patch("/agents/:id/metrics", authenticate, async (req, res, next) => {
 });
 
 // ── Recovery Case Management ───────────────────────────────────────────────────────
-router.post("/cases", authenticate, async (req, res, next) => {
+router.post("/cases", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -87,17 +95,17 @@ router.post("/cases", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const recoveryCase = await createRecoveryCase({
       ...data,
-      reportedBy: req.user.id,
+      reportedBy: req.user!.id,
     });
 
     res.status(201).json(recoveryCase);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/cases/:id", authenticate, async (req, res, next) => {
+router.get("/cases/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const recoveryCase = await getRecoveryCase(id);
@@ -110,14 +118,14 @@ router.get("/cases/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/cases/my", authenticate, async (req, res, next) => {
+router.get("/cases/my", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const cases = await getRecoveryCasesByUser(req.user.id);
+    const cases = await getRecoveryCasesByUser(req.user!.id);
     res.json({ cases, count: cases.length });
   } catch (err) { next(err); }
 });
 
-router.get("/cases/agent/:agentId", authenticate, async (req, res, next) => {
+router.get("/cases/agent/:agentId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agentId } = req.params;
     const cases = await getRecoveryCasesByAgent(agentId);
@@ -125,14 +133,14 @@ router.get("/cases/agent/:agentId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/cases/active", authenticate, requireRole("admin"), async (req, res, next) => {
+router.get("/cases/active", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const cases = await getActiveCases();
     res.json({ cases, count: cases.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/cases/:id/status", authenticate, async (req, res, next) => {
+router.patch("/cases/:id/status", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["open", "assigned", "in_progress", "negotiating", "recovered", "failed", "closed", "escalated"]),
@@ -146,12 +154,12 @@ router.patch("/cases/:id/status", authenticate, async (req, res, next) => {
 
     res.json(recoveryCase);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/cases/:id/communications", authenticate, async (req, res, next) => {
+router.post("/cases/:id/communications", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       type: z.enum(["call", "sms", "email", "in_person"]),
@@ -166,12 +174,12 @@ router.post("/cases/:id/communications", authenticate, async (req, res, next) =>
 
     res.json(recoveryCase);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/cases/:id/location", authenticate, async (req, res, next) => {
+router.patch("/cases/:id/location", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       lat: z.number(),
@@ -185,12 +193,12 @@ router.patch("/cases/:id/location", authenticate, async (req, res, next) => {
 
     res.json(recoveryCase);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/cases/:id/auto-assign", authenticate, requireRole("admin"), async (req, res, next) => {
+router.post("/cases/:id/auto-assign", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const recoveryCase = await autoAssignAgents(id);
@@ -198,7 +206,7 @@ router.post("/cases/:id/auto-assign", authenticate, requireRole("admin"), async 
   } catch (err) { next(err); }
 });
 
-router.post("/cases/:id/autonomous", authenticate, requireRole("admin"), async (req, res, next) => {
+router.post("/cases/:id/autonomous", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const recoveryCase = await runAutonomousRecovery(id);
@@ -207,7 +215,7 @@ router.post("/cases/:id/autonomous", authenticate, requireRole("admin"), async (
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireRole("admin"), async (req, res, next) => {
+router.get("/stats", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getRecoveryStatistics();
     res.json(stats);

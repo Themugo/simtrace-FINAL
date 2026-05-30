@@ -1,9 +1,17 @@
-import { Router }   from "express";
-import mongoose     from "mongoose";
+import { Router, Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
 import { authenticate } from "../middleware/auth.js";
-import { Device }   from "../db/index.js";
+import { Device } from "../db/index.js";
 
 const router = Router();
+
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
 
 // Inline device command schema
 const commandSchema = new mongoose.Schema({
@@ -18,9 +26,9 @@ const commandSchema = new mongoose.Schema({
 const DeviceCommand = mongoose.models.DeviceCommand || mongoose.model("DeviceCommand", commandSchema);
 
 // POST /api/devices/:id/lock
-router.post("/:id/lock", authenticate, async (req, res, next) => {
+router.post("/:id/lock", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const device = await Device.findOne({ _id: req.params.id, owner: req.user.id });
+    const device = await Device.findOne({ _id: req.params.id, owner: req.user!.id });
     if (!device) return res.status(404).json({ error: "Device not found or not yours" });
 
     // Cancel any pending lock/unlock commands for this device
@@ -33,7 +41,7 @@ router.post("/:id/lock", authenticate, async (req, res, next) => {
       device:   device._id,
       imei:     device.imei,
       command:  "lock",
-      issuedBy: req.user.id,
+      issuedBy: req.user!.id,
     });
 
     res.json({ message: "Lock command queued. Device will lock on next agent check-in.", commandId: cmd._id });
@@ -41,21 +49,21 @@ router.post("/:id/lock", authenticate, async (req, res, next) => {
 });
 
 // POST /api/devices/:id/unlock
-router.post("/:id/unlock", authenticate, async (req, res, next) => {
+router.post("/:id/unlock", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const device = await Device.findOne({ _id: req.params.id, owner: req.user.id });
+    const device = await Device.findOne({ _id: req.params.id, owner: req.user!.id });
     if (!device) return res.status(404).json({ error: "Device not found" });
 
-    await DeviceCommand.create({ device: device._id, imei: device.imei, command: "unlock", issuedBy: req.user.id });
+    await DeviceCommand.create({ device: device._id, imei: device.imei, command: "unlock", issuedBy: req.user!.id });
     res.json({ message: "Unlock command queued." });
   } catch (err) { next(err); }
 });
 
 // GET /api/devices/:id/commands — polled by mobile agent (authenticated by device key)
 // The agent passes X-Device-Key and gets pending commands
-router.get("/:id/commands", async (req, res, next) => {
+router.get("/:id/commands", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const deviceKey = req.headers["x-device-key"];
+    const deviceKey = req.headers["x-device-key"] as string;
     if (!deviceKey) return res.status(401).json({ error: "X-Device-Key required" });
 
     const device = await Device.findOne({ _id: req.params.id, deviceKey });
@@ -69,10 +77,10 @@ router.get("/:id/commands", async (req, res, next) => {
 });
 
 // PATCH /api/devices/:id/commands/:cmdId — agent acknowledges execution
-router.patch("/:id/commands/:cmdId", async (req, res, next) => {
+router.patch("/:id/commands/:cmdId", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const deviceKey = req.headers["x-device-key"];
-    const device    = await Device.findOne({ _id: req.params.id, deviceKey });
+    const deviceKey = req.headers["x-device-key"] as string;
+    const device = await Device.findOne({ _id: req.params.id, deviceKey });
     if (!device) return res.status(401).json({ error: "Invalid device key" });
 
     const { status } = req.body;
