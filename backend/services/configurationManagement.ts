@@ -1,4 +1,4 @@
-// services/configurationManagement.js - Agency, Country, and Policy Configuration Management
+// services/configurationManagement.ts - Agency, Country, and Policy Configuration Management
 import crypto from "crypto";
 import {
   AgencyConfig,
@@ -9,7 +9,7 @@ import {
 import { getIO } from "./socket.js";
 
 // ── Agency Configuration Management ─────────────────────────────────────────────────
-export async function createAgencyConfig(data) {
+export async function createAgencyConfig(data: any) {
   const config = await AgencyConfig.create({
     ...data,
     createdBy: data.createdBy,
@@ -18,18 +18,18 @@ export async function createAgencyConfig(data) {
   return config;
 }
 
-export async function getAgencyConfig(agencyId) {
+export async function getAgencyConfig(agencyId: string) {
   const config = await AgencyConfig.findOne({ agencyId, status: "active" });
   if (!config) throw new Error("Agency configuration not found");
   return config;
 }
 
-export async function getAgencyConfigByCountry(country) {
+export async function getAgencyConfigByCountry(country: string) {
   const configs = await AgencyConfig.find({ country, status: "active" });
   return configs;
 }
 
-export async function updateAgencyConfig(agencyId, updates, updatedBy) {
+export async function updateAgencyConfig(agencyId: string, updates: any, updatedBy: string) {
   const config = await AgencyConfig.findOneAndUpdate(
     { agencyId },
     {
@@ -43,13 +43,13 @@ export async function updateAgencyConfig(agencyId, updates, updatedBy) {
   return config;
 }
 
-export async function generateApiKey(agencyId, keyData) {
+export async function generateApiKey(agencyId: string, keyData: any) {
   const config = await AgencyConfig.findOne({ agencyId });
   if (!config) throw new Error("Agency configuration not found");
 
   const apiKey = `sk_${crypto.randomBytes(32).toString("hex")}`;
   
-  config.api.keys.push({
+  (config as any).api.keys.push({
     name: keyData.name,
     key: apiKey,
     permissions: keyData.permissions || [],
@@ -62,14 +62,14 @@ export async function generateApiKey(agencyId, keyData) {
   config.updatedAt = new Date();
   await config.save();
 
-  return { apiKey, key: config.api.keys[config.api.keys.length - 1] };
+  return { apiKey, key: (config as any).api.keys[(config as any).api.keys.length - 1] };
 }
 
-export async function revokeApiKey(agencyId, keyId, revokedBy) {
+export async function revokeApiKey(agencyId: string, keyId: string, revokedBy: string) {
   const config = await AgencyConfig.findOne({ agencyId });
   if (!config) throw new Error("Agency configuration not found");
 
-  const key = config.api.keys.id(keyId);
+  const key = (config as any).api.keys.id(keyId);
   if (!key) throw new Error("API key not found");
 
   key.status = "revoked";
@@ -79,11 +79,11 @@ export async function revokeApiKey(agencyId, keyId, revokedBy) {
   return key;
 }
 
-export async function validateApiKey(apiKey) {
+export async function validateApiKey(apiKey: string) {
   const configs = await AgencyConfig.find({ "api.keys.key": apiKey, status: "active" });
   
   for (const config of configs) {
-    const key = config.api.keys.find(k => k.key === apiKey);
+    const key = (config as any).api.keys.find((k: any) => k.key === apiKey);
     if (key && key.status === "active") {
       // Check expiration
       if (key.expiresAt && key.expiresAt < new Date()) {
@@ -98,7 +98,7 @@ export async function validateApiKey(apiKey) {
       
       return {
         valid: true,
-        agencyId: config.agencyId,
+        agencyId: (config as any).agencyId,
         permissions: key.permissions,
         rateLimitOverride: key.rateLimitOverride,
       };
@@ -109,7 +109,7 @@ export async function validateApiKey(apiKey) {
 }
 
 // ── Country Configuration Management ───────────────────────────────────────────────
-export async function createCountryConfig(data) {
+export async function createCountryConfig(data: any) {
   const config = await CountryConfig.create({
     ...data,
     createdBy: data.createdBy,
@@ -118,7 +118,7 @@ export async function createCountryConfig(data) {
   return config;
 }
 
-export async function getCountryConfig(countryCode) {
+export async function getCountryConfig(countryCode: string) {
   const config = await CountryConfig.findOne({ countryCode, status: "active" });
   if (!config) throw new Error("Country configuration not found");
   return config;
@@ -129,7 +129,7 @@ export async function getAllCountryConfigs() {
   return configs;
 }
 
-export async function updateCountryConfig(countryCode, updates, updatedBy) {
+export async function updateCountryConfig(countryCode: string, updates: any, updatedBy: string) {
   const config = await CountryConfig.findOneAndUpdate(
     { countryCode },
     {
@@ -144,7 +144,7 @@ export async function updateCountryConfig(countryCode, updates, updatedBy) {
 }
 
 // ── Policy Engine ───────────────────────────────────────────────────────────────────
-export async function createPolicyRule(data) {
+export async function createPolicyRule(data: any) {
   const rule = await PolicyRule.create({
     ...data,
     createdBy: data.createdBy,
@@ -153,13 +153,13 @@ export async function createPolicyRule(data) {
   return rule;
 }
 
-export async function getPolicyRules(filters = {}) {
+export async function getPolicyRules(filters: any = {}) {
   const rules = await PolicyRule.find({ ...filters, enabled: true })
     .sort({ priority: -1 });
   return rules;
 }
 
-export async function getPolicyRulesByScope(scope) {
+export async function getPolicyRulesByScope(scope: any) {
   const rules = await PolicyRule.find({
     enabled: true,
     $or: [
@@ -172,7 +172,7 @@ export async function getPolicyRulesByScope(scope) {
   return rules;
 }
 
-export async function evaluatePolicy(context, eventType) {
+export async function evaluatePolicy(context: any, eventType: string) {
   // Get rules for the context
   const rules = await getPolicyRulesByScope({
     agencyId: context.agencyId,
@@ -181,18 +181,18 @@ export async function evaluatePolicy(context, eventType) {
   });
 
   // Filter rules that execute on this event
-  const applicableRules = rules.filter(rule => 
-    rule.executeOn.includes(eventType)
+  const applicableRules = rules.filter((rule: any) => 
+    (rule as any).executeOn.includes(eventType)
   );
 
   // Evaluate rules in priority order
   for (const rule of applicableRules) {
-    const result = evaluateCondition(rule.rule.condition, context);
+    const result = evaluateCondition((rule as any).rule.condition, context);
     if (result) {
       return {
-        action: rule.rule.action,
-        policyId: rule.policyId,
-        policyName: rule.policyName,
+        action: (rule as any).rule.action,
+        policyId: (rule as any).policyId,
+        policyName: (rule as any).policyName,
       };
     }
   }
@@ -200,7 +200,7 @@ export async function evaluatePolicy(context, eventType) {
   return null; // No policy matched
 }
 
-function evaluateCondition(condition, context) {
+function evaluateCondition(condition: any, context: any): boolean {
   // Simple condition evaluation
   // Can be extended with a more sophisticated expression evaluator
   const { field, operator, value } = condition;
@@ -228,11 +228,11 @@ function evaluateCondition(condition, context) {
   }
 }
 
-function getNestedValue(obj, path) {
-  return path.split(".").reduce((o, key) => (o && o[key] !== undefined) ? o[key] : undefined, obj);
+function getNestedValue(obj: any, path: string): any {
+  return path.split(".").reduce((o: any, key: string) => (o && o[key] !== undefined) ? o[key] : undefined, obj);
 }
 
-export async function updatePolicyRule(policyId, updates, updatedBy) {
+export async function updatePolicyRule(policyId: string, updates: any, updatedBy: string) {
   const rule = await PolicyRule.findOneAndUpdate(
     { policyId },
     {
@@ -246,7 +246,7 @@ export async function updatePolicyRule(policyId, updates, updatedBy) {
   return rule;
 }
 
-export async function enablePolicyRule(policyId) {
+export async function enablePolicyRule(policyId: string) {
   const rule = await PolicyRule.findOneAndUpdate(
     { policyId },
     { enabled: true, updatedAt: new Date() },
@@ -256,7 +256,7 @@ export async function enablePolicyRule(policyId) {
   return rule;
 }
 
-export async function disablePolicyRule(policyId) {
+export async function disablePolicyRule(policyId: string) {
   const rule = await PolicyRule.findOneAndUpdate(
     { policyId },
     { enabled: false, updatedAt: new Date() },
@@ -267,43 +267,43 @@ export async function disablePolicyRule(policyId) {
 }
 
 // ── Configuration Helpers ─────────────────────────────────────────────────────────
-export async function getEffectiveConfig(agencyId, countryCode) {
+export async function getEffectiveConfig(agencyId: string, countryCode: string) {
   const agencyConfig = await getAgencyConfig(agencyId).catch(() => null);
   const countryConfig = await getCountryConfig(countryCode).catch(() => null);
 
   // Merge configurations (agency config takes precedence)
   const effectiveConfig = {
     security: {
-      ...countryConfig?.legal,
-      ...agencyConfig?.security,
+      ...(countryConfig as any)?.legal,
+      ...(agencyConfig as any)?.security,
     },
-    rateLimiting: agencyConfig?.rateLimiting || {},
-    dataRetention: agencyConfig?.dataRetention || {},
-    notifications: agencyConfig?.notifications || {},
-    api: agencyConfig?.api || {},
-    integrations: agencyConfig?.integrations || [],
-    dataMasking: agencyConfig?.dataMasking || {},
-    consent: agencyConfig?.consent || {},
+    rateLimiting: (agencyConfig as any)?.rateLimiting || {},
+    dataRetention: (agencyConfig as any)?.dataRetention || {},
+    notifications: (agencyConfig as any)?.notifications || {},
+    api: (agencyConfig as any)?.api || {},
+    integrations: (agencyConfig as any)?.integrations || [],
+    dataMasking: (agencyConfig as any)?.dataMasking || {},
+    consent: (agencyConfig as any)?.consent || {},
     workflows: {
-      ...countryConfig?.missingPerson,
-      ...agencyConfig?.workflows,
+      ...(countryConfig as any)?.missingPerson,
+      ...(agencyConfig as any)?.workflows,
     },
-    compliance: agencyConfig?.compliance || {},
+    compliance: (agencyConfig as any)?.compliance || {},
   };
 
   return effectiveConfig;
 }
 
-export async function checkRateLimit(agencyId, endpoint, userIp) {
+export async function checkRateLimit(agencyId: string, endpoint: string, userIp: string) {
   const config = await getAgencyConfig(agencyId).catch(() => null);
-  if (!config || !config.rateLimiting?.enabled) return { allowed: true };
+  if (!config || !(config as any).rateLimiting?.enabled) return { allowed: true };
 
   // This is a simplified rate limit check
   // In production, use Redis or a dedicated rate limiter
-  const rateLimit = config.rateLimiting;
+  const rateLimit = (config as any).rateLimiting;
   
   // Check endpoint-specific limits
-  const endpointLimit = rateLimit.endpoints?.find(e => endpoint.includes(e.path));
+  const endpointLimit = rateLimit.endpoints?.find((e: any) => endpoint.includes(e.path));
   const limit = endpointLimit || rateLimit;
 
   // TODO: Implement actual rate limiting with Redis
@@ -311,22 +311,22 @@ export async function checkRateLimit(agencyId, endpoint, userIp) {
   return { allowed: true, limit: limit.requestsPerMinute };
 }
 
-export async function checkIPAccess(agencyId, userIp) {
+export async function checkIPAccess(agencyId: string, userIp: string) {
   const config = await getAgencyConfig(agencyId).catch(() => null);
   if (!config) return { allowed: true };
 
-  const { ipWhitelist, ipBlacklist } = config.security || {};
+  const { ipWhitelist, ipBlacklist } = (config as any).security || {};
 
   // Check blacklist first
   if (ipBlacklist && ipBlacklist.length > 0) {
-    if (ipBlacklist.some(ip => userIp.startsWith(ip))) {
+    if (ipBlacklist.some((ip: string) => userIp.startsWith(ip))) {
       return { allowed: false, reason: "IP blacklisted" };
     }
   }
 
   // Check whitelist
   if (ipWhitelist && ipWhitelist.length > 0) {
-    if (!ipWhitelist.some(ip => userIp.startsWith(ip))) {
+    if (!ipWhitelist.some((ip: string) => userIp.startsWith(ip))) {
       return { allowed: false, reason: "IP not whitelisted" };
     }
   }
@@ -334,15 +334,15 @@ export async function checkIPAccess(agencyId, userIp) {
   return { allowed: true };
 }
 
-export async function checkTimeBasedAccess(agencyId) {
+export async function checkTimeBasedAccess(agencyId: string) {
   const config = await getAgencyConfig(agencyId).catch(() => null);
-  if (!config || !config.security?.timeBasedAccess?.length) return { allowed: true };
+  if (!config || !(config as any).security?.timeBasedAccess?.length) return { allowed: true };
 
   const now = new Date();
   const dayOfWeek = now.getDay();
   const currentTime = now.getHours() * 60 + now.getMinutes();
 
-  const timeRules = config.security.timeBasedAccess;
+  const timeRules = (config as any).security.timeBasedAccess;
   
   for (const rule of timeRules) {
     if (rule.dayOfWeek.includes(dayOfWeek)) {
@@ -360,11 +360,11 @@ export async function checkTimeBasedAccess(agencyId) {
   return { allowed: false, reason: "Outside allowed time" };
 }
 
-export async function maskData(data, agencyId) {
+export async function maskData(data: any, agencyId: string) {
   const config = await getAgencyConfig(agencyId).catch(() => null);
-  if (!config || !config.dataMasking?.enabled) return data;
+  if (!config || !(config as any).dataMasking?.enabled) return data;
 
-  const rules = config.dataMasking.rules || [];
+  const rules = (config as any).dataMasking.rules || [];
   let maskedData = { ...data };
 
   for (const rule of rules) {
@@ -381,7 +381,7 @@ export async function maskData(data, agencyId) {
   return maskedData;
 }
 
-function applyMask(value, pattern, showFirst, showLast) {
+function applyMask(value: any, pattern: string, showFirst: number, showLast: number): string {
   const str = String(value);
   const length = str.length;
   
@@ -422,9 +422,9 @@ function applyMask(value, pattern, showFirst, showLast) {
   }
 }
 
-export async function validatePassword(password, agencyId) {
+export async function validatePassword(password: string, agencyId: string) {
   const config = await getAgencyConfig(agencyId).catch(() => null);
-  const policy = config?.security?.passwordPolicy || {
+  const policy = (config as any)?.security?.passwordPolicy || {
     minLength: 8,
     requireUppercase: true,
     requireLowercase: true,
@@ -432,7 +432,7 @@ export async function validatePassword(password, agencyId) {
     requireSpecialChars: true,
   };
 
-  const errors = [];
+  const errors: string[] = [];
 
   if (password.length < policy.minLength) {
     errors.push(`Password must be at least ${policy.minLength} characters`);
@@ -458,12 +458,12 @@ export async function validatePassword(password, agencyId) {
 }
 
 // ── Webhook System ───────────────────────────────────────────────────────────────────
-export async function triggerWebhooks(agencyId, event, payload) {
+export async function triggerWebhooks(agencyId: string, event: string, payload: any) {
   const config = await getAgencyConfig(agencyId).catch(() => null);
-  if (!config || !config.notifications?.webhookEndpoints) return;
+  if (!config || !(config as any).notifications?.webhookEndpoints) return;
 
-  const webhooks = config.notifications.webhookEndpoints.filter(
-    w => w.events.includes(event)
+  const webhooks = (config as any).notifications.webhookEndpoints.filter(
+    (w: any) => w.events.includes(event)
   );
 
   for (const webhook of webhooks) {
@@ -484,18 +484,18 @@ export async function triggerWebhooks(agencyId, event, payload) {
 }
 
 // ── Integration Helper ───────────────────────────────────────────────────────────────
-export async function getIntegrationConfig(agencyId, provider) {
+export async function getIntegrationConfig(agencyId: string, provider: string) {
   const config = await getAgencyConfig(agencyId).catch(() => null);
   if (!config) return null;
 
-  const integration = config.integrations?.find(i => i.provider === provider && i.enabled);
+  const integration = (config as any).integrations?.find((i: any) => i.provider === provider && i.enabled);
   return integration || null;
 }
 
-export async function mapFields(data, mapping) {
+export async function mapFields(data: any, mapping: any) {
   if (!mapping) return data;
 
-  const mapped = {};
+  const mapped: any = {};
   for (const [sourceField, targetField] of Object.entries(mapping)) {
     const value = getNestedValue(data, sourceField);
     if (value !== undefined) {
@@ -506,7 +506,7 @@ export async function mapFields(data, mapping) {
   return mapped;
 }
 
-function setNestedValue(obj, path, value) {
+function setNestedValue(obj: any, path: string, value: any) {
   const keys = path.split(".");
   let current = obj;
   
@@ -544,24 +544,24 @@ export async function getConfigurationStatistics() {
       { $match: { status: "active" } },
       { $project: { keyCount: { $size: "$api.keys" } } },
       { $group: { _id: null, total: { $sum: "$keyCount" } } },
-    ]).then(result => result[0]?.total || 0),
+    ]).then((result: any[]) => result[0]?.total || 0),
     AgencyConfig.aggregate([
       { $match: { status: "active" } },
       { $unwind: "$api.keys" },
       { $match: { "api.keys.status": "active" } },
       { $count: "total" },
-    ]).then(result => result[0]?.total || 0),
+    ]).then((result: any[]) => result[0]?.total || 0),
     AgencyConfig.aggregate([
       { $match: { status: "active" } },
       { $project: { integrationCount: { $size: "$integrations" } } },
       { $group: { _id: null, total: { $sum: "$integrationCount" } } },
-    ]).then(result => result[0]?.total || 0),
+    ]).then((result: any[]) => result[0]?.total || 0),
     AgencyConfig.aggregate([
       { $match: { status: "active" } },
       { $unwind: "$integrations" },
       { $match: { "integrations.enabled": true } },
       { $count: "total" },
-    ]).then(result => result[0]?.total || 0),
+    ]).then((result: any[]) => result[0]?.total || 0),
   ]);
 
   return {
