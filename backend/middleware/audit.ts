@@ -1,19 +1,20 @@
-// middleware/audit.js - Audit Log & Compliance Middleware
+// middleware/audit.ts - Audit Log & Compliance Middleware
 // Logs all user actions for compliance and security auditing
 
+import { Request, Response, NextFunction } from 'express';
 import { AuditLog } from "../db/index.js";
 
-export async function auditLog(req, res, next) {
+export async function auditLog(req: Request, res: Response, next: NextFunction) {
   // Store original res.json to intercept responses
   const originalJson = res.json;
 
-  res.json = function(data) {
+  res.json = function(data: any) {
     // Log the response after it's sent
     setImmediate(async () => {
       try {
-        const userId = req.user?.id || null;
-        const userEmail = req.user?.email || null;
-        const userRole = req.user?.role || null;
+        const userId = (req.user as any)?.id || null;
+        const userEmail = (req.user as any)?.email || null;
+        const userRole = (req.user as any)?.role || null;
 
         // Determine action based on method and path
         const action = getActionFromRequest(req);
@@ -30,7 +31,7 @@ export async function auditLog(req, res, next) {
           resourceId,
           method: req.method,
           endpoint: req.path,
-          ipAddress: req.ip || req.connection.remoteAddress,
+          ipAddress: req.ip || req.socket.remoteAddress,
           userAgent: req.get("user-agent"),
           status: res.statusCode < 400 ? "success" : "failure",
           complianceCheck: true,
@@ -48,7 +49,7 @@ export async function auditLog(req, res, next) {
   next();
 }
 
-function getActionFromRequest(req) {
+function getActionFromRequest(req: Request): string {
   const method = req.method;
   const path = req.path;
 
@@ -66,7 +67,7 @@ function getActionFromRequest(req) {
   return method.toLowerCase();
 }
 
-function getResourceFromPath(path) {
+function getResourceFromPath(path: string): string {
   // Extract resource from path
   const segments = path.split("/").filter(s => s);
   if (segments.length === 0) return "system";
@@ -79,7 +80,7 @@ function getResourceFromPath(path) {
   return segments[0];
 }
 
-function getResourceIdFromPath(path) {
+function getResourceIdFromPath(path: string): string | null {
   // Extract ID from path (e.g., /api/devices/123)
   const segments = path.split("/").filter(s => s);
   const lastSegment = segments[segments.length - 1];
@@ -93,9 +94,9 @@ function getResourceIdFromPath(path) {
 }
 
 // ── Compliance Check Middleware ─────────────────────────────────────────────────
-export function complianceCheck(req, res, next) {
+export function complianceCheck(req: Request, res: Response, next: NextFunction) {
   // Add compliance metadata to request
-  req.compliance = {
+  (req as any).compliance = {
     checked: true,
     region: detectRegion(req),
     gdprApplies: isGdprRegion(req),
@@ -105,16 +106,16 @@ export function complianceCheck(req, res, next) {
   next();
 }
 
-function detectRegion(req) {
-  const ip = req.ip || req.connection.remoteAddress;
+function detectRegion(req: Request): string {
+  const ip = req.ip || req.socket.remoteAddress;
   // Simplified region detection
-  if (ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.")) {
+  if (ip?.startsWith("192.168.") || ip?.startsWith("10.") || ip?.startsWith("172.")) {
     return "local";
   }
   return "unknown";
 }
 
-function isGdprRegion(req) {
+function isGdprRegion(req: Request): boolean {
   // Simplified GDPR region check
   const region = detectRegion(req);
   const gdprRegions = ["EU", "GB", "DE", "FR", "IT", "ES"];
@@ -122,7 +123,7 @@ function isGdprRegion(req) {
 }
 
 // ── Sensitive Action Logging ────────────────────────────────────────────────────
-export async function logSensitiveAction(data) {
+export async function logSensitiveAction(data: any) {
   const {
     userId,
     userEmail,
@@ -155,7 +156,7 @@ export async function logSensitiveAction(data) {
 }
 
 // ── Audit Log Query Helpers ─────────────────────────────────────────────────────
-export async function getAuditLogsByUser(userId, limit = 100) {
+export async function getAuditLogsByUser(userId: string, limit: number = 100) {
   const logs = await AuditLog.find({ userId })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -163,7 +164,7 @@ export async function getAuditLogsByUser(userId, limit = 100) {
   return logs;
 }
 
-export async function getAuditLogsByAction(action, limit = 100) {
+export async function getAuditLogsByAction(action: string, limit: number = 100) {
   const logs = await AuditLog.find({ action })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -171,7 +172,7 @@ export async function getAuditLogsByAction(action, limit = 100) {
   return logs;
 }
 
-export async function getAuditLogsByResource(resource, limit = 100) {
+export async function getAuditLogsByResource(resource: string, limit: number = 100) {
   const logs = await AuditLog.find({ resource })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -179,7 +180,7 @@ export async function getAuditLogsByResource(resource, limit = 100) {
   return logs;
 }
 
-export async function getAuditLogsByDateRange(startDate, endDate) {
+export async function getAuditLogsByDateRange(startDate: Date, endDate: Date) {
   const logs = await AuditLog.find({
     timestamp: { $gte: startDate, $lte: endDate },
   })
@@ -188,7 +189,7 @@ export async function getAuditLogsByDateRange(startDate, endDate) {
   return logs;
 }
 
-export async function getFailedAuditLogs(limit = 100) {
+export async function getFailedAuditLogs(limit: number = 100) {
   const logs = await AuditLog.find({ status: "failure" })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -233,8 +234,8 @@ export async function getAuditStatistics() {
     failureLogs,
     unauthorizedLogs,
     successRate: totalLogs > 0 ? ((successLogs / totalLogs) * 100).toFixed(2) : 0,
-    logsByAction: logsByAction.map(l => ({ action: l._id, count: l.count })),
-    logsByResource: logsByResource.map(l => ({ resource: l._id, count: l.count })),
-    logsByUser: logsByUser.map(l => ({ userId: l._id, count: l.count })),
+    logsByAction: logsByAction.map((l: any) => ({ action: l._id, count: l.count })),
+    logsByResource: logsByResource.map((l: any) => ({ resource: l._id, count: l.count })),
+    logsByUser: logsByUser.map((l: any) => ({ userId: l._id, count: l.count })),
   };
 }
