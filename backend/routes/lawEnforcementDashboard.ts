@@ -1,5 +1,5 @@
-// routes/lawEnforcementDashboard.js - Law enforcement dashboard API endpoints
-import { Router } from "express";
+// routes/lawEnforcementDashboard.ts - Law enforcement dashboard API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -18,8 +18,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Law Enforcement Dashboard Management ───────────────────────────────────────────────
-router.post("/", authenticate, async (req, res, next) => {
+router.post("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -46,15 +54,15 @@ router.post("/", authenticate, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const dashboard = await createLawEnforcementDashboard({ ...data, createdBy: req.user.id });
+    const dashboard = await createLawEnforcementDashboard({ ...data, createdBy: req.user!.id });
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/:dashboardId", authenticate, async (req, res, next) => {
+router.get("/:dashboardId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
     const dashboard = await getLawEnforcementDashboard(dashboardId);
@@ -62,7 +70,7 @@ router.get("/:dashboardId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/agency/:agencyId", authenticate, async (req, res, next) => {
+router.get("/agency/:agencyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
     const dashboard = await getLawEnforcementDashboardByAgency(agencyId);
@@ -70,15 +78,15 @@ router.get("/agency/:agencyId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/:dashboardId", authenticate, async (req, res, next) => {
+router.patch("/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updateLawEnforcementDashboard(dashboardId, req.body, req.user.id);
+    const dashboard = await updateLawEnforcementDashboard(dashboardId, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
-router.patch("/:dashboardId/widgets", authenticate, async (req, res, next) => {
+router.patch("/:dashboardId/widgets", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       widgets: z.array(z.object({
@@ -95,15 +103,15 @@ router.patch("/:dashboardId/widgets", authenticate, async (req, res, next) => {
 
     const { dashboardId } = req.params;
     const data = schema.parse(req.body);
-    const dashboard = await updateLawEnforcementDashboardWidgets(dashboardId, data.widgets, req.user.id);
+    const dashboard = await updateLawEnforcementDashboardWidgets(dashboardId, data.widgets, req.user!.id);
     res.json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/:dashboardId/settings", authenticate, async (req, res, next) => {
+router.patch("/:dashboardId/settings", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       settings: z.object({
@@ -116,15 +124,15 @@ router.patch("/:dashboardId/settings", authenticate, async (req, res, next) => {
 
     const { dashboardId } = req.params;
     const data = schema.parse(req.body);
-    const dashboard = await updateLawEnforcementDashboardSettings(dashboardId, data.settings, req.user.id);
+    const dashboard = await updateLawEnforcementDashboardSettings(dashboardId, data.settings, req.user!.id);
     res.json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/:dashboardId/users", authenticate, async (req, res, next) => {
+router.post("/:dashboardId/users", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -132,31 +140,31 @@ router.post("/:dashboardId/users", authenticate, async (req, res, next) => {
 
     const { dashboardId } = req.params;
     const data = schema.parse(req.body);
-    const dashboard = await addLawEnforcementDashboardUser(dashboardId, data.userId, req.user.id);
+    const dashboard = await addLawEnforcementDashboardUser(dashboardId, data.userId, req.user!.id);
     res.json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/:dashboardId/users/:userId", authenticate, async (req, res, next) => {
+router.delete("/:dashboardId/users/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId, userId } = req.params;
-    const dashboard = await removeLawEnforcementDashboardUser(dashboardId, userId, req.user.id);
+    const dashboard = await removeLawEnforcementDashboardUser(dashboardId, userId, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
-router.delete("/:dashboardId", authenticate, async (req, res, next) => {
+router.delete("/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await deleteLawEnforcementDashboard(dashboardId, req.user.id);
+    const dashboard = await deleteLawEnforcementDashboard(dashboardId, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
-router.get("/", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const dashboards = await getAllLawEnforcementDashboards();
     res.json({ dashboards, count: dashboards.length });
@@ -164,7 +172,7 @@ router.get("/", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── Dashboard Data ───────────────────────────────────────────────────────────────────
-router.get("/:dashboardId/data", authenticate, async (req, res, next) => {
+router.get("/:dashboardId/data", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
     const data = await getLawEnforcementDashboardData(dashboardId);

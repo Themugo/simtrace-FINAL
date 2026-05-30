@@ -1,5 +1,5 @@
-// routes/securityEnhanced.js - Enhanced Security Features API endpoints
-import { Router } from "express";
+// routes/securityEnhanced.ts - Enhanced Security Features API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -28,8 +28,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Nearby Device Detection ─────────────────────────────────────────────────────
-router.post("/nearby-devices/detect", authenticate, async (req, res, next) => {
+router.post("/nearby-devices/detect", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -45,17 +53,17 @@ router.post("/nearby-devices/detect", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const detection = await detectNearbyDevices({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(detection);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/nearby-devices/:id", authenticate, async (req, res, next) => {
+router.get("/nearby-devices/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const detection = await getNearbyDeviceDetection(id);
@@ -63,7 +71,7 @@ router.get("/nearby-devices/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/nearby-devices/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/nearby-devices/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const detections = await getNearbyDetectionsByDevice(deviceId);
@@ -71,7 +79,7 @@ router.get("/nearby-devices/device/:deviceId", authenticate, async (req, res, ne
   } catch (err) { next(err); }
 });
 
-router.post("/nearby-devices/:id/witness", authenticate, async (req, res, next) => {
+router.post("/nearby-devices/:id/witness", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -85,13 +93,13 @@ router.post("/nearby-devices/:id/witness", authenticate, async (req, res, next) 
     const detection = await addPotentialWitness(id, witnessData);
     res.json(detection);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Guardian/Nominee System ─────────────────────────────────────────────────────
-router.post("/guardians", authenticate, async (req, res, next) => {
+router.post("/guardians", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       guardianId: z.string(),
@@ -110,32 +118,32 @@ router.post("/guardians", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const guardian = await addGuardian({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(guardian);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/guardians", authenticate, async (req, res, next) => {
+router.get("/guardians", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const guardians = await getGuardians(req.user.id);
+    const guardians = await getGuardians(req.user!.id);
     res.json({ guardians, count: guardians.length });
   } catch (err) { next(err); }
 });
 
-router.delete("/guardians/:guardianId", authenticate, async (req, res, next) => {
+router.delete("/guardians/:guardianId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { guardianId } = req.params;
-    const guardian = await removeGuardian(req.user.id, guardianId);
+    const guardian = await removeGuardian(req.user!.id, guardianId);
     res.json(guardian);
   } catch (err) { next(err); }
 });
 
-router.patch("/guardians/:guardianId/permissions", authenticate, async (req, res, next) => {
+router.patch("/guardians/:guardianId/permissions", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       permissions: z.array(z.object({
@@ -146,15 +154,15 @@ router.patch("/guardians/:guardianId/permissions", authenticate, async (req, res
 
     const { guardianId } = req.params;
     const { permissions } = schema.parse(req.body);
-    const guardian = await updateGuardianPermissions(req.user.id, guardianId, permissions);
+    const guardian = await updateGuardianPermissions(req.user!.id, guardianId, permissions);
     res.json(guardian);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/guardians/:guardianId/report-theft", authenticate, async (req, res, next) => {
+router.post("/guardians/:guardianId/report-theft", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -166,13 +174,13 @@ router.post("/guardians/:guardianId/report-theft", authenticate, async (req, res
     const result = await guardianReportTheft(guardianId, deviceId, reason);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Parent-Child Relationship System ─────────────────────────────────────────────
-router.post("/children", authenticate, async (req, res, next) => {
+router.post("/children", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       childId: z.string(),
@@ -187,24 +195,24 @@ router.post("/children", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const parentChild = await addChild({
       ...data,
-      parentId: req.user.id,
+      parentId: req.user!.id,
     });
 
     res.status(201).json(parentChild);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/children", authenticate, async (req, res, next) => {
+router.get("/children", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const children = await getChildren(req.user.id);
+    const children = await getChildren(req.user!.id);
     res.json({ children, count: children.length });
   } catch (err) { next(err); }
 });
 
-router.post("/children/:id/live-tracking", authenticate, async (req, res, next) => {
+router.post("/children/:id/live-tracking", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       reason: z.string(),
@@ -216,12 +224,12 @@ router.post("/children/:id/live-tracking", authenticate, async (req, res, next) 
     const parentChild = await enableLiveTracking(id, reason, durationHours);
     res.json(parentChild);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/children/:id/live-tracking", authenticate, async (req, res, next) => {
+router.delete("/children/:id/live-tracking", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const parentChild = await disableLiveTracking(id);
@@ -229,7 +237,7 @@ router.delete("/children/:id/live-tracking", authenticate, async (req, res, next
   } catch (err) { next(err); }
 });
 
-router.post("/children/:id/geofences", authenticate, async (req, res, next) => {
+router.post("/children/:id/geofences", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       name: z.string(),
@@ -245,12 +253,12 @@ router.post("/children/:id/geofences", authenticate, async (req, res, next) => {
     const parentChild = await addGeofence(id, geofenceData);
     res.json(parentChild);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/children/:id/geofences/:index", authenticate, async (req, res, next) => {
+router.delete("/children/:id/geofences/:index", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id, index } = req.params;
     const parentChild = await removeGeofence(id, parseInt(index));
@@ -259,7 +267,7 @@ router.delete("/children/:id/geofences/:index", authenticate, async (req, res, n
 });
 
 // ── Panic Mode System ───────────────────────────────────────────────────────────
-router.post("/panic", authenticate, async (req, res, next) => {
+router.post("/panic", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -282,17 +290,17 @@ router.post("/panic", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const panicMode = await activatePanicMode({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(panicMode);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/panic/:id", authenticate, async (req, res, next) => {
+router.get("/panic/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const panicMode = await getPanicMode(id);
@@ -300,14 +308,14 @@ router.get("/panic/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/panic/active", authenticate, async (req, res, next) => {
+router.get("/panic/active", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const panicModes = await getActivePanicModes(req.user.id);
+    const panicModes = await getActivePanicModes(req.user!.id);
     res.json({ panicModes, count: panicModes.length });
   } catch (err) { next(err); }
 });
 
-router.post("/panic/:id/resolve", authenticate, async (req, res, next) => {
+router.post("/panic/:id/resolve", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       resolutionNotes: z.string(),
@@ -315,15 +323,15 @@ router.post("/panic/:id/resolve", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { resolutionNotes } = schema.parse(req.body);
-    const panicMode = await resolvePanicMode(id, req.user.id, resolutionNotes);
+    const panicMode = await resolvePanicMode(id, req.user!.id, resolutionNotes);
     res.json(panicMode);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/panic/:id/cancel", authenticate, async (req, res, next) => {
+router.post("/panic/:id/cancel", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const panicMode = await cancelPanicMode(id);
@@ -332,7 +340,7 @@ router.post("/panic/:id/cancel", authenticate, async (req, res, next) => {
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getSecurityStatistics();
     res.json(stats);

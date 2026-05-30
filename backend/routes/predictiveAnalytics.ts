@@ -1,5 +1,5 @@
-// routes/predictiveAnalytics.js - AI-Powered Predictive Analytics API endpoints
-import { Router } from "express";
+// routes/predictiveAnalytics.ts - AI-Powered Predictive Analytics API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -16,7 +16,7 @@ import {
 const router = Router();
 
 // ── Risk Prediction ─────────────────────────────────────────────────────────────
-router.post("/risk/:deviceId", authenticate, async (req, res, next) => {
+router.post("/risk/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const prediction = await generateRiskPrediction(deviceId);
@@ -24,7 +24,7 @@ router.post("/risk/:deviceId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/risk/:deviceId", authenticate, async (req, res, next) => {
+router.get("/risk/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const prediction = await getRiskPrediction(deviceId);
@@ -37,7 +37,7 @@ router.get("/risk/:deviceId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/risk/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/risk/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const predictions = await getRiskPredictionsByDevice(deviceId);
@@ -46,7 +46,7 @@ router.get("/risk/device/:deviceId", authenticate, async (req, res, next) => {
 });
 
 // ── Anomaly Detection ───────────────────────────────────────────────────────────
-router.post("/anomaly/:deviceId", authenticate, async (req, res, next) => {
+router.post("/anomaly/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const pingData = req.body;
@@ -55,7 +55,7 @@ router.post("/anomaly/:deviceId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/anomalies/:deviceId", authenticate, async (req, res, next) => {
+router.get("/anomalies/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const anomalies = await getAnomaliesByDevice(deviceId);
@@ -63,14 +63,14 @@ router.get("/anomalies/:deviceId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/anomalies/unresolved", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/anomalies/unresolved", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const anomalies = await getUnresolvedAnomalies();
     res.json({ anomalies, count: anomalies.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/anomalies/:id/resolve", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/anomalies/:id/resolve", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       resolution: z.string(),
@@ -82,13 +82,13 @@ router.patch("/anomalies/:id/resolve", authenticate, requireAdmin, async (req, r
 
     res.json(anomaly);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getPredictiveAnalyticsStatistics();
     res.json(stats);

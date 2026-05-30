@@ -1,5 +1,5 @@
-// routes/dashboardSecurity.js - Hierarchical Security Dashboard API endpoints
-import { Router } from "express";
+// routes/dashboardSecurity.ts - Hierarchical Security Dashboard API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -52,8 +52,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Official Email Management ───────────────────────────────────────────────────────
-router.post("/official-emails", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/official-emails", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       officialEmail: z.string().email(),
@@ -65,15 +73,15 @@ router.post("/official-emails", authenticate, requireAdmin, async (req, res, nex
     });
 
     const data = schema.parse(req.body);
-    const officialEmail = await createOfficialEmail({ ...data, createdBy: req.user.id });
+    const officialEmail = await createOfficialEmail({ ...data, createdBy: req.user!.id });
     res.status(201).json(officialEmail);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/official-emails/:emailId/verify", authenticate, async (req, res, next) => {
+router.post("/official-emails/:emailId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       token: z.string(),
@@ -84,12 +92,12 @@ router.post("/official-emails/:emailId/verify", authenticate, async (req, res, n
     const officialEmail = await verifyOfficialEmail(emailId, data.token);
     res.json(officialEmail);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/official-emails/:emailId", authenticate, async (req, res, next) => {
+router.get("/official-emails/:emailId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { emailId } = req.params;
     const officialEmail = await getOfficialEmail(emailId);
@@ -97,7 +105,7 @@ router.get("/official-emails/:emailId", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.get("/official-emails/user/:userId", authenticate, async (req, res, next) => {
+router.get("/official-emails/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const officialEmail = await getOfficialEmailByUser(userId);
@@ -105,24 +113,24 @@ router.get("/official-emails/user/:userId", authenticate, async (req, res, next)
   } catch (err) { next(err); }
 });
 
-router.patch("/official-emails/:emailId", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/official-emails/:emailId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { emailId } = req.params;
-    const officialEmail = await updateOfficialEmail(emailId, req.body, req.user.id);
+    const officialEmail = await updateOfficialEmail(emailId, req.body, req.user!.id);
     res.json(officialEmail);
   } catch (err) { next(err); }
 });
 
-router.post("/official-emails/:emailId/revoke", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/official-emails/:emailId/revoke", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { emailId } = req.params;
-    const officialEmail = await revokeOfficialEmail(emailId, req.user.id);
+    const officialEmail = await revokeOfficialEmail(emailId, req.user!.id);
     res.json(officialEmail);
   } catch (err) { next(err); }
 });
 
 // ── Security OTP Management ─────────────────────────────────────────────────────────
-router.post("/security-otps", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/security-otps", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       holderName: z.string(),
@@ -135,15 +143,15 @@ router.post("/security-otps", authenticate, requireAdmin, async (req, res, next)
     });
 
     const data = schema.parse(req.body);
-    const securityOtp = await createSecurityOtp({ ...data, createdBy: req.user.id });
+    const securityOtp = await createSecurityOtp({ ...data, createdBy: req.user!.id });
     res.status(201).json(securityOtp);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/security-otps/:otpId/verify", authenticate, async (req, res, next) => {
+router.post("/security-otps/:otpId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       otpNumber: z.string(),
@@ -154,12 +162,12 @@ router.post("/security-otps/:otpId/verify", authenticate, async (req, res, next)
     const securityOtp = await verifySecurityOtp(otpId, data.otpNumber);
     res.json(securityOtp);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/security-otps/:otpId", authenticate, async (req, res, next) => {
+router.get("/security-otps/:otpId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { otpId } = req.params;
     const securityOtp = await getSecurityOtp(otpId);
@@ -167,7 +175,7 @@ router.get("/security-otps/:otpId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/security-otps/user/:userId", authenticate, async (req, res, next) => {
+router.get("/security-otps/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const securityOtp = await getSecurityOtpByUser(userId);
@@ -175,24 +183,24 @@ router.get("/security-otps/user/:userId", authenticate, async (req, res, next) =
   } catch (err) { next(err); }
 });
 
-router.patch("/security-otps/:otpId", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/security-otps/:otpId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { otpId } = req.params;
-    const securityOtp = await updateSecurityOtp(otpId, req.body, req.user.id);
+    const securityOtp = await updateSecurityOtp(otpId, req.body, req.user!.id);
     res.json(securityOtp);
   } catch (err) { next(err); }
 });
 
-router.post("/security-otps/:otpId/report-lost", authenticate, async (req, res, next) => {
+router.post("/security-otps/:otpId/report-lost", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { otpId } = req.params;
-    const securityOtp = await reportLostOtp(otpId, req.user.id);
+    const securityOtp = await reportLostOtp(otpId, req.user!.id);
     res.json(securityOtp);
   } catch (err) { next(err); }
 });
 
 // ── Password Reset Workflow ─────────────────────────────────────────────────────────
-router.post("/password-resets", authenticate, async (req, res, next) => {
+router.post("/password-resets", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -208,12 +216,12 @@ router.post("/password-resets", authenticate, async (req, res, next) => {
     const resetRequest = await initiatePasswordReset(data);
     res.status(201).json(resetRequest);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/password-resets/:requestId/verify", authenticate, async (req, res, next) => {
+router.post("/password-resets/:requestId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       verificationMethod: z.enum(["official_email", "security_otp", "both"]),
@@ -226,12 +234,12 @@ router.post("/password-resets/:requestId/verify", authenticate, async (req, res,
     const resetRequest = await verifyPasswordReset(requestId, data.verificationMethod, data.code, data.otpNumber);
     res.json(resetRequest);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/password-resets/:requestId/approve", authenticate, async (req, res, next) => {
+router.post("/password-resets/:requestId/approve", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       approvalReason: z.string(),
@@ -239,15 +247,15 @@ router.post("/password-resets/:requestId/approve", authenticate, async (req, res
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const resetRequest = await approvePasswordReset(requestId, req.user.id, data.approvalReason);
+    const resetRequest = await approvePasswordReset(requestId, req.user!.id, data.approvalReason);
     res.json(resetRequest);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/password-resets/:requestId/reject", authenticate, async (req, res, next) => {
+router.post("/password-resets/:requestId/reject", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       rejectionReason: z.string(),
@@ -255,15 +263,15 @@ router.post("/password-resets/:requestId/reject", authenticate, async (req, res,
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const resetRequest = await rejectPasswordReset(requestId, req.user.id, data.rejectionReason);
+    const resetRequest = await rejectPasswordReset(requestId, req.user!.id, data.rejectionReason);
     res.json(resetRequest);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/password-resets/:requestId/complete", authenticate, async (req, res, next) => {
+router.post("/password-resets/:requestId/complete", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       newPassword: z.string().min(8),
@@ -274,12 +282,12 @@ router.post("/password-resets/:requestId/complete", authenticate, async (req, re
     const resetRequest = await completePasswordReset(requestId, data.newPassword);
     res.json(resetRequest);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/password-resets/:requestId", authenticate, async (req, res, next) => {
+router.get("/password-resets/:requestId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { requestId } = req.params;
     const resetRequest = await getPasswordResetRequest(requestId);
@@ -287,7 +295,7 @@ router.get("/password-resets/:requestId", authenticate, async (req, res, next) =
   } catch (err) { next(err); }
 });
 
-router.get("/password-resets/user/:userId", authenticate, async (req, res, next) => {
+router.get("/password-resets/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const resetRequests = await getPasswordResetRequestsByUser(userId);
@@ -296,7 +304,7 @@ router.get("/password-resets/user/:userId", authenticate, async (req, res, next)
 });
 
 // ── Network Change Workflow ────────────────────────────────────────────────────────
-router.post("/network-changes", authenticate, async (req, res, next) => {
+router.post("/network-changes", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       requesterId: z.string(),
@@ -321,12 +329,12 @@ router.post("/network-changes", authenticate, async (req, res, next) => {
     const networkChange = await initiateNetworkChange(data);
     res.status(201).json(networkChange);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/network-changes/:requestId/verify", authenticate, async (req, res, next) => {
+router.post("/network-changes/:requestId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       verificationMethod: z.enum(["official_email", "security_otp", "both"]),
@@ -338,12 +346,12 @@ router.post("/network-changes/:requestId/verify", authenticate, async (req, res,
     const networkChange = await verifyNetworkChange(requestId, data.verificationMethod, data.otpNumber);
     res.json(networkChange);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/network-changes/:requestId/approve", authenticate, async (req, res, next) => {
+router.post("/network-changes/:requestId/approve", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       approverEmailId: z.string().optional(),
@@ -353,15 +361,15 @@ router.post("/network-changes/:requestId/approve", authenticate, async (req, res
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const networkChange = await approveNetworkChange(requestId, req.user.id, data.approverEmailId, data.approverOtpId, data.comment);
+    const networkChange = await approveNetworkChange(requestId, req.user!.id, data.approverEmailId, data.approverOtpId, data.comment);
     res.json(networkChange);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/network-changes/:requestId/reject", authenticate, async (req, res, next) => {
+router.post("/network-changes/:requestId/reject", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       rejectionReason: z.string(),
@@ -369,15 +377,15 @@ router.post("/network-changes/:requestId/reject", authenticate, async (req, res,
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const networkChange = await rejectNetworkChange(requestId, req.user.id, data.rejectionReason);
+    const networkChange = await rejectNetworkChange(requestId, req.user!.id, data.rejectionReason);
     res.json(networkChange);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/network-changes/:requestId/execute", authenticate, async (req, res, next) => {
+router.post("/network-changes/:requestId/execute", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       executionLog: z.string(),
@@ -385,15 +393,15 @@ router.post("/network-changes/:requestId/execute", authenticate, async (req, res
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const networkChange = await executeNetworkChange(requestId, req.user.id, data.executionLog);
+    const networkChange = await executeNetworkChange(requestId, req.user!.id, data.executionLog);
     res.json(networkChange);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/network-changes/:requestId/rollback", authenticate, async (req, res, next) => {
+router.post("/network-changes/:requestId/rollback", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       rollbackReason: z.string(),
@@ -404,12 +412,12 @@ router.post("/network-changes/:requestId/rollback", authenticate, async (req, re
     const networkChange = await rollbackNetworkChange(requestId, data.rollbackReason);
     res.json(networkChange);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/network-changes/:requestId", authenticate, async (req, res, next) => {
+router.get("/network-changes/:requestId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { requestId } = req.params;
     const networkChange = await getNetworkChangeRequest(requestId);
@@ -417,7 +425,7 @@ router.get("/network-changes/:requestId", authenticate, async (req, res, next) =
   } catch (err) { next(err); }
 });
 
-router.get("/network-changes/agency/:agencyId", authenticate, async (req, res, next) => {
+router.get("/network-changes/agency/:agencyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
     const networkChanges = await getNetworkChangeRequestsByAgency(agencyId);
@@ -426,7 +434,7 @@ router.get("/network-changes/agency/:agencyId", authenticate, async (req, res, n
 });
 
 // ── Dashboard Access Logging ────────────────────────────────────────────────────────
-router.post("/access-logs", authenticate, async (req, res, next) => {
+router.post("/access-logs", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -456,39 +464,39 @@ router.post("/access-logs", authenticate, async (req, res, next) => {
     const accessLog = await logDashboardAccess(data);
     res.status(201).json(accessLog);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/access-logs/user/:userId", authenticate, async (req, res, next) => {
+router.get("/access-logs/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = parseInt((req.query.limit as string) || "50");
     const logs = await getDashboardAccessLogs(userId, limit);
     res.json({ logs, count: logs.length });
   } catch (err) { next(err); }
 });
 
-router.get("/access-logs/level/:dashboardLevel", authenticate, async (req, res, next) => {
+router.get("/access-logs/level/:dashboardLevel", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { dashboardLevel } = req.params;
-    const limit = parseInt(req.query.limit) || 100;
+    const limit = parseInt((req.query.limit as string) || "100");
     const logs = await getDashboardAccessLogsByLevel(dashboardLevel, limit);
     res.json({ logs, count: logs.length });
   } catch (err) { next(err); }
 });
 
-router.get("/access-logs/suspicious", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/access-logs/suspicious", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = parseInt((req.query.limit as string) || "50");
     const logs = await getSuspiciousActivityLogs(limit);
     res.json({ logs, count: logs.length });
   } catch (err) { next(err); }
 });
 
 // ── Minister Dashboard Management ─────────────────────────────────────────────────
-router.post("/dashboards/minister", authenticate, async (req, res, next) => {
+router.post("/dashboards/minister", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       ministerId: z.string(),
@@ -520,12 +528,12 @@ router.post("/dashboards/minister", authenticate, async (req, res, next) => {
     const dashboard = await createMinisterDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/dashboards/minister/:ministerId", authenticate, async (req, res, next) => {
+router.get("/dashboards/minister/:ministerId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { ministerId } = req.params;
     const dashboard = await getMinisterDashboard(ministerId);
@@ -533,16 +541,16 @@ router.get("/dashboards/minister/:ministerId", authenticate, async (req, res, ne
   } catch (err) { next(err); }
 });
 
-router.patch("/dashboards/minister/:dashboardId", authenticate, async (req, res, next) => {
+router.patch("/dashboards/minister/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updateMinisterDashboard(dashboardId, req.body, req.user.id);
+    const dashboard = await updateMinisterDashboard(dashboardId, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
 // ── Police General Dashboard Management ───────────────────────────────────────────
-router.post("/dashboards/police-general", authenticate, async (req, res, next) => {
+router.post("/dashboards/police-general", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policeGeneralId: z.string(),
@@ -574,12 +582,12 @@ router.post("/dashboards/police-general", authenticate, async (req, res, next) =
     const dashboard = await createPoliceGeneralDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/dashboards/police-general/:policeGeneralId", authenticate, async (req, res, next) => {
+router.get("/dashboards/police-general/:policeGeneralId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { policeGeneralId } = req.params;
     const dashboard = await getPoliceGeneralDashboard(policeGeneralId);
@@ -587,16 +595,16 @@ router.get("/dashboards/police-general/:policeGeneralId", authenticate, async (r
   } catch (err) { next(err); }
 });
 
-router.patch("/dashboards/police-general/:dashboardId", authenticate, async (req, res, next) => {
+router.patch("/dashboards/police-general/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updatePoliceGeneralDashboard(dashboardId, req.body, req.user.id);
+    const dashboard = await updatePoliceGeneralDashboard(dashboardId, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
 // ── Station Admin Dashboard Management ────────────────────────────────────────────
-router.post("/dashboards/station-admin", authenticate, async (req, res, next) => {
+router.post("/dashboards/station-admin", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       stationAdminId: z.string(),
@@ -629,12 +637,12 @@ router.post("/dashboards/station-admin", authenticate, async (req, res, next) =>
     const dashboard = await createStationAdminDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/dashboards/station-admin/:stationAdminId", authenticate, async (req, res, next) => {
+router.get("/dashboards/station-admin/:stationAdminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { stationAdminId } = req.params;
     const dashboard = await getStationAdminDashboard(stationAdminId);
@@ -642,16 +650,16 @@ router.get("/dashboards/station-admin/:stationAdminId", authenticate, async (req
   } catch (err) { next(err); }
 });
 
-router.patch("/dashboards/station-admin/:dashboardId", authenticate, async (req, res, next) => {
+router.patch("/dashboards/station-admin/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updateStationAdminDashboard(dashboardId, req.body, req.user.id);
+    const dashboard = await updateStationAdminDashboard(dashboardId, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
 // ── User Dashboard Management ───────────────────────────────────────────────────────
-router.post("/dashboards/user", authenticate, async (req, res, next) => {
+router.post("/dashboards/user", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -677,12 +685,12 @@ router.post("/dashboards/user", authenticate, async (req, res, next) => {
     const dashboard = await createUserDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/dashboards/user/:userId", authenticate, async (req, res, next) => {
+router.get("/dashboards/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const dashboard = await getUserDashboard(userId);
@@ -690,16 +698,16 @@ router.get("/dashboards/user/:userId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/dashboards/user/:dashboardId", authenticate, async (req, res, next) => {
+router.patch("/dashboards/user/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updateUserDashboard(dashboardId, req.body, req.user.id);
+    const dashboard = await updateUserDashboard(dashboardId, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
 // ── Dashboard Access Control ────────────────────────────────────────────────────────
-router.post("/dashboards/check-access", authenticate, async (req, res, next) => {
+router.post("/dashboards/check-access", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -711,13 +719,13 @@ router.post("/dashboards/check-access", authenticate, async (req, res, next) => 
     const result = await checkDashboardAccess(data.userId, data.dashboardLevel, data.ipAddress);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getDashboardStatistics();
     res.json(stats);
