@@ -1,6 +1,8 @@
 // Role-Based Access Control (RBAC)
 // Permission matrix, role inheritance, fine-grained permissions
 
+import { Request, Response, NextFunction } from 'express';
+
 // Permission definitions
 export const Permissions = {
   // Device management
@@ -38,7 +40,7 @@ export const Permissions = {
 };
 
 // Role definitions with permissions
-export const Roles = {
+export const Roles: Record<string, any> = {
   USER: {
     permissions: [
       Permissions.DEVICE_CREATE,
@@ -93,7 +95,7 @@ export const Roles = {
 };
 
 // Permission matrix
-const permissionMatrix = {};
+const permissionMatrix: Record<string, string[]> = {};
 
 // Build permission matrix from role definitions
 function buildPermissionMatrix() {
@@ -105,39 +107,39 @@ function buildPermissionMatrix() {
       for (const inheritedRole of roleConfig.inherits) {
         const inheritedConfig = Roles[inheritedRole];
         if (inheritedConfig?.permissions) {
-          inheritedConfig.permissions.forEach(perm => permissions.add(perm));
+          inheritedConfig.permissions.forEach((perm: string) => permissions.add(perm));
         }
       }
     }
     
-    permissionMatrix[roleName] = Array.from(permissions);
+    permissionMatrix[roleName] = Array.from(permissions) as string[];
   }
 }
 
 buildPermissionMatrix();
 
 // Check if user has permission
-export function hasPermission(userRole, permission) {
+export function hasPermission(userRole: string, permission: string): boolean {
   const rolePermissions = permissionMatrix[userRole];
   return rolePermissions?.includes(permission) || false;
 }
 
 // Check if user has any of the required permissions
-export function hasAnyPermission(userRole, permissions) {
+export function hasAnyPermission(userRole: string, permissions: string[]): boolean {
   const rolePermissions = permissionMatrix[userRole];
   return permissions.some(perm => rolePermissions?.includes(perm));
 }
 
 // Check if user has all required permissions
-export function hasAllPermissions(userRole, permissions) {
+export function hasAllPermissions(userRole: string, permissions: string[]): boolean {
   const rolePermissions = permissionMatrix[userRole];
   return permissions.every(perm => rolePermissions?.includes(perm));
 }
 
 // RBAC middleware
-export function rbacMiddleware(requiredPermission) {
-  return (req, res, next) => {
-    const userRole = req.user?.role;
+export function rbacMiddleware(requiredPermission: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const userRole = (req.user as any)?.role;
     
     if (!userRole) {
       return res.status(401).json({
@@ -161,9 +163,9 @@ export function rbacMiddleware(requiredPermission) {
 }
 
 // Multiple permissions middleware (any)
-export function rbacAnyMiddleware(requiredPermissions) {
-  return (req, res, next) => {
-    const userRole = req.user?.role;
+export function rbacAnyMiddleware(requiredPermissions: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const userRole = (req.user as any)?.role;
     
     if (!userRole) {
       return res.status(401).json({
@@ -187,13 +189,13 @@ export function rbacAnyMiddleware(requiredPermissions) {
 }
 
 // Get all permissions for a role
-export function getRolePermissions(role) {
+export function getRolePermissions(role: string): string[] {
   return permissionMatrix[role] || [];
 }
 
 // Check role hierarchy
-export function isRoleHigherOrEqual(userRole, requiredRole) {
-  const roleHierarchy = {
+export function isRoleHigherOrEqual(userRole: string, requiredRole: string): boolean {
+  const roleHierarchy: Record<string, number> = {
     USER: 1,
     TELECOM: 2,
     LAW_ENFORCEMENT: 2,
