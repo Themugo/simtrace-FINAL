@@ -1,4 +1,4 @@
-// services/superAdminDashboard.js - Super admin dashboard services
+// services/superAdminDashboard.ts - Super admin dashboard services
 import crypto from "crypto";
 import {
   SuperAdminDashboard,
@@ -7,7 +7,7 @@ import {
 } from "../db/index.js";
 
 // ── Super Admin Dashboard Management ───────────────────────────────────────────────────
-export async function createSuperAdminDashboard(data) {
+export async function createSuperAdminDashboard(data: any) {
   const dashboardId = `sdash_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify super admin exists
@@ -23,18 +23,18 @@ export async function createSuperAdminDashboard(data) {
   return dashboard;
 }
 
-export async function getSuperAdminDashboard(dashboardId) {
+export async function getSuperAdminDashboard(dashboardId: string) {
   const dashboard = await SuperAdminDashboard.findOne({ dashboardId, status: "active" });
   if (!dashboard) throw new Error("Super admin dashboard not found");
   return dashboard;
 }
 
-export async function getSuperAdminDashboardBySuperAdmin(superAdminId) {
+export async function getSuperAdminDashboardBySuperAdmin(superAdminId: string) {
   const dashboard = await SuperAdminDashboard.findOne({ superAdminId, status: "active" });
   return dashboard;
 }
 
-export async function updateSuperAdminDashboard(dashboardId, updates) {
+export async function updateSuperAdminDashboard(dashboardId: string, updates: any) {
   const dashboard = await SuperAdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -47,7 +47,7 @@ export async function updateSuperAdminDashboard(dashboardId, updates) {
   return dashboard;
 }
 
-export async function updateSuperAdminDashboardWidgets(dashboardId, widgets) {
+export async function updateSuperAdminDashboardWidgets(dashboardId: string, widgets: any) {
   const dashboard = await SuperAdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -60,7 +60,7 @@ export async function updateSuperAdminDashboardWidgets(dashboardId, widgets) {
   return dashboard;
 }
 
-export async function updateSuperAdminDashboardSettings(dashboardId, settings) {
+export async function updateSuperAdminDashboardSettings(dashboardId: string, settings: any) {
   const dashboard = await SuperAdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -73,7 +73,7 @@ export async function updateSuperAdminDashboardSettings(dashboardId, settings) {
   return dashboard;
 }
 
-export async function deleteSuperAdminDashboard(dashboardId) {
+export async function deleteSuperAdminDashboard(dashboardId: string) {
   const dashboard = await SuperAdminDashboard.findOneAndDelete({ dashboardId });
   if (!dashboard) throw new Error("Super admin dashboard not found");
   return dashboard;
@@ -85,16 +85,16 @@ export async function getAllSuperAdminDashboards() {
 }
 
 // ── Dashboard Data Aggregation ───────────────────────────────────────────────────────
-export async function getSuperAdminDashboardData(dashboardId) {
+export async function getSuperAdminDashboardData(dashboardId: string) {
   const dashboard = await SuperAdminDashboard.findById(dashboardId);
   if (!dashboard) throw new Error("Super admin dashboard not found");
 
-  const superAdmin = await SuperAdmin.findById(dashboard.superAdminId);
+  const superAdmin = await SuperAdmin.findById((dashboard as any).superAdminId);
   if (!superAdmin) throw new Error("Super admin not found");
 
   // Get admin statistics
   const adminStats = await Admin.aggregate([
-    { $match: { managedBy: dashboard.superAdminId } },
+    { $match: { managedBy: (dashboard as any).superAdminId } },
     {
       $group: {
         _id: "$role",
@@ -115,7 +115,7 @@ export async function getSuperAdminDashboardData(dashboardId) {
   return {
     dashboard,
     superAdmin,
-    adminStats: adminStats.reduce((acc, item) => {
+    adminStats: adminStats.reduce((acc: any, item: any) => {
       acc[item._id] = { count: item.count, active: item.active };
       return acc;
     }, {}),
