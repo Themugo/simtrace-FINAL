@@ -50,7 +50,7 @@ describe('Failure Recovery Tests', () => {
     it('should handle MongoDB connection failures', async () => {
       // This test would require mocking MongoDB connection failures
       // For now, we'll verify the connection exists
-      const connection = global.mongoose.connection;
+      const connection = (global as any).mongoose.connection;
       expect(connection.readyState).to.equal(1); // 1 = connected
     });
 
