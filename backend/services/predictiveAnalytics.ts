@@ -1,11 +1,11 @@
-// services/predictiveAnalytics.js - AI-Powered Predictive Analytics
+// services/predictiveAnalytics.ts - AI-Powered Predictive Analytics
 // Theft risk prediction and anomaly detection
 
 import { RiskPrediction, AnomalyDetection, Device, Ping } from "../db/index.js";
 import { generateRiskReport } from "./ai.js";
 
 // ── Risk Prediction ───────────────────────────────────────────────────────────────
-export async function generateRiskPrediction(deviceId) {
+export async function generateRiskPrediction(deviceId: string) {
   const device = await Device.findById(deviceId);
   if (!device) throw new Error("Device not found");
 
@@ -32,7 +32,7 @@ export async function generateRiskPrediction(deviceId) {
 
   const riskPrediction = await RiskPrediction.create({
     device: deviceId,
-    imei: device.imei,
+    imei: (device as any).imei,
     riskScore,
     riskLevel,
     factors,
@@ -45,8 +45,8 @@ export async function generateRiskPrediction(deviceId) {
   return riskPrediction;
 }
 
-async function calculateRiskFactors(device, pings) {
-  const factors = [];
+async function calculateRiskFactors(device: any, pings: any[]): Promise<any[]> {
+  const factors: any[] = [];
 
   // Factor 1: Device status
   if (device.stolen) {
@@ -110,7 +110,7 @@ async function calculateRiskFactors(device, pings) {
   return factors;
 }
 
-function calculateLocationVariance(pings) {
+function calculateLocationVariance(pings: any[]): number {
   if (pings.length < 2) return 0;
 
   let totalDistance = 0;
@@ -127,7 +127,7 @@ function calculateLocationVariance(pings) {
   return totalDistance / (pings.length - 1);
 }
 
-function haversineDistance(lat1, lon1, lat2, lon2) {
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -138,11 +138,11 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function analyzeTimePattern(pings) {
+function analyzeTimePattern(pings: any[]): { unusual: boolean; nightRatio?: number } {
   if (pings.length < 5) return { unusual: false };
 
-  const hours = pings.map(p => new Date(p.timestamp).getHours());
-  const nightActivity = hours.filter(h => h >= 0 && h < 6).length;
+  const hours = pings.map((p: any) => new Date(p.timestamp).getHours());
+  const nightActivity = hours.filter((h: number) => h >= 0 && h < 6).length;
   const nightRatio = nightActivity / hours.length;
 
   return {
@@ -151,7 +151,7 @@ function analyzeTimePattern(pings) {
   };
 }
 
-function countNetworkChanges(pings) {
+function countNetworkChanges(pings: any[]): number {
   if (pings.length < 2) return 0;
 
   let changes = 0;
@@ -167,7 +167,7 @@ function countNetworkChanges(pings) {
   return changes;
 }
 
-function countSimSwaps(pings) {
+function countSimSwaps(pings: any[]): number {
   if (pings.length < 2) return 0;
 
   let swaps = 0;
@@ -183,24 +183,24 @@ function countSimSwaps(pings) {
   return swaps;
 }
 
-function calculateRiskScore(factors) {
+function calculateRiskScore(factors: any[]): number {
   if (factors.length === 0) return 10; // Low risk baseline
 
-  const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
+  const totalWeight = factors.reduce((sum: number, f: any) => sum + f.weight, 0);
   const maxWeight = factors.length * 0.9;
   const normalizedScore = (totalWeight / maxWeight) * 100;
 
   return Math.min(Math.round(normalizedScore), 100);
 }
 
-function getRiskLevel(riskScore) {
+function getRiskLevel(riskScore: number): string {
   if (riskScore >= 75) return "critical";
   if (riskScore >= 50) return "high";
   if (riskScore >= 25) return "medium";
   return "low";
 }
 
-function predictEvent(riskScore, factors) {
+function predictEvent(riskScore: number, factors: any[]): { event: string; confidence: number } {
   if (riskScore >= 75) {
     return { event: "theft", confidence: 0.8 };
   }
@@ -213,8 +213,8 @@ function predictEvent(riskScore, factors) {
   return { event: "none", confidence: 0.9 };
 }
 
-function generateRecommendations(riskLevel, factors) {
-  const recommendations = [];
+function generateRecommendations(riskLevel: string, factors: any[]): string[] {
+  const recommendations: string[] = [];
 
   if (riskLevel === "critical") {
     recommendations.push("Immediately report device as stolen");
@@ -233,7 +233,7 @@ function generateRecommendations(riskLevel, factors) {
     recommendations.push("Review security settings");
   }
 
-  const simSwapFactor = factors.find(f => f.type === "sim_swap");
+  const simSwapFactor = factors.find((f: any) => f.type === "sim_swap");
   if (simSwapFactor) {
     recommendations.push("Contact your mobile carrier immediately");
   }
@@ -242,7 +242,7 @@ function generateRecommendations(riskLevel, factors) {
 }
 
 // ── Anomaly Detection ───────────────────────────────────────────────────────────
-export async function detectAnomaly(deviceId, pingData) {
+export async function detectAnomaly(deviceId: string, pingData: any) {
   const device = await Device.findById(deviceId);
   if (!device) throw new Error("Device not found");
 
@@ -255,7 +255,7 @@ export async function detectAnomaly(deviceId, pingData) {
     return null; // Not enough data for anomaly detection
   }
 
-  const anomalies = [];
+  const anomalies: any[] = [];
 
   // Check for impossible travel
   const travelAnomaly = checkImpossibleTravel(recentPings, pingData);
@@ -276,11 +276,11 @@ export async function detectAnomaly(deviceId, pingData) {
   }
 
   // Create anomaly records
-  const anomalyRecords = [];
+  const anomalyRecords: any[] = [];
   for (const anomaly of anomalies) {
     const record = await AnomalyDetection.create({
       device: deviceId,
-      imei: device.imei,
+      imei: (device as any).imei,
       anomalyType: anomaly.type,
       severity: anomaly.severity,
       baselineData: anomaly.baseline,
@@ -299,7 +299,7 @@ export async function detectAnomaly(deviceId, pingData) {
   return anomalyRecords;
 }
 
-function checkImpossibleTravel(recentPings, newPing) {
+function checkImpossibleTravel(recentPings: any[], newPing: any): any | null {
   const lastPing = recentPings[0];
   const timeDiff = (new Date(newPing.timestamp) - new Date(lastPing.timestamp)) / (1000 * 60 * 60); // hours
   const distance = haversineDistance(
@@ -323,7 +323,7 @@ function checkImpossibleTravel(recentPings, newPing) {
   return null;
 }
 
-function checkSimSwap(recentPings, newPing) {
+function checkSimSwap(recentPings: any[], newPing: any): any | null {
   const lastPing = recentPings[0];
 
   if (newPing.simSerial && lastPing.simSerial && newPing.simSerial !== lastPing.simSerial) {
@@ -339,11 +339,11 @@ function checkSimSwap(recentPings, newPing) {
   return null;
 }
 
-function checkUnusualHours(recentPings, newPing) {
-  const hours = recentPings.map(p => new Date(p.timestamp).getHours());
+function checkUnusualHours(recentPings: any[], newPing: any): any | null {
+  const hours = recentPings.map((p: any) => new Date(p.timestamp).getHours());
   const newHour = new Date(newPing.timestamp).getHours();
 
-  const nightActivity = hours.filter(h => h >= 0 && h < 6).length;
+  const nightActivity = hours.filter((h: number) => h >= 0 && h < 6).length;
   const nightRatio = nightActivity / hours.length;
 
   // Unusual if new activity is at night and baseline is low night activity
@@ -361,7 +361,7 @@ function checkUnusualHours(recentPings, newPing) {
 }
 
 // ── Risk Prediction Retrieval ───────────────────────────────────────────────────
-export async function getRiskPrediction(deviceId) {
+export async function getRiskPrediction(deviceId: string) {
   const prediction = await RiskPrediction.findOne({
     device: deviceId,
     validUntil: { $gte: new Date() },
@@ -371,7 +371,7 @@ export async function getRiskPrediction(deviceId) {
   return prediction;
 }
 
-export async function getRiskPredictionsByDevice(deviceId, limit = 10) {
+export async function getRiskPredictionsByDevice(deviceId: string, limit = 10) {
   const predictions = await RiskPrediction.find({ device: deviceId })
     .sort({ createdAt: -1 })
     .limit(limit);
@@ -380,7 +380,7 @@ export async function getRiskPredictionsByDevice(deviceId, limit = 10) {
 }
 
 // ── Anomaly Retrieval ───────────────────────────────────────────────────────────
-export async function getAnomaliesByDevice(deviceId, limit = 20) {
+export async function getAnomaliesByDevice(deviceId: string, limit = 20) {
   const anomalies = await AnomalyDetection.find({ device: deviceId })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -397,13 +397,13 @@ export async function getUnresolvedAnomalies(limit = 50) {
   return anomalies;
 }
 
-export async function resolveAnomaly(anomalyId, resolution) {
+export async function resolveAnomaly(anomalyId: string, resolution: string) {
   const anomaly = await AnomalyDetection.findById(anomalyId);
   if (!anomaly) throw new Error("Anomaly not found");
 
-  anomaly.resolved = true;
-  anomaly.resolvedAt = new Date();
-  anomaly.resolution = resolution;
+  (anomaly as any).resolved = true;
+  (anomaly as any).resolvedAt = new Date();
+  (anomaly as any).resolution = resolution;
   await anomaly.save();
 
   return anomaly;
