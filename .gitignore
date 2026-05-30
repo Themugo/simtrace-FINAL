@@ -3,7 +3,8 @@ node_modules/
 
 # env files
 .env
-.env.*
+.env.local
+.env.production
 
 # logs
 logs/
@@ -20,4 +21,3 @@ coverage/
 .DS_Store
 Thumbs.db
 .vercel
-.env*

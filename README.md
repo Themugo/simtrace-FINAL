@@ -53,8 +53,6 @@
 
 ## Quick start (local)
 
-## Quick start (local)
-
 ```bash
 # 1. Copy env file and fill in required secrets
 cp .env.example .env
@@ -124,7 +122,7 @@ AT_USERNAME=simtrace
 
 ### Step 3 — Frontend → Vercel
 
-1. Import repo → set root directory: `frontend/`
+1. Import repo → set root directory to project root
 2. Add environment variables:
 
 ```
