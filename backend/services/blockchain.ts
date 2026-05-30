@@ -1,4 +1,4 @@
-// services/blockchain.js - Blockchain Device Ledger Integration
+// services/blockchain.ts - Blockchain Device Ledger Integration
 // Immutable record of device lifecycle on blockchain
 
 import crypto from "crypto";
@@ -14,7 +14,7 @@ const BLOCKCHAIN_CONFIG = {
 };
 
 // ── Transaction Hash Generation ───────────────────────────────────────────────────
-function generateTransactionHash(data) {
+function generateTransactionHash(data: any): string {
   const hash = crypto.createHash("sha256");
   hash.update(JSON.stringify({
     timestamp: data.timestamp,
@@ -29,7 +29,7 @@ function generateTransactionHash(data) {
 
 // ── Block Number Simulation ────────────────────────────────────────────────────────
 let currentBlockNumber = 1000000;
-function getNextBlockNumber() {
+function getNextBlockNumber(): number {
   return ++currentBlockNumber;
 }
 
@@ -41,7 +41,7 @@ export async function recordBlockchainEvent({
   fromAddress = null,
   toAddress = null,
   initiator = null,
-}) {
+}: any) {
   const device = await Device.findOne({ imei });
   if (!device) throw new Error("Device not found");
 
@@ -85,7 +85,7 @@ export async function recordBlockchainEvent({
 }
 
 // ── Simulate Blockchain Confirmation ─────────────────────────────────────────────
-async function simulateConfirmation(ledgerEntryId) {
+async function simulateConfirmation(ledgerEntryId: string): Promise<void> {
   // In production, this would poll the blockchain for confirmations
   // For now, we simulate with a delay
   setTimeout(async () => {
@@ -97,7 +97,7 @@ async function simulateConfirmation(ledgerEntryId) {
 }
 
 // ── Get Device Blockchain History ───────────────────────────────────────────────────
-export async function getDeviceBlockchainHistory(imei) {
+export async function getDeviceBlockchainHistory(imei: string) {
   const history = await BlockchainLedger.find({ imei })
     .sort({ timestamp: -1 })
     .populate("initiator", "name email")
@@ -107,7 +107,7 @@ export async function getDeviceBlockchainHistory(imei) {
 }
 
 // ── Verify Transaction on Blockchain ───────────────────────────────────────────────
-export async function verifyTransaction(transactionHash) {
+export async function verifyTransaction(transactionHash: string) {
   const ledgerEntry = await BlockchainLedger.findOne({ transactionHash });
   if (!ledgerEntry) {
     return { valid: false, reason: "Transaction not found" };
@@ -137,7 +137,7 @@ export async function verifyTransaction(transactionHash) {
 }
 
 // ── Sync with CEIR (Central Equipment Identity Register) ───────────────────────────
-export async function syncWithCeir(imei, eventType) {
+export async function syncWithCeir(imei: string, eventType: string) {
   const ledgerEntry = await BlockchainLedger.findOne({ imei, eventType });
   if (!ledgerEntry) throw new Error("Ledger entry not found");
 
@@ -180,7 +180,7 @@ export async function getBlockchainStatistics() {
     ceirSyncRate: totalTransactions > 0 
       ? ((ceirSynced / totalTransactions) * 100).toFixed(2) 
       : 0,
-    eventsByType: eventsByType.map(e => ({
+    eventsByType: eventsByType.map((e: any) => ({
       type: e._id,
       count: e.count,
     })),
@@ -188,7 +188,7 @@ export async function getBlockchainStatistics() {
 }
 
 // ── Event Type Helpers ─────────────────────────────────────────────────────────────
-export async function recordDeviceRegistered(imei, owner) {
+export async function recordDeviceRegistered(imei: string, owner: string) {
   return recordBlockchainEvent({
     imei,
     eventType: "device_registered",
@@ -197,7 +197,7 @@ export async function recordDeviceRegistered(imei, owner) {
   });
 }
 
-export async function recordOwnershipTransfer(imei, fromOwner, toOwner) {
+export async function recordOwnershipTransfer(imei: string, fromOwner: string, toOwner: string) {
   return recordBlockchainEvent({
     imei,
     eventType: "ownership_transfer",
@@ -207,7 +207,7 @@ export async function recordOwnershipTransfer(imei, fromOwner, toOwner) {
   });
 }
 
-export async function recordTheftReported(imei, reportedBy) {
+export async function recordTheftReported(imei: string, reportedBy: string) {
   return recordBlockchainEvent({
     imei,
     eventType: "theft_reported",
@@ -216,7 +216,7 @@ export async function recordTheftReported(imei, reportedBy) {
   });
 }
 
-export async function recordDeviceRecovered(imei, recoveredBy) {
+export async function recordDeviceRecovered(imei: string, recoveredBy: string) {
   return recordBlockchainEvent({
     imei,
     eventType: "device_recovered",
@@ -225,7 +225,7 @@ export async function recordDeviceRecovered(imei, recoveredBy) {
   });
 }
 
-export async function recordDeviceBlacklisted(imei, byUser) {
+export async function recordDeviceBlacklisted(imei: string, byUser: string) {
   return recordBlockchainEvent({
     imei,
     eventType: "blacklisted",
@@ -234,7 +234,7 @@ export async function recordDeviceBlacklisted(imei, byUser) {
   });
 }
 
-export async function recordDnaVerified(imei, confidence, verifiedBy) {
+export async function recordDnaVerified(imei: string, confidence: number, verifiedBy: string) {
   return recordBlockchainEvent({
     imei,
     eventType: "dna_verified",
@@ -243,7 +243,7 @@ export async function recordDnaVerified(imei, confidence, verifiedBy) {
   });
 }
 
-export async function recordCloneDetected(imei, cloneCount) {
+export async function recordCloneDetected(imei: string, cloneCount: number) {
   return recordBlockchainEvent({
     imei,
     eventType: "clone_detected",
@@ -251,7 +251,7 @@ export async function recordCloneDetected(imei, cloneCount) {
   });
 }
 
-export async function recordCrossBorderRequest(imei, requestingCountry, targetCountry) {
+export async function recordCrossBorderRequest(imei: string, requestingCountry: string, targetCountry: string) {
   return recordBlockchainEvent({
     imei,
     eventType: "cross_border_request",
@@ -264,7 +264,7 @@ export async function recordCrossBorderRequest(imei, requestingCountry, targetCo
 }
 
 // ── Blockchain Proof Generation ───────────────────────────────────────────────────
-export async function generateDeviceProof(imei) {
+export async function generateDeviceProof(imei: string) {
   const history = await getDeviceBlockchainHistory(imei);
   
   if (history.length === 0) {

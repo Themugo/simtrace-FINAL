@@ -1,22 +1,22 @@
-// services/publicApi.js - Public API Key Management
+// services/publicApi.ts - Public API Key Management
 // Developer ecosystem for third-party integrations
 
 import { PublicApiKey, User, Organization } from "../db/index.js";
 import crypto from "crypto";
 
 // ── API Key Generation ───────────────────────────────────────────────────────────
-function generateApiKey() {
+function generateApiKey(): string {
   const prefix = "sk_simtrace_";
   const randomBytes = crypto.randomBytes(32).toString("hex");
   return `${prefix}${randomBytes}`;
 }
 
-function hashApiKey(apiKey) {
+function hashApiKey(apiKey: string): string {
   return crypto.createHash("sha256").update(apiKey).digest("hex");
 }
 
 // ── API Key Management ───────────────────────────────────────────────────────────
-export async function createApiKey(data) {
+export async function createApiKey(data: any) {
   const {
     userId,
     organizationId,
@@ -57,7 +57,7 @@ export async function createApiKey(data) {
   };
 }
 
-export async function getApiKey(keyId) {
+export async function getApiKey(keyId: string) {
   const key = await PublicApiKey.findById(keyId)
     .populate("user", "name email")
     .populate("organization", "name slug");
@@ -65,7 +65,7 @@ export async function getApiKey(keyId) {
   return key;
 }
 
-export async function getApiKeysByUser(userId) {
+export async function getApiKeysByUser(userId: string) {
   const keys = await PublicApiKey.find({ user: userId })
     .populate("organization", "name slug")
     .sort({ createdAt: -1 });
@@ -73,7 +73,7 @@ export async function getApiKeysByUser(userId) {
   return keys;
 }
 
-export async function getApiKeysByOrganization(organizationId) {
+export async function getApiKeysByOrganization(organizationId: string) {
   const keys = await PublicApiKey.find({ organization: organizationId })
     .populate("user", "name email")
     .sort({ createdAt: -1 });
@@ -81,14 +81,14 @@ export async function getApiKeysByOrganization(organizationId) {
   return keys;
 }
 
-export async function updateApiKey(keyId, updates) {
+export async function updateApiKey(keyId: string, updates: any) {
   const key = await PublicApiKey.findById(keyId);
   if (!key) throw new Error("API key not found");
 
   const allowedUpdates = ["keyName", "scopes", "rateLimit", "expiresAt", "active"];
   for (const field of allowedUpdates) {
     if (updates[field] !== undefined) {
-      key[field] = updates[field];
+      (key as any)[field] = updates[field];
     }
   }
 
@@ -98,7 +98,7 @@ export async function updateApiKey(keyId, updates) {
   return key;
 }
 
-export async function revokeApiKey(keyId) {
+export async function revokeApiKey(keyId: string) {
   const key = await PublicApiKey.findById(keyId);
   if (!key) throw new Error("API key not found");
 
@@ -109,7 +109,7 @@ export async function revokeApiKey(keyId) {
   return key;
 }
 
-export async function deleteApiKey(keyId) {
+export async function deleteApiKey(keyId: string) {
   const key = await PublicApiKey.findByIdAndDelete(keyId);
   if (!key) throw new Error("API key not found");
 
@@ -117,7 +117,7 @@ export async function deleteApiKey(keyId) {
 }
 
 // ── API Key Authentication ───────────────────────────────────────────────────────
-export async function authenticateApiKey(apiKey) {
+export async function authenticateApiKey(apiKey: string) {
   const keyHash = hashApiKey(apiKey);
 
   const key = await PublicApiKey.findOne({
@@ -146,7 +146,7 @@ export async function authenticateApiKey(apiKey) {
   return key;
 }
 
-export async function checkApiKeyRateLimit(apiKey) {
+export async function checkApiKeyRateLimit(apiKey: string): Promise<boolean> {
   const key = await authenticateApiKey(apiKey);
   if (!key) return false;
 
@@ -159,7 +159,7 @@ export async function checkApiKeyRateLimit(apiKey) {
   return key.active;
 }
 
-export async function checkApiKeyScope(apiKey, requiredScope) {
+export async function checkApiKeyScope(apiKey: string, requiredScope: string): Promise<boolean> {
   const key = await authenticateApiKey(apiKey);
   if (!key) return false;
 
@@ -193,12 +193,12 @@ export async function getApiKeyStatistics() {
     activeKeys,
     expiredKeys,
     totalRequests: totalRequests[0]?.total || 0,
-    keysByScope: keysByScope.map(k => ({ scope: k._id, count: k.count })),
+    keysByScope: keysByScope.map((k: any) => ({ scope: k._id, count: k.count })),
   };
 }
 
 // ── Scopes Definition ───────────────────────────────────────────────────────────
-export const API_SCOPES = {
+export const API_SCOPES: Record<string, string> = {
   "read:devices": "Read device information",
   "write:devices": "Create and update devices",
   "read:alerts": "Read security alerts",
