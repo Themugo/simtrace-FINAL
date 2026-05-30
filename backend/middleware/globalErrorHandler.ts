@@ -2,6 +2,7 @@
 // Centralized API error middleware with correlation IDs and structured error format
 
 import { v4 as uuidv4 } from 'uuid';
+import { Request, Response, NextFunction } from 'express';
 
 // Error codes
 export const ErrorCodes = {
@@ -19,11 +20,16 @@ export const ErrorCodes = {
 
 // Custom error class
 export class AppError extends Error {
+  statusCode: number;
+  code: string;
+  details: any;
+  isOperational: boolean;
+
   constructor(
-    message,
-    statusCode = 500,
-    code = ErrorCodes.INTERNAL_ERROR,
-    details = null
+    message: string,
+    statusCode: number = 500,
+    code: string = ErrorCodes.INTERNAL_ERROR,
+    details: any = null
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -35,17 +41,17 @@ export class AppError extends Error {
 }
 
 // Generate correlation ID
-export function generateCorrelationId() {
+export function generateCorrelationId(): string {
   return uuidv4();
 }
 
 // Generate worker tracing ID
-export function generateWorkerId() {
+export function generateWorkerId(): string {
   return `worker-${uuidv4()}`;
 }
 
 // Structured error response
-export function formatErrorResponse(error, correlationId) {
+export function formatErrorResponse(error: any, correlationId: string): any {
   const isAppError = error instanceof AppError;
   
   return {
@@ -61,8 +67,8 @@ export function formatErrorResponse(error, correlationId) {
 }
 
 // Global error handler middleware
-export function globalErrorHandler(err, req, res, next) {
-  const correlationId = req.correlationId || generateCorrelationId();
+export function globalErrorHandler(err: any, req: Request, res: Response, next: NextFunction) {
+  const correlationId = (req as any).correlationId || generateCorrelationId();
   
   // Log error with correlation ID
   console.error(`[Error] Correlation ID: ${correlationId}`, {
@@ -83,12 +89,12 @@ export function globalErrorHandler(err, req, res, next) {
 }
 
 // Request correlation ID middleware
-export function correlationIdMiddleware(req, res, next) {
+export function correlationIdMiddleware(req: Request, res: Response, next: NextFunction) {
   // Get correlation ID from header or generate new one
-  const correlationId = req.headers['x-correlation-id'] || generateCorrelationId();
+  const correlationId = req.headers['x-correlation-id'] as string || generateCorrelationId();
   
   // Attach to request
-  req.correlationId = correlationId;
+  (req as any).correlationId = correlationId;
   
   // Add to response headers
   res.setHeader('X-Correlation-ID', correlationId);
@@ -97,14 +103,14 @@ export function correlationIdMiddleware(req, res, next) {
 }
 
 // Async error wrapper
-export function asyncHandler(fn) {
-  return (req, res, next) => {
+export function asyncHandler(fn: any) {
+  return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
 
 // Worker error handler
-export function workerErrorHandler(error, jobId, workerName) {
+export function workerErrorHandler(error: any, jobId: string, workerName: string): any {
   const workerId = generateWorkerId();
   
   console.error(`[Worker Error] Worker: ${workerName}, Job: ${jobId}, Worker ID: ${workerId}`, {
