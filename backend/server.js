@@ -19,6 +19,7 @@ import { ipRateLimiter, apiRateLimiter, strictRateLimiter, ipThrottlingMiddlewar
 import { metricsMiddleware, metricsEndpoint } from "./observability/metrics.js";
 import "./observability/tracing.js";
 import { startAlertMonitoring } from "./observability/alerting.js";
+import { specs, swaggerUi } from "./docs/swagger.js";
 import "./sentry.js";
 
 // Route imports
