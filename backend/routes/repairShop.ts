@@ -1,5 +1,5 @@
-// routes/repairShop.js - Repair shop API endpoints
-import { Router } from "express";
+// routes/repairShop.ts - Repair shop API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -23,13 +23,20 @@ import {
   reportRecoveryContribution,
   getRecoveryContributionsByShop,
   getRepairShopStatistics,
-  getRepairShopStatistics,
 } from "../services/repairShop.js";
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Repair Shop Management ───────────────────────────────────────────────────────────
-router.post("/", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       shopName: z.string(),
@@ -48,15 +55,15 @@ router.post("/", authenticate, requireAdmin, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const shop = await createRepairShop({ ...data, createdBy: req.user.id });
+    const shop = await createRepairShop({ ...data, createdBy: req.user!.id });
     res.status(201).json(shop);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/:shopId", authenticate, async (req, res, next) => {
+router.get("/:shopId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { shopId } = req.params;
     const shop = await getRepairShop(shopId);
@@ -64,7 +71,7 @@ router.get("/:shopId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/email/:officialEmail", authenticate, async (req, res, next) => {
+router.get("/email/:officialEmail", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { officialEmail } = req.params;
     const shop = await getRepairShopByEmail(officialEmail);
@@ -72,31 +79,31 @@ router.get("/email/:officialEmail", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/:shopId", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/:shopId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { shopId } = req.params;
-    const shop = await updateRepairShop(shopId, req.body, req.user.id);
+    const shop = await updateRepairShop(shopId, req.body, req.user!.id);
     res.json(shop);
   } catch (err) { next(err); }
 });
 
-router.post("/:shopId/suspend", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/:shopId/suspend", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { shopId } = req.params;
-    const shop = await suspendRepairShop(shopId, req.user.id);
+    const shop = await suspendRepairShop(shopId, req.user!.id);
     res.json(shop);
   } catch (err) { next(err); }
 });
 
-router.post("/:shopId/verify", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/:shopId/verify", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { shopId } = req.params;
-    const shop = await verifyRepairShop(shopId, req.user.id);
+    const shop = await verifyRepairShop(shopId, req.user!.id);
     res.json(shop);
   } catch (err) { next(err); }
 });
 
-router.get("/country/:countryCode", authenticate, async (req, res, next) => {
+router.get("/country/:countryCode", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { countryCode } = req.params;
     const shops = await getRepairShopsByCountry(countryCode);
@@ -104,7 +111,7 @@ router.get("/country/:countryCode", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/country/:countryCode/region/:region", authenticate, async (req, res, next) => {
+router.get("/country/:countryCode/region/:region", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { countryCode, region } = req.params;
     const shops = await getRepairShopsByRegion(countryCode, region);
@@ -112,7 +119,7 @@ router.get("/country/:countryCode/region/:region", authenticate, async (req, res
   } catch (err) { next(err); }
 });
 
-router.get("/specialization/:specialization", authenticate, async (req, res, next) => {
+router.get("/specialization/:specialization", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { specialization } = req.params;
     const shops = await getRepairShopsBySpecialization(specialization);
@@ -121,7 +128,7 @@ router.get("/specialization/:specialization", authenticate, async (req, res, nex
 });
 
 // ── Repair Record Management ───────────────────────────────────────────────────────────
-router.post("/repairs", authenticate, async (req, res, next) => {
+router.post("/repairs", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -137,15 +144,15 @@ router.post("/repairs", authenticate, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const repair = await createRepairRecord({ ...data, createdBy: req.user.id });
+    const repair = await createRepairRecord({ ...data, createdBy: req.user!.id });
     res.status(201).json(repair);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/repairs/:repairId", authenticate, async (req, res, next) => {
+router.get("/repairs/:repairId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { repairId } = req.params;
     const repair = await getRepairRecord(repairId);
@@ -153,7 +160,7 @@ router.get("/repairs/:repairId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/:shopId/repairs", authenticate, async (req, res, next) => {
+router.get("/:shopId/repairs", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { shopId } = req.params;
     const repairs = await getRepairRecordsByShop(shopId);
@@ -161,7 +168,7 @@ router.get("/:shopId/repairs", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/repairs/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/repairs/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const repairs = await getRepairRecordsByDevice(deviceId);
@@ -169,15 +176,15 @@ router.get("/repairs/device/:deviceId", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.patch("/repairs/:repairId", authenticate, async (req, res, next) => {
+router.patch("/repairs/:repairId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { repairId } = req.params;
-    const repair = await updateRepairRecord(repairId, req.body, req.user.id);
+    const repair = await updateRepairRecord(repairId, req.body, req.user!.id);
     res.json(repair);
   } catch (err) { next(err); }
 });
 
-router.post("/repairs/:repairId/complete", authenticate, async (req, res, next) => {
+router.post("/repairs/:repairId/complete", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       findings: z.string().optional(),
@@ -188,24 +195,24 @@ router.post("/repairs/:repairId/complete", authenticate, async (req, res, next) 
 
     const { repairId } = req.params;
     const data = schema.parse(req.body);
-    const repair = await completeRepairRecord(repairId, data, req.user.id);
+    const repair = await completeRepairRecord(repairId, data, req.user!.id);
     res.json(repair);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/repairs/:repairId/cancel", authenticate, async (req, res, next) => {
+router.post("/repairs/:repairId/cancel", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { repairId } = req.params;
-    const repair = await cancelRepairRecord(repairId, req.user.id);
+    const repair = await cancelRepairRecord(repairId, req.user!.id);
     res.json(repair);
   } catch (err) { next(err); }
 });
 
 // ── Permission Checks ──────────────────────────────────────────────────────────────
-router.post("/:shopId/check-permission", authenticate, async (req, res, next) => {
+router.post("/:shopId/check-permission", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       permission: z.string(),
@@ -216,13 +223,13 @@ router.post("/:shopId/check-permission", authenticate, async (req, res, next) =>
     const result = await checkRepairShopPermission(shopId, data.permission);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Recovery Contribution ───────────────────────────────────────────────────────────
-router.post("/repairs/:repairId/recovery-contribution", authenticate, async (req, res, next) => {
+router.post("/repairs/:repairId/recovery-contribution", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       notes: z.string(),
@@ -230,15 +237,15 @@ router.post("/repairs/:repairId/recovery-contribution", authenticate, async (req
 
     const { repairId } = req.params;
     const data = schema.parse(req.body);
-    const repair = await reportRecoveryContribution(repairId, data, req.user.id);
+    const repair = await reportRecoveryContribution(repairId, data, req.user!.id);
     res.json(repair);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/:shopId/recovery-contributions", authenticate, async (req, res, next) => {
+router.get("/:shopId/recovery-contributions", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { shopId } = req.params;
     const contributions = await getRecoveryContributionsByShop(shopId);
@@ -247,7 +254,7 @@ router.get("/:shopId/recovery-contributions", authenticate, async (req, res, nex
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────────
-router.get("/:shopId/statistics", authenticate, async (req, res, next) => {
+router.get("/:shopId/statistics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { shopId } = req.params;
     const stats = await getRepairShopStatistics(shopId);
@@ -255,7 +262,7 @@ router.get("/:shopId/statistics", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/statistics", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/statistics", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getRepairShopStatistics();
     res.json(stats);

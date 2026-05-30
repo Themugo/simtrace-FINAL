@@ -1,5 +1,5 @@
-// routes/paypal.js - PayPal Payment API endpoints
-import { Router } from "express";
+// routes/paypal.ts - PayPal Payment API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -17,8 +17,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── PayPal Payment Management ─────────────────────────────────────────────────────
-router.post("/orders", authenticate, async (req, res, next) => {
+router.post("/orders", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       amount: z.number().positive(),
@@ -31,17 +39,17 @@ router.post("/orders", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const order = await createPayPalOrder({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(order);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/capture/:orderId", authenticate, async (req, res, next) => {
+router.post("/capture/:orderId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { orderId } = req.params;
     const payment = await capturePayPalPayment(orderId);
@@ -49,7 +57,7 @@ router.post("/capture/:orderId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/payments/:id", authenticate, async (req, res, next) => {
+router.get("/payments/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const payment = await getPayPalPayment(id);
@@ -62,14 +70,14 @@ router.get("/payments/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/payments", authenticate, async (req, res, next) => {
+router.get("/payments", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const payments = await getPayPalPaymentsByUser(req.user.id);
+    const payments = await getPayPalPaymentsByUser(req.user!.id);
     res.json({ payments, count: payments.length });
   } catch (err) { next(err); }
 });
 
-router.post("/payments/:id/refund", authenticate, async (req, res, next) => {
+router.post("/payments/:id/refund", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       reason: z.string(),
@@ -81,13 +89,13 @@ router.post("/payments/:id/refund", authenticate, async (req, res, next) => {
 
     res.json(payment);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── PayPal Webhook ───────────────────────────────────────────────────────────────
-router.post("/webhook", async (req, res, next) => {
+router.post("/webhook", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const event = req.body;
     const result = await handlePayPalWebhook(event);
@@ -96,7 +104,7 @@ router.post("/webhook", async (req, res, next) => {
 });
 
 // ── Currency Management ─────────────────────────────────────────────────────────
-router.post("/currency/convert", authenticate, async (req, res, next) => {
+router.post("/currency/convert", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       amount: z.number().positive(),
@@ -109,12 +117,12 @@ router.post("/currency/convert", authenticate, async (req, res, next) => {
 
     res.json({ amount, fromCurrency, toCurrency, converted });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/currency/rates", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/currency/rates", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       fromCurrency: z.string(),
@@ -128,12 +136,12 @@ router.post("/currency/rates", authenticate, requireAdmin, async (req, res, next
 
     res.status(201).json(rate);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/currency/rates", authenticate, async (req, res, next) => {
+router.get("/currency/rates", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const rates = await getCurrencyRates();
     res.json({ rates, count: rates.length });
@@ -141,7 +149,7 @@ router.get("/currency/rates", authenticate, async (req, res, next) => {
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getPayPalStatistics();
     res.json(stats);

@@ -1,5 +1,5 @@
-// routes/rewards.js - Recovery Reward System API endpoints
-import { Router } from "express";
+// routes/rewards.ts - Recovery Reward System API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -19,8 +19,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Reward Management ───────────────────────────────────────────────────────────
-router.post("/rewards", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/rewards", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       recoveryCaseId: z.string(),
@@ -37,12 +45,12 @@ router.post("/rewards", authenticate, requireAdmin, async (req, res, next) => {
 
     res.status(201).json(reward);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/rewards/:id", authenticate, async (req, res, next) => {
+router.get("/rewards/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const reward = await getReward(id);
@@ -55,7 +63,7 @@ router.get("/rewards/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/rewards/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/rewards/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const rewards = await getRewardsByDevice(deviceId);
@@ -63,7 +71,7 @@ router.get("/rewards/device/:deviceId", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.get("/rewards/recipient/:recipientId", authenticate, async (req, res, next) => {
+router.get("/rewards/recipient/:recipientId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { recipientId } = req.params;
     const rewards = await getRewardsByRecipient(recipientId);
@@ -72,7 +80,7 @@ router.get("/rewards/recipient/:recipientId", authenticate, async (req, res, nex
 });
 
 // ── Reward Claiming ─────────────────────────────────────────────────────────────
-router.post("/rewards/:id/claim", authenticate, async (req, res, next) => {
+router.post("/rewards/:id/claim", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       recipientType: z.enum(["agent", "community_member", "finder"]).optional(),
@@ -80,17 +88,17 @@ router.post("/rewards/:id/claim", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { recipientType } = schema.parse(req.body);
-    const reward = await claimReward(id, req.user.id, recipientType);
+    const reward = await claimReward(id, req.user!.id, recipientType);
 
     res.json(reward);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Reward Payment ─────────────────────────────────────────────────────────────
-router.post("/rewards/:id/pay", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/rewards/:id/pay", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       paymentMethod: z.enum(["mpesa", "paypal", "bank_transfer", "crypto"]),
@@ -103,13 +111,13 @@ router.post("/rewards/:id/pay", authenticate, requireAdmin, async (req, res, nex
 
     res.json(reward);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Reward Management ───────────────────────────────────────────────────────────
-router.patch("/rewards/:id", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/rewards/:id", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const reward = await updateReward(id, req.body);
@@ -117,7 +125,7 @@ router.patch("/rewards/:id", authenticate, requireAdmin, async (req, res, next) 
   } catch (err) { next(err); }
 });
 
-router.post("/rewards/:id/cancel", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/rewards/:id/cancel", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const reward = await cancelReward(id);
@@ -126,29 +134,29 @@ router.post("/rewards/:id/cancel", authenticate, requireAdmin, async (req, res, 
 });
 
 // ── Available Rewards ───────────────────────────────────────────────────────────
-router.get("/rewards/available", async (req, res, next) => {
+router.get("/rewards/available", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { limit } = req.query;
-    const rewards = await getAvailableRewards(limit ? parseInt(limit) : 50);
+    const rewards = await getAvailableRewards(limit ? parseInt(limit as string) : 50);
     res.json({ rewards, count: rewards.length });
   } catch (err) { next(err); }
 });
 
-router.get("/rewards/nearby", async (req, res, next) => {
+router.get("/rewards/nearby", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { lat, lng, radius, limit } = req.query;
     const rewards = await getRewardsByLocation(
-      parseFloat(lat),
-      parseFloat(lng),
-      radius ? parseFloat(radius) : 50,
-      limit ? parseInt(limit) : 20
+      parseFloat(lat as string),
+      parseFloat(lng as string),
+      radius ? parseFloat(radius as string) : 50,
+      limit ? parseInt(limit as string) : 20
     );
     res.json({ rewards, count: rewards.length });
   } catch (err) { next(err); }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getRewardStatistics();
     res.json(stats);
@@ -156,7 +164,7 @@ router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── Expiry Check ───────────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/check-expiry", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const expiredCount = await checkRewardExpiry();
     res.json({ message: "Expiry check completed", expiredCount });

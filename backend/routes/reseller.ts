@@ -1,5 +1,5 @@
-// routes/reseller.js - Phone Reseller & Repair Shop Portal API endpoints
-import { Router } from "express";
+// routes/reseller.ts - Phone Reseller & Repair Shop Portal API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -25,8 +25,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Reseller Profile Management ───────────────────────────────────────────────────
-router.post("/profile", authenticate, async (req, res, next) => {
+router.post("/profile", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       businessName: z.string().min(2).max(100),
@@ -49,19 +57,19 @@ router.post("/profile", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const reseller = await createResellerProfile({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(reseller);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/profile", authenticate, async (req, res, next) => {
+router.get("/profile", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const reseller = await getResellerByUser(req.user.id);
+    const reseller = await getResellerByUser(req.user!.id);
 
     if (!reseller) {
       return res.status(404).json({ error: "Reseller profile not found" });
@@ -71,7 +79,7 @@ router.get("/profile", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/profile/:id", authenticate, async (req, res, next) => {
+router.get("/profile/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const reseller = await getResellerProfile(id);
@@ -84,9 +92,9 @@ router.get("/profile/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/profile", authenticate, async (req, res, next) => {
+router.patch("/profile", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const reseller = await getResellerByUser(req.user.id);
+    const reseller = await getResellerByUser(req.user!.id);
     if (!reseller) {
       return res.status(404).json({ error: "Reseller profile not found" });
     }
@@ -96,15 +104,15 @@ router.patch("/profile", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/profile/:id/verify", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/profile/:id/verify", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const reseller = await verifyReseller(id, req.user.id);
+    const reseller = await verifyReseller(id, req.user!.id);
     res.json(reseller);
   } catch (err) { next(err); }
 });
 
-router.patch("/profile/:id/status", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/profile/:id/status", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["active", "suspended", "inactive"]),
@@ -116,15 +124,15 @@ router.patch("/profile/:id/status", authenticate, requireAdmin, async (req, res,
 
     res.json(reseller);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Inventory Management ───────────────────────────────────────────────────────
-router.post("/inventory", authenticate, async (req, res, next) => {
+router.post("/inventory", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const reseller = await getResellerByUser(req.user.id);
+    const reseller = await getResellerByUser(req.user!.id);
     if (!reseller) {
       return res.status(404).json({ error: "Reseller profile not found" });
     }
@@ -140,14 +148,14 @@ router.post("/inventory", authenticate, async (req, res, next) => {
 
     res.json(updated);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/inventory/:inventoryId", authenticate, async (req, res, next) => {
+router.patch("/inventory/:inventoryId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const reseller = await getResellerByUser(req.user.id);
+    const reseller = await getResellerByUser(req.user!.id);
     if (!reseller) {
       return res.status(404).json({ error: "Reseller profile not found" });
     }
@@ -159,9 +167,9 @@ router.patch("/inventory/:inventoryId", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.delete("/inventory/:inventoryId", authenticate, async (req, res, next) => {
+router.delete("/inventory/:inventoryId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const reseller = await getResellerByUser(req.user.id);
+    const reseller = await getResellerByUser(req.user!.id);
     if (!reseller) {
       return res.status(404).json({ error: "Reseller profile not found" });
     }
@@ -173,9 +181,9 @@ router.delete("/inventory/:inventoryId", authenticate, async (req, res, next) =>
   } catch (err) { next(err); }
 });
 
-router.post("/transactions", authenticate, async (req, res, next) => {
+router.post("/transactions", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const reseller = await getResellerByUser(req.user.id);
+    const reseller = await getResellerByUser(req.user!.id);
     if (!reseller) {
       return res.status(404).json({ error: "Reseller profile not found" });
     }
@@ -191,21 +199,21 @@ router.post("/transactions", authenticate, async (req, res, next) => {
 
     res.json(updated);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Reseller Queries ───────────────────────────────────────────────────────────
-router.get("/", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { businessType, country, status } = req.query;
 
     let resellers;
     if (businessType) {
-      resellers = await getResellersByType(businessType);
+      resellers = await getResellersByType(businessType as string);
     } else if (country) {
-      resellers = await getResellersByCountry(country);
+      resellers = await getResellersByCountry(country as string);
     } else if (status === "verified") {
       resellers = await getVerifiedResellers();
     } else if (status === "pending") {
@@ -218,20 +226,20 @@ router.get("/", authenticate, requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/search", authenticate, async (req, res, next) => {
+router.get("/search", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { q } = req.query;
     if (!q) {
       return res.status(400).json({ error: "Search query required" });
     }
 
-    const resellers = await searchResellers(q);
+    const resellers = await searchResellers(q as string);
     res.json({ resellers, count: resellers.length });
   } catch (err) { next(err); }
 });
 
 // ── Rating & Reviews ───────────────────────────────────────────────────────────
-router.post("/profile/:id/rating", authenticate, async (req, res, next) => {
+router.post("/profile/:id/rating", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       rating: z.number().min(0).max(5),
@@ -244,13 +252,13 @@ router.post("/profile/:id/rating", authenticate, async (req, res, next) => {
 
     res.json(reseller);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Device Verification ───────────────────────────────────────────────────────
-router.post("/verify-device", authenticate, async (req, res, next) => {
+router.post("/verify-device", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -261,13 +269,13 @@ router.post("/verify-device", authenticate, async (req, res, next) => {
 
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getResellerStatistics();
     res.json(stats);
