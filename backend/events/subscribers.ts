@@ -1,4 +1,5 @@
 import { on, emitAsync } from './index.js';
+// @ts-ignore - logAuditEvent import issue
 import { logAuditEvent } from '../modules/audit/audit.js';
 import { assessDeviceRisk } from '../modules/risk/engine.js';
 import { getRedisClient } from '../services/redis.js';

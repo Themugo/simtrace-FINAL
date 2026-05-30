@@ -21,7 +21,7 @@ export default function AdBanner({ placement = 'dashboard_banner', style: extraS
   if (!ad) return null;
 
   function handleClick() {
-    api.post(`/api/ads/${ad._id}/click`).catch(() => {});
+    api.post(`/api/ads/${ad._id}/click`, {}).catch(() => {});
     window.open(ad.ctaUrl, '_blank', 'noopener');
   }
 
