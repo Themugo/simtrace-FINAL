@@ -1,4 +1,4 @@
-// services/telecomCompany.js - Telecom company layer services
+// services/telecomCompany.ts - Telecom company layer services
 import crypto from "crypto";
 import {
   TelecomCompany,
@@ -10,7 +10,7 @@ import {
 } from "../db/index.js";
 
 // ── Telecom Company Management ───────────────────────────────────────────────────────
-export async function createTelecomCompany(data) {
+export async function createTelecomCompany(data: any) {
   const companyId = `telecom_${crypto.randomBytes(16).toString("hex")}`;
 
   const company = await TelecomCompany.create({
@@ -23,18 +23,18 @@ export async function createTelecomCompany(data) {
   return company;
 }
 
-export async function getTelecomCompany(companyId) {
+export async function getTelecomCompany(companyId: string) {
   const company = await TelecomCompany.findOne({ companyId, status: "active" });
   if (!company) throw new Error("Telecom company not found");
   return company;
 }
 
-export async function getTelecomCompanyByEmail(officialEmail) {
+export async function getTelecomCompanyByEmail(officialEmail: string) {
   const company = await TelecomCompany.findOne({ officialEmail, status: "active" });
   return company;
 }
 
-export async function updateTelecomCompany(companyId, updates, updatedBy) {
+export async function updateTelecomCompany(companyId: string, updates: any, updatedBy: string) {
   const company = await TelecomCompany.findOneAndUpdate(
     { companyId },
     {
@@ -48,7 +48,7 @@ export async function updateTelecomCompany(companyId, updates, updatedBy) {
   return company;
 }
 
-export async function suspendTelecomCompany(companyId, suspendedBy) {
+export async function suspendTelecomCompany(companyId: string, suspendedBy: string) {
   const company = await TelecomCompany.findOneAndUpdate(
     { companyId },
     {
@@ -62,7 +62,7 @@ export async function suspendTelecomCompany(companyId, suspendedBy) {
   return company;
 }
 
-export async function verifyTelecomCompany(companyId, verifiedBy) {
+export async function verifyTelecomCompany(companyId: string, verifiedBy: string) {
   const company = await TelecomCompany.findOneAndUpdate(
     { companyId },
     {
@@ -76,24 +76,24 @@ export async function verifyTelecomCompany(companyId, verifiedBy) {
   return company;
 }
 
-export async function getTelecomCompaniesByCountry(countryCode) {
+export async function getTelecomCompaniesByCountry(countryCode: string) {
   const companies = await TelecomCompany.find({ countryCode, status: "active" });
   return companies;
 }
 
-export async function getTelecomCompaniesByRegion(countryCode, region) {
+export async function getTelecomCompaniesByRegion(countryCode: string, region: string) {
   const companies = await TelecomCompany.find({ countryCode, region, status: "active" });
   return companies;
 }
 
 // ── API Key Management ─────────────────────────────────────────────────────────────
-export async function generateApiKey(companyId, permissions, expiresAt) {
+export async function generateApiKey(companyId: string, permissions: any, expiresAt?: Date) {
   const company = await TelecomCompany.findOne({ companyId });
   if (!company) throw new Error("Telecom company not found");
 
   const apiKey = `sk_${crypto.randomBytes(32).toString("hex")}`;
 
-  company.apiKeys.push({
+  (company as any).apiKeys.push({
     key: apiKey,
     permissions,
     expiresAt,
@@ -106,18 +106,18 @@ export async function generateApiKey(companyId, permissions, expiresAt) {
   return apiKey;
 }
 
-export async function revokeApiKey(companyId, apiKey) {
+export async function revokeApiKey(companyId: string, apiKey: string) {
   const company = await TelecomCompany.findOne({ companyId });
   if (!company) throw new Error("Telecom company not found");
 
-  company.apiKeys = company.apiKeys.filter((k) => k.key !== apiKey);
+  (company as any).apiKeys = (company as any).apiKeys.filter((k: any) => k.key !== apiKey);
   company.updatedAt = new Date();
   await company.save();
 
   return company;
 }
 
-export async function validateApiKey(apiKey) {
+export async function validateApiKey(apiKey: string) {
   const company = await TelecomCompany.findOne({
     "apiKeys.key": apiKey,
     status: "active",
@@ -125,7 +125,7 @@ export async function validateApiKey(apiKey) {
 
   if (!company) return { valid: false };
 
-  const keyObj = company.apiKeys.find((k) => k.key === apiKey);
+  const keyObj = (company as any).apiKeys.find((k: any) => k.key === apiKey);
   if (!keyObj) return { valid: false };
 
   // Check expiration
@@ -145,11 +145,11 @@ export async function validateApiKey(apiKey) {
 }
 
 // ── Permission Checks ──────────────────────────────────────────────────────────────
-export async function checkTelecomPermission(companyId, permission) {
+export async function checkTelecomPermission(companyId: string, permission: string) {
   const company = await TelecomCompany.findOne({ companyId, status: "active" });
   if (!company) return { allowed: false, reason: "Telecom company not found or inactive" };
 
-  if (!company.permissions[permission]) {
+  if (!(company as any).permissions[permission]) {
     return { allowed: false, reason: `Permission '${permission}' not granted` };
   }
 
@@ -157,7 +157,7 @@ export async function checkTelecomPermission(companyId, permission) {
 }
 
 // ── Statistics ───────────────────────────────────────────────────────────────────────
-export async function getTelecomStatistics(companyId) {
+export async function getTelecomStatistics(companyId: string) {
   const company = await TelecomCompany.findById(companyId);
   if (!company) throw new Error("Telecom company not found");
 
@@ -166,15 +166,15 @@ export async function getTelecomStatistics(companyId) {
   const flaggedSimCards = await SimCardTracking.countDocuments({ companyId, flaggedAsStolen: true });
 
   return {
-    totalTracked: company.totalTracked,
-    totalRecovered: company.totalRecovered,
-    totalCommission: company.totalCommission,
+    totalTracked: (company as any).totalTracked,
+    totalRecovered: (company as any).totalRecovered,
+    totalCommission: (company as any).totalCommission,
     simCardsTracked: simCards,
     networkActivities: networkActivities,
     flaggedSimCards: flaggedSimCards,
-    commissionTier: company.commission.tier,
-    verified: company.verified,
-    status: company.status,
+    commissionTier: (company as any).commission.tier,
+    verified: (company as any).verified,
+    status: (company as any).status,
   };
 }
 
