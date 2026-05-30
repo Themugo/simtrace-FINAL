@@ -1,29 +1,33 @@
 // Security Middleware - API Key Rotation and Enhanced Security
 import crypto from 'crypto';
+import { Request, Response, NextFunction } from 'express';
 
 // API Key Management
 class APIKeyManager {
+  keys: Map<string, string>;
+  rotationInterval: number;
+
   constructor() {
     this.keys = new Map();
     this.rotationInterval = 30 * 24 * 60 * 60 * 1000; // 30 days
   }
 
-  generateKey(prefix = 'sk') {
+  generateKey(prefix = 'sk'): string {
     const timestamp = Date.now();
     const randomBytes = crypto.randomBytes(32).toString('hex');
     return `${prefix}_${timestamp}_${randomBytes}`;
   }
 
-  hashKey(key) {
+  hashKey(key: string): string {
     return crypto.createHash('sha256').update(key).digest('hex');
   }
 
-  validateKey(key, storedHash) {
+  validateKey(key: string, storedHash: string): boolean {
     const keyHash = this.hashKey(key);
     return keyHash === storedHash;
   }
 
-  rotateKey(oldKey) {
+  rotateKey(oldKey: string): { newKey: string; newHash: string } {
     const newKey = this.generateKey();
     const newHash = this.hashKey(newKey);
     return { newKey, newHash };
@@ -33,10 +37,10 @@ class APIKeyManager {
 const apiKeyManager = new APIKeyManager();
 
 // Request Signing Middleware
-export function requireSignedRequest(req, res, next) {
-  const signature = req.headers['x-signature'];
-  const timestamp = req.headers['x-timestamp'];
-  const apiKey = req.headers['x-api-key'];
+export function requireSignedRequest(req: Request, res: Response, next: NextFunction) {
+  const signature = req.headers['x-signature'] as string;
+  const timestamp = req.headers['x-timestamp'] as string;
+  const apiKey = req.headers['x-api-key'] as string;
 
   if (!signature || !timestamp || !apiKey) {
     return res.status(401).json({ error: 'Missing required security headers' });
@@ -64,11 +68,11 @@ export function requireSignedRequest(req, res, next) {
 }
 
 // IP Whitelist Middleware
-export function requireIPWhitelist(whitelistedIPs) {
-  return (req, res, next) => {
-    const clientIP = req.ip || req.connection.remoteAddress;
+export function requireIPWhitelist(whitelistedIPs: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const clientIP = req.ip || req.connection?.remoteAddress;
     
-    if (!whitelistedIPs.includes(clientIP)) {
+    if (!whitelistedIPs.includes(clientIP || '')) {
       return res.status(403).json({ error: 'IP not whitelisted' });
     }
 
@@ -77,9 +81,9 @@ export function requireIPWhitelist(whitelistedIPs) {
 }
 
 // Rate Limit by API Key
-export function createAPIKeyRateLimit(limiter) {
-  return (req, res, next) => {
-    const apiKey = req.headers['x-api-key'];
+export function createAPIKeyRateLimit(limiter: any) {
+  return (req: Request & { rateLimitKey?: string }, res: Response, next: NextFunction) => {
+    const apiKey = req.headers['x-api-key'] as string;
     
     if (apiKey) {
       // Use API key as identifier for rate limiting

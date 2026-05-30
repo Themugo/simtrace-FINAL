@@ -3,11 +3,12 @@
  * Catches and formats errors consistently across the application
  */
 import crypto from 'crypto';
+import { Request, Response, NextFunction } from 'express';
 
 // Generate unique request ID for tracking
-export const generateRequestId = () => crypto.randomUUID();
+export const generateRequestId = (): string => crypto.randomUUID();
 
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err: any, req: Request & { id?: string; user?: any }, res: Response, next: NextFunction) => {
   const requestId = req.id || generateRequestId();
   const isDev = process.env.NODE_ENV !== 'production';
 
@@ -24,7 +25,7 @@ export const errorHandler = (err, req, res, next) => {
       ...(isDev && { stack: err.stack })
     },
     user: req.user?.id || 'anonymous',
-    ip: req.ip || req.connection.remoteAddress
+    ip: req.ip || req.connection?.remoteAddress
   };
 
   // Log to console (in production, this would go to a logging service)
@@ -122,7 +123,7 @@ export const errorHandler = (err, req, res, next) => {
 /**
  * 404 Not Found handler
  */
-export const notFoundHandler = (req, res) => {
+export const notFoundHandler = (req: Request & { id?: string }, res: Response) => {
   const requestId = req.id || generateRequestId();
   
   res.status(404).json({
@@ -136,8 +137,8 @@ export const notFoundHandler = (req, res) => {
  * Async error wrapper
  * Wraps async route handlers to catch errors
  */
-export const asyncHandler = (fn) => {
-  return (req, res, next) => {
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
@@ -146,7 +147,10 @@ export const asyncHandler = (fn) => {
  * Custom error classes
  */
 export class AppError extends Error {
-  constructor(message, statusCode) {
+  statusCode: number;
+  isOperational: boolean;
+
+  constructor(message: string, statusCode: number) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
@@ -155,7 +159,7 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message) {
+  constructor(message: string) {
     super(message, 400);
     this.name = 'ValidationError';
   }

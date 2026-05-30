@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "../db/index.js";
+import { Request, Response, NextFunction } from "express";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET && process.env.NODE_ENV === "production") {
@@ -7,7 +8,7 @@ if (!JWT_SECRET && process.env.NODE_ENV === "production") {
 }
 
 // ── HTTP middleware ───────────────────────────────────────────────────────────
-export function authenticate(req, res, next) {
+export function authenticate(req: Request & { user?: any }, res: Response, next: NextFunction) {
   const header = req.headers.authorization || "";
   const apiKey = req.headers["x-api-key"];
 
@@ -34,15 +35,15 @@ export function authenticate(req, res, next) {
   }
 }
 
-export function requireAdmin(req, res, next) {
+export function requireAdmin(req: Request & { user?: any }, res: Response, next: NextFunction) {
   if (req.user?.role !== "admin") {
     return res.status(403).json({ error: "Admin access required" });
   }
   next();
 }
 
-export function requireRole(...roles) {
-  return (req, res, next) => {
+export function requireRole(...roles: string[]) {
+  return (req: Request & { user?: any }, res: Response, next: NextFunction) => {
     if (!roles.includes(req.user?.role)) {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
@@ -51,13 +52,13 @@ export function requireRole(...roles) {
 }
 
 // ── Socket.io middleware ──────────────────────────────────────────────────────
-export function authenticateSocket(socket, next) {
+export function authenticateSocket(socket: any, next: (err?: Error) => void) {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error("Authentication required"));
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     socket.data.userId = payload.id;
-    socket.data.role   = payload.role;
+    socket.data.role = payload.role;
     next();
   } catch {
     next(new Error("Invalid token"));
@@ -65,7 +66,7 @@ export function authenticateSocket(socket, next) {
 }
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
-export function signToken(user) {
+export function signToken(user: any) {
   return jwt.sign(
     { id: user._id, role: user.role, email: user.email },
     JWT_SECRET,
