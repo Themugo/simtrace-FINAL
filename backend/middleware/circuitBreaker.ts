@@ -12,7 +12,7 @@ const circuitOptions = {
 
 // Create circuit breakers for external services
 export const telecomApiBreaker = new CircuitBreaker(
-  async (imei, provider) => {
+  async (imei: string, provider: string) => {
     // Simulate telecom API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     return { imei, isBlacklisted: false, provider };
@@ -21,7 +21,7 @@ export const telecomApiBreaker = new CircuitBreaker(
 );
 
 export const aiApiBreaker = new CircuitBreaker(
-  async (imei, operation) => {
+  async (imei: string, operation: string) => {
     // Simulate AI API call
     await new Promise(resolve => setTimeout(resolve, 2000));
     return { imei, riskScore: Math.random() * 100 };
@@ -30,7 +30,7 @@ export const aiApiBreaker = new CircuitBreaker(
 );
 
 export const paymentApiBreaker = new CircuitBreaker(
-  async (paymentData) => {
+  async (paymentData: any) => {
     // Simulate payment API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     return { success: true, transactionId: 'tx_' + Date.now() };
@@ -39,7 +39,7 @@ export const paymentApiBreaker = new CircuitBreaker(
 );
 
 export const webhookBreaker = new CircuitBreaker(
-  async (url, payload) => {
+  async (url: string, payload: any) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -103,22 +103,22 @@ webhookBreaker.on('close', () => {
 });
 
 // Fallback functions
-const telecomFallback = (imei, provider) => {
+const telecomFallback = (imei: string, provider: string) => {
   console.log('[Fallback] Using cached telecom data for IMEI:', imei);
   return { imei, isBlacklisted: false, provider, cached: true };
 };
 
-const aiFallback = (imei, operation) => {
+const aiFallback = (imei: string, operation: string) => {
   console.log('[Fallback] Using default AI assessment for IMEI:', imei);
   return { imei, riskScore: 50, fallback: true };
 };
 
-const paymentFallback = (paymentData) => {
+const paymentFallback = (paymentData: any) => {
   console.log('[Fallback] Payment service unavailable');
   return { success: false, error: 'Payment service temporarily unavailable' };
 };
 
-const webhookFallback = (url, payload) => {
+const webhookFallback = (url: string, payload: any) => {
   console.log('[Fallback] Webhook delivery failed, queued for retry');
   return { success: false, queued: true };
 };
@@ -130,7 +130,7 @@ paymentApiBreaker.fallback(paymentFallback);
 webhookBreaker.fallback(webhookFallback);
 
 // Export circuit breakers
-export const circuitBreakers = {
+export const circuitBreakers: Record<string, any> = {
   telecom: telecomApiBreaker,
   ai: aiApiBreaker,
   payment: paymentApiBreaker,
@@ -138,7 +138,7 @@ export const circuitBreakers = {
 };
 
 // Circuit breaker status check
-export function getCircuitBreakerStatus(breakerName) {
+export function getCircuitBreakerStatus(breakerName: string): any {
   const breaker = circuitBreakers[breakerName];
   if (!breaker) {
     return { status: 'unknown', breakerName };
@@ -152,6 +152,6 @@ export function getCircuitBreakerStatus(breakerName) {
 }
 
 // Get all circuit breaker statuses
-export function getAllCircuitBreakerStatuses() {
+export function getAllCircuitBreakerStatuses(): any[] {
   return Object.keys(circuitBreakers).map(name => getCircuitBreakerStatus(name));
 }
