@@ -1,13 +1,13 @@
 // AI Processing Worker
 // Handles AI-based risk assessment and fraud detection
 
-import { Worker } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import { queues, JobTypes } from '../index.js';
 import { assessDeviceRisk } from '../modules/risk/engine.js';
 
 const aiWorker = new Worker(
   'ai-processing',
-  async (job) => {
+  async (job: Job) => {
     const { imei, operation, data } = job.data;
 
     console.log(`[AI Worker] Processing job ${job.id}: ${operation} for IMEI ${imei}`);
@@ -32,7 +32,7 @@ const aiWorker = new Worker(
       console.log(`[AI Worker] Job ${job.id} completed successfully`);
       return result;
     } catch (error) {
-      console.error(`[AI Worker] Job ${job.id} failed:`, error.message);
+      console.error(`[AI Worker] Job ${job.id} failed:`, (error as Error).message);
       throw error;
     }
   },
@@ -50,7 +50,7 @@ const aiWorker = new Worker(
 );
 
 // AI processing functions
-async function performRiskAssessment(imei, data) {
+async function performRiskAssessment(imei: string, data: any) {
   // Simulate AI processing
   await new Promise(resolve => setTimeout(resolve, 2000));
   
@@ -65,7 +65,7 @@ async function performRiskAssessment(imei, data) {
   };
 }
 
-async function performFraudDetection(imei, data) {
+async function performFraudDetection(imei: string, data: any) {
   // Simulate AI processing
   await new Promise(resolve => setTimeout(resolve, 3000));
   
@@ -78,7 +78,7 @@ async function performFraudDetection(imei, data) {
   };
 }
 
-async function performBehaviorAnalysis(imei, data) {
+async function performBehaviorAnalysis(imei: string, data: any) {
   // Simulate AI processing
   await new Promise(resolve => setTimeout(resolve, 2500));
   
@@ -91,15 +91,15 @@ async function performBehaviorAnalysis(imei, data) {
 }
 
 // Worker events
-aiWorker.on('completed', (job) => {
+aiWorker.on('completed', (job: Job) => {
   console.log(`[AI Worker] Job ${job.id} completed`);
 });
 
-aiWorker.on('failed', (job, err) => {
+aiWorker.on('failed', (job: Job | undefined, err: Error) => {
   console.error(`[AI Worker] Job ${job?.id} failed:`, err.message);
 });
 
-aiWorker.on('error', (err) => {
+aiWorker.on('error', (err: Error) => {
   console.error('[AI Worker] Worker error:', err);
 });
 

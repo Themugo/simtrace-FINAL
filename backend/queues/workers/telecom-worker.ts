@@ -1,13 +1,13 @@
 // Telecom Lookup Worker
 // Handles telecom provider API calls for device information
 
-import { Worker } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import { queues, JobTypes } from '../index.js';
 import { assessDeviceRisk } from '../modules/risk/engine.js';
 
 const telecomWorker = new Worker(
   'telecom-lookup',
-  async (job) => {
+  async (job: Job) => {
     const { imei, operation, provider } = job.data;
 
     console.log(`[Telecom Worker] Processing job ${job.id}: ${operation} for IMEI ${imei}`);
@@ -32,7 +32,7 @@ const telecomWorker = new Worker(
       console.log(`[Telecom Worker] Job ${job.id} completed successfully`);
       return result;
     } catch (error) {
-      console.error(`[Telecom Worker] Job ${job.id} failed:`, error.message);
+      console.error(`[Telecom Worker] Job ${job.id} failed:`, (error as Error).message);
       throw error;
     }
   },
@@ -50,7 +50,7 @@ const telecomWorker = new Worker(
 );
 
 // Telecom provider functions
-async function checkBlacklist(imei, provider) {
+async function checkBlacklist(imei: string, provider: string) {
   // Simulate telecom API call
   // In production, this would call actual telecom provider APIs
   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -63,7 +63,7 @@ async function checkBlacklist(imei, provider) {
   };
 }
 
-async function getDeviceInfo(imei, provider) {
+async function getDeviceInfo(imei: string, provider: string) {
   // Simulate telecom API call
   await new Promise(resolve => setTimeout(resolve, 1500));
   
@@ -77,7 +77,7 @@ async function getDeviceInfo(imei, provider) {
   };
 }
 
-async function checkDeviceStatus(imei, provider) {
+async function checkDeviceStatus(imei: string, provider: string) {
   // Simulate telecom API call
   await new Promise(resolve => setTimeout(resolve, 800));
   
@@ -90,15 +90,15 @@ async function checkDeviceStatus(imei, provider) {
 }
 
 // Worker events
-telecomWorker.on('completed', (job) => {
+telecomWorker.on('completed', (job: Job) => {
   console.log(`[Telecom Worker] Job ${job.id} completed`);
 });
 
-telecomWorker.on('failed', (job, err) => {
+telecomWorker.on('failed', (job: Job | undefined, err: Error) => {
   console.error(`[Telecom Worker] Job ${job?.id} failed:`, err.message);
 });
 
-telecomWorker.on('error', (err) => {
+telecomWorker.on('error', (err: Error) => {
   console.error('[Telecom Worker] Worker error:', err);
 });
 

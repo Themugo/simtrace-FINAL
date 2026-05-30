@@ -1,12 +1,12 @@
 // Webhook Retry Worker
 // Handles webhook delivery with retry logic
 
-import { Worker } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import { queues, JobTypes } from '../index.js';
 
 const webhookWorker = new Worker(
   'webhook-retry',
-  async (job) => {
+  async (job: Job) => {
     const { url, payload, headers, attempt } = job.data;
 
     console.log(`[Webhook Worker] Processing job ${job.id}: POST to ${url} (attempt ${attempt})`);
@@ -35,7 +35,7 @@ const webhookWorker = new Worker(
         deliveredAt: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(`[Webhook Worker] Job ${job.id} failed:`, error.message);
+      console.error(`[Webhook Worker] Job ${job.id} failed:`, (error as Error).message);
       
       // Add retry information to job data
       job.data.attempt = (job.data.attempt || 0) + 1;
@@ -57,11 +57,11 @@ const webhookWorker = new Worker(
 );
 
 // Worker events
-webhookWorker.on('completed', (job) => {
+webhookWorker.on('completed', (job: Job) => {
   console.log(`[Webhook Worker] Job ${job.id} completed`);
 });
 
-webhookWorker.on('failed', (job, err) => {
+webhookWorker.on('failed', (job: Job | undefined, err: Error) => {
   console.error(`[Webhook Worker] Job ${job?.id} failed:`, err.message);
   
   // Move to dead-letter queue after max retries
@@ -70,7 +70,7 @@ webhookWorker.on('failed', (job, err) => {
   }
 });
 
-webhookWorker.on('error', (err) => {
+webhookWorker.on('error', (err: Error) => {
   console.error('[Webhook Worker] Worker error:', err);
 });
 

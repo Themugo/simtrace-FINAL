@@ -1,12 +1,12 @@
 // Notification Worker
 // Handles email, SMS, and push notifications
 
-import { Worker } from 'bullmq';
+import { Worker, Job } from 'bullmq';
 import { queues, JobTypes } from '../index.js';
 
 const notificationWorker = new Worker(
   'notification',
-  async (job) => {
+  async (job: Job) => {
     const { type, recipient, data } = job.data;
 
     console.log(`[Notification Worker] Processing job ${job.id}: ${type} to ${recipient}`);
@@ -31,7 +31,7 @@ const notificationWorker = new Worker(
       console.log(`[Notification Worker] Job ${job.id} completed successfully`);
       return result;
     } catch (error) {
-      console.error(`[Notification Worker] Job ${job.id} failed:`, error.message);
+      console.error(`[Notification Worker] Job ${job.id} failed:`, (error as Error).message);
       throw error;
     }
   },
@@ -49,7 +49,7 @@ const notificationWorker = new Worker(
 );
 
 // Notification functions
-async function sendEmail(recipient, data) {
+async function sendEmail(recipient: string, data: any) {
   // Simulate email sending
   await new Promise(resolve => setTimeout(resolve, 500));
   
@@ -64,7 +64,7 @@ async function sendEmail(recipient, data) {
   };
 }
 
-async function sendSMS(recipient, data) {
+async function sendSMS(recipient: string, data: any) {
   // Simulate SMS sending
   await new Promise(resolve => setTimeout(resolve, 300));
   
@@ -79,7 +79,7 @@ async function sendSMS(recipient, data) {
   };
 }
 
-async function sendPushNotification(recipient, data) {
+async function sendPushNotification(recipient: string, data: any) {
   // Simulate push notification
   await new Promise(resolve => setTimeout(resolve, 200));
   
@@ -95,15 +95,15 @@ async function sendPushNotification(recipient, data) {
 }
 
 // Worker events
-notificationWorker.on('completed', (job) => {
+notificationWorker.on('completed', (job: Job) => {
   console.log(`[Notification Worker] Job ${job.id} completed`);
 });
 
-notificationWorker.on('failed', (job, err) => {
+notificationWorker.on('failed', (job: Job | undefined, err: Error) => {
   console.error(`[Notification Worker] Job ${job?.id} failed:`, err.message);
 });
 
-notificationWorker.on('error', (err) => {
+notificationWorker.on('error', (err: Error) => {
   console.error('[Notification Worker] Worker error:', err);
 });
 
