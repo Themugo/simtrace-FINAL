@@ -1,9 +1,11 @@
 // Tenant Isolation Middleware
 // Ensures database query scoping and API tenant enforcement
 
-export function tenantIsolationMiddleware(req, res, next) {
+import { Request, Response, NextFunction } from 'express';
+
+export function tenantIsolationMiddleware(req: Request, res: Response, next: NextFunction) {
   // Get tenant ID from user context
-  const tenantId = req.user?.tenantId || req.user?.id;
+  const tenantId = (req.user as any)?.tenantId || (req.user as any)?.id;
   
   if (!tenantId) {
     return res.status(401).json({
@@ -14,21 +16,21 @@ export function tenantIsolationMiddleware(req, res, next) {
   }
   
   // Attach tenant ID to request for use in controllers
-  req.tenantId = tenantId;
+  (req as any).tenantId = tenantId;
   
   // Add tenant filter to all database queries
-  req.tenantFilter = { tenantId };
+  (req as any).tenantFilter = { tenantId };
   
   next();
 }
 
 // Database query scoping helper
-export function scopeQueryToTenant(query, tenantId) {
+export function scopeQueryToTenant(query: any, tenantId: string) {
   return { ...query, tenantId };
 }
 
 // WebSocket tenant separation
-export function validateSocketTenant(socket, tenantId) {
+export function validateSocketTenant(socket: any, tenantId: string): boolean {
   const socketTenantId = socket.handshake.auth?.tenantId;
   
   if (socketTenantId !== tenantId) {
@@ -39,11 +41,11 @@ export function validateSocketTenant(socket, tenantId) {
 }
 
 // Cache isolation
-export function getTenantCacheKey(tenantId, key) {
+export function getTenantCacheKey(tenantId: string, key: string): string {
   return `tenant:${tenantId}:${key}`;
 }
 
 // Storage isolation
-export function getTenantStoragePath(tenantId, path) {
+export function getTenantStoragePath(tenantId: string, path: string): string {
   return `tenants/${tenantId}/${path}`;
 }
