@@ -337,7 +337,7 @@ class EdgeAPI {
     }
 
     // Forward to origin
-    const response = await this.forwardToOrigin(request, route, region || undefined);
+    const response = await this.forwardToOrigin(request, route, region as any);
 
     // Cache response
     if (!route.bypassCache && route.cacheTTL && response.statusCode === 200) {

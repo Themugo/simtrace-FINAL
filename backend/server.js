@@ -13,6 +13,9 @@ import { initIO } from "./services/socket.js";
 import { authenticateSocket } from "./middleware/auth.js";
 import { sanitizeInput } from "./middleware/validation.js";
 import { errorHandler, notFoundHandler, generateRequestId } from "./middleware/errorHandler.js";
+import { initializeQueues } from "./queues/index.js";
+import { correlationIdMiddleware, globalErrorHandler } from "./middleware/globalErrorHandler.js";
+import { ipRateLimiter, apiRateLimiter, strictRateLimiter, ipThrottlingMiddleware, abuseDetectionMiddleware, securityHeadersMiddleware, initializeSecurityMiddleware } from "./middleware/securityHardening.js";
 import "./sentry.js";
 
 // Route imports
@@ -61,6 +64,18 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
+// ── Additional security headers ──────────────────────────────────────────────────
+app.use(securityHeadersMiddleware);
+
+// ── IP rate limiting ────────────────────────────────────────────────────────────
+app.use(ipRateLimiter);
+
+// ── IP throttling ───────────────────────────────────────────────────────────────
+app.use(ipThrottlingMiddleware);
+
+// ── Abuse detection ─────────────────────────────────────────────────────────────
+app.use(abuseDetectionMiddleware);
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(",").map(s => s.trim());
 app.use(cors({
@@ -71,12 +86,8 @@ app.use(cors({
 // ── Input sanitization ─────────────────────────────────────────────────────────
 app.use(sanitizeInput);
 
-// ── Request ID middleware ───────────────────────────────────────────────────────
-app.use((req, res, next) => {
-  req.id = generateRequestId();
-  res.setHeader('X-Request-ID', req.id);
-  next();
-});
+// ── Correlation ID middleware ───────────────────────────────────────────────────
+app.use(correlationIdMiddleware);
 
 // ── Structured logging ────────────────────────────────────────────────────────
 export const logger = pino({
@@ -190,7 +201,7 @@ io.on("connection", (socket) => {
 app.use(notFoundHandler);
 
 // ── Global error handler ──────────────────────────────────────────────────────
-app.use(errorHandler);
+app.use(globalErrorHandler);
 
 // ── DB connection with retry ──────────────────────────────────────────────────
 async function connectWithRetry(retries = 5, delay = 3000) {
@@ -221,9 +232,11 @@ process.on("SIGTERM", () => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000;
-connectWithRetry().then(() => {
+connectWithRetry().then(async () => {
   seedPlans();
   startCron();
+  await initializeQueues();
+  await initializeSecurityMiddleware();
   server.listen(PORT, () => console.log(`SimTrace API → port ${PORT} [${isProd ? "production" : "development"}]`));
 }).catch(err => {
   console.error("Failed to connect to MongoDB after retries:", err);

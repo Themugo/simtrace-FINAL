@@ -57,8 +57,7 @@ abstract class Agent {
 
   // Emit agent event
   protected emitEvent(eventType: string, data: any): void {
-    // @ts-ignore - EventName type issue
-    emit(`agent.${eventType}`, {
+    emit(`agent.${eventType}` as any, {
       agentType: this.constructor.name,
       ...data,
     });

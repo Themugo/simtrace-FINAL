@@ -75,8 +75,7 @@ class CacheManager {
     // Store in Redis cache
     try {
       const redis = getRedisClient();
-      // @ts-ignore - Redis EX option type issue
-      await redis.set(cacheKey, JSON.stringify(value), { EX: ttl });
+      await redis.set(cacheKey, JSON.stringify(value), { EX: ttl } as any);
       
       // Add to tag sets for invalidation
       if (options?.tags && options.tags.length > 0) {
