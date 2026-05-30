@@ -1,5 +1,5 @@
-// routes/deviceDna.js - Global Device DNA API endpoints
-import { Router } from "express";
+// routes/deviceDna.ts - Global Device DNA API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -14,7 +14,7 @@ import {
 const router = Router();
 
 // ── POST /api/dna/collect ───────────────────────────────────────────────────────
-router.post("/collect", authenticate, async (req, res, next) => {
+router.post("/collect", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -49,13 +49,13 @@ router.post("/collect", authenticate, async (req, res, next) => {
 
     res.status(201).json({ dna, message: "Device DNA collected successfully" });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/dna/verify ────────────────────────────────────────────────────────
-router.post("/verify", authenticate, async (req, res, next) => {
+router.post("/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -92,13 +92,13 @@ router.post("/verify", authenticate, async (req, res, next) => {
 
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── GET /api/dna/:imei ───────────────────────────────────────────────────────────
-router.get("/:imei", authenticate, async (req, res, next) => {
+router.get("/:imei", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const dna = await getDeviceDna(imei);
@@ -112,7 +112,7 @@ router.get("/:imei", authenticate, async (req, res, next) => {
 });
 
 // ── POST /api/dna/search ─────────────────────────────────────────────────────────
-router.post("/search", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/search", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       chipsetSig: z.string().optional(),
@@ -125,13 +125,13 @@ router.post("/search", authenticate, requireAdmin, async (req, res, next) => {
 
     res.json({ matches, count: matches.length });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/dna/batch-verify ────────────────────────────────────────────────────
-router.post("/batch-verify", authenticate, async (req, res, next) => {
+router.post("/batch-verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imeiList: z.array(z.string().min(15).max(17)).min(1).max(100),
@@ -142,13 +142,13 @@ router.post("/batch-verify", authenticate, async (req, res, next) => {
 
     res.json({ results });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── GET /api/dna/stats ────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getDnaStatistics();
     res.json(stats);

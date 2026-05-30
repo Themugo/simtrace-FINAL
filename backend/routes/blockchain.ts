@@ -1,5 +1,5 @@
-// routes/blockchain.js - Blockchain Device Ledger API endpoints
-import { Router } from "express";
+// routes/blockchain.ts - Blockchain Device Ledger API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -21,8 +21,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── POST /api/blockchain/event ───────────────────────────────────────────────────
-router.post("/event", authenticate, async (req, res, next) => {
+router.post("/event", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -39,18 +47,18 @@ router.post("/event", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const ledgerEntry = await recordBlockchainEvent({
       ...data,
-      initiator: req.user.id,
+      initiator: req.user!.id,
     });
 
     res.status(201).json(ledgerEntry);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── GET /api/blockchain/:imei/history ─────────────────────────────────────────────
-router.get("/:imei/history", authenticate, async (req, res, next) => {
+router.get("/:imei/history", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const history = await getDeviceBlockchainHistory(imei);
@@ -60,7 +68,7 @@ router.get("/:imei/history", authenticate, async (req, res, next) => {
 });
 
 // ── POST /api/blockchain/verify ───────────────────────────────────────────────────
-router.post("/verify", authenticate, async (req, res, next) => {
+router.post("/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       transactionHash: z.string(),
@@ -71,13 +79,13 @@ router.post("/verify", authenticate, async (req, res, next) => {
 
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── POST /api/blockchain/:imei/sync-ceir ────────────────────────────────────────────
-router.post("/:imei/sync-ceir", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/:imei/sync-ceir", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const { eventType } = req.body;
@@ -88,7 +96,7 @@ router.post("/:imei/sync-ceir", authenticate, requireAdmin, async (req, res, nex
 });
 
 // ── GET /api/blockchain/stats ───────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getBlockchainStatistics();
     res.json(stats);
@@ -96,7 +104,7 @@ router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── POST /api/blockchain/:imei/proof ───────────────────────────────────────────────
-router.get("/:imei/proof", authenticate, async (req, res, next) => {
+router.get("/:imei/proof", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const proof = await generateDeviceProof(imei);
@@ -106,7 +114,7 @@ router.get("/:imei/proof", authenticate, async (req, res, next) => {
 });
 
 // ── Convenience endpoints for common events ──────────────────────────────────────────
-router.post("/register", authenticate, async (req, res, next) => {
+router.post("/register", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -118,12 +126,12 @@ router.post("/register", authenticate, async (req, res, next) => {
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/transfer", authenticate, async (req, res, next) => {
+router.post("/transfer", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -136,60 +144,60 @@ router.post("/transfer", authenticate, async (req, res, next) => {
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/theft-report", authenticate, async (req, res, next) => {
+router.post("/theft-report", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
     });
 
     const { imei } = schema.parse(req.body);
-    const entry = await recordTheftReported(imei, req.user.id);
+    const entry = await recordTheftReported(imei, req.user!.id);
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/recovered", authenticate, async (req, res, next) => {
+router.post("/recovered", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
     });
 
     const { imei } = schema.parse(req.body);
-    const entry = await recordDeviceRecovered(imei, req.user.id);
+    const entry = await recordDeviceRecovered(imei, req.user!.id);
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/blacklist", authenticate, async (req, res, next) => {
+router.post("/blacklist", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
     });
 
     const { imei } = schema.parse(req.body);
-    const entry = await recordDeviceBlacklisted(imei, req.user.id);
+    const entry = await recordDeviceBlacklisted(imei, req.user!.id);
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/dna-verified", authenticate, async (req, res, next) => {
+router.post("/dna-verified", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -197,16 +205,16 @@ router.post("/dna-verified", authenticate, async (req, res, next) => {
     });
 
     const { imei, confidence } = schema.parse(req.body);
-    const entry = await recordDnaVerified(imei, confidence, req.user.id);
+    const entry = await recordDnaVerified(imei, confidence, req.user!.id);
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/clone-detected", authenticate, async (req, res, next) => {
+router.post("/clone-detected", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -218,7 +226,7 @@ router.post("/clone-detected", authenticate, async (req, res, next) => {
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });

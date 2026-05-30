@@ -1,10 +1,18 @@
-import { Router } from "express";
-import mongoose   from "mongoose";
-import { z }      from "zod";
+import { Router, Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
+import { z } from "zod";
 import { authenticate } from "../middleware/auth.js";
 import rateLimit from "express-rate-limit";
 
 const router = Router();
+
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
 
 // Inline schema — sightings don't need their own model file
 const sightingSchema = new mongoose.Schema({
@@ -19,7 +27,7 @@ const Sighting = mongoose.models.Sighting || mongoose.model("Sighting", sighting
 const sightingLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: "Too many sightings submitted" } });
 
 // GET /api/community/sightings — public
-router.get("/sightings", async (req, res, next) => {
+router.get("/sightings", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const sightings = await Sighting.find()
       .sort({ createdAt: -1 })
@@ -31,7 +39,7 @@ router.get("/sightings", async (req, res, next) => {
 });
 
 // POST /api/community/sightings — authenticated
-router.post("/sightings", authenticate, sightingLimiter, async (req, res, next) => {
+router.post("/sightings", authenticate, sightingLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { imei, location, notes } = z.object({
       imei:     z.string().min(15).max(17).regex(/^\d+$/),
@@ -40,12 +48,12 @@ router.post("/sightings", authenticate, sightingLimiter, async (req, res, next) 
     }).parse(req.body);
 
     const sighting = await Sighting.create({
-      imei, location, notes, reportedBy: req.user.id,
+      imei, location, notes, reportedBy: req.user!.id,
     });
 
     res.status(201).json({ id: sighting._id, message: "Sighting recorded. Thank you for helping the community." });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });

@@ -1,5 +1,5 @@
-// routes/crossBorder.js - Cross-Border Enforcement API endpoints
-import { Router } from "express";
+// routes/crossBorder.ts - Cross-Border Enforcement API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin, requireRole } from "../middleware/auth.js";
 import {
@@ -22,7 +22,7 @@ import {
 const router = Router();
 
 // ── Cross-Border Request Management ───────────────────────────────────────────────
-router.post("/requests", authenticate, async (req, res, next) => {
+router.post("/requests", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -55,12 +55,12 @@ router.post("/requests", authenticate, async (req, res, next) => {
 
     res.status(201).json(request);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/requests/:id", authenticate, async (req, res, next) => {
+router.get("/requests/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const request = await getCrossBorderRequest(id);
@@ -73,7 +73,7 @@ router.get("/requests/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/requests/imei/:imei", authenticate, async (req, res, next) => {
+router.get("/requests/imei/:imei", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const requests = await getRequestsByImei(imei);
@@ -81,23 +81,23 @@ router.get("/requests/imei/:imei", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/requests/country/:country", authenticate, async (req, res, next) => {
+router.get("/requests/country/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
     const { role } = req.query;
-    const requests = await getRequestsByCountry(country, role);
+    const requests = await getRequestsByCountry(country, role as string);
     res.json({ requests, count: requests.length });
   } catch (err) { next(err); }
 });
 
-router.get("/requests/pending", authenticate, requireRole("admin"), async (req, res, next) => {
+router.get("/requests/pending", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const requests = await getPendingRequests();
     res.json({ requests, count: requests.length });
   } catch (err) { next(err); }
 });
 
-router.get("/requests/treaty/:treaty", authenticate, requireRole("admin"), async (req, res, next) => {
+router.get("/requests/treaty/:treaty", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { treaty } = req.params;
     const requests = await getRequestsByTreaty(treaty);
@@ -105,7 +105,7 @@ router.get("/requests/treaty/:treaty", authenticate, requireRole("admin"), async
   } catch (err) { next(err); }
 });
 
-router.patch("/requests/:id/status", authenticate, requireRole("admin"), async (req, res, next) => {
+router.patch("/requests/:id/status", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["pending", "acknowledged", "in_progress", "approved", "rejected", "completed", "expired"]),
@@ -119,12 +119,12 @@ router.patch("/requests/:id/status", authenticate, requireRole("admin"), async (
 
     res.json(request);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/requests/:id/evidence", authenticate, async (req, res, next) => {
+router.post("/requests/:id/evidence", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       type: z.string(),
@@ -138,12 +138,12 @@ router.post("/requests/:id/evidence", authenticate, async (req, res, next) => {
 
     res.json(request);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/requests/:id/auto-acknowledge", authenticate, requireRole("admin"), async (req, res, next) => {
+router.post("/requests/:id/auto-acknowledge", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const request = await autoAcknowledgeRequest(id);
@@ -152,7 +152,7 @@ router.post("/requests/:id/auto-acknowledge", authenticate, requireRole("admin")
 });
 
 // ── Special Actions ───────────────────────────────────────────────────────────────
-router.post("/requests/:id/interpol", authenticate, requireRole("admin"), async (req, res, next) => {
+router.post("/requests/:id/interpol", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const result = await submitToInterpol(id);
@@ -160,7 +160,7 @@ router.post("/requests/:id/interpol", authenticate, requireRole("admin"), async 
   } catch (err) { next(err); }
 });
 
-router.get("/requests/:id/mlat", authenticate, requireRole("admin"), async (req, res, next) => {
+router.get("/requests/:id/mlat", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const document = await generateMlatRequest(id);
@@ -168,7 +168,7 @@ router.get("/requests/:id/mlat", authenticate, requireRole("admin"), async (req,
   } catch (err) { next(err); }
 });
 
-router.post("/check-compliance", authenticate, async (req, res, next) => {
+router.post("/check-compliance", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       requestingCountry: z.string().length(2),
@@ -180,13 +180,13 @@ router.post("/check-compliance", authenticate, async (req, res, next) => {
 
     res.json(compliance);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireRole("admin"), async (req, res, next) => {
+router.get("/stats", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getCrossBorderStatistics();
     res.json(stats);
@@ -194,7 +194,7 @@ router.get("/stats", authenticate, requireRole("admin"), async (req, res, next) 
 });
 
 // ── Cron Job Endpoint ───────────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireRole("admin"), async (req, res, next) => {
+router.post("/check-expiry", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const expiredCount = await checkRequestExpiry();
     res.json({ message: "Expiry check completed", expiredCount });
