@@ -1,10 +1,10 @@
-// services/financials.js - Financial Projections & Revenue Tracking
+// services/financials.ts - Financial Projections & Revenue Tracking
 // Business analytics and financial forecasting
 
 import { FinancialProjection, User, Device, Subscription, Payment, AdCampaign, AdEvent } from "../db/index.js";
 
 // ── Projection Management ─────────────────────────────────────────────────────────
-export async function createFinancialProjection(data) {
+export async function createFinancialProjection(data: any) {
   const {
     period,
     startDate,
@@ -42,12 +42,12 @@ export async function createFinancialProjection(data) {
   return projection;
 }
 
-export async function getFinancialProjection(projectionId) {
+export async function getFinancialProjection(projectionId: string) {
   const projection = await FinancialProjection.findById(projectionId);
   return projection;
 }
 
-export async function getProjectionsByPeriod(period) {
+export async function getProjectionsByPeriod(period: string) {
   const projections = await FinancialProjection.find({ period })
     .sort({ startDate: -1 });
 
@@ -56,7 +56,7 @@ export async function getProjectionsByPeriod(period) {
 
 export async function getCurrentProjection(period = "monthly") {
   const now = new Date();
-  let startDate, endDate;
+  let startDate: Date, endDate: Date;
 
   if (period === "monthly") {
     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -68,6 +68,9 @@ export async function getCurrentProjection(period = "monthly") {
   } else if (period === "yearly") {
     startDate = new Date(now.getFullYear(), 0, 1);
     endDate = new Date(now.getFullYear(), 11, 31);
+  } else {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   }
 
   let projection = await FinancialProjection.findOne({
@@ -87,43 +90,43 @@ export async function getCurrentProjection(period = "monthly") {
   return projection;
 }
 
-export async function updateProjectionMetrics(projectionId, metrics) {
+export async function updateProjectionMetrics(projectionId: string, metrics: any) {
   const projection = await FinancialProjection.findById(projectionId);
   if (!projection) throw new Error("Projection not found");
 
-  if (metrics.totalUsers !== undefined) projection.totalUsers = metrics.totalUsers;
-  if (metrics.newUsers !== undefined) projection.newUsers = metrics.newUsers;
-  if (metrics.churnedUsers !== undefined) projection.churnedUsers = metrics.churnedUsers;
-  if (metrics.totalDevices !== undefined) projection.totalDevices = metrics.totalDevices;
-  if (metrics.newDevices !== undefined) projection.newDevices = metrics.newDevices;
-  if (metrics.subscriptionRevenue !== undefined) projection.subscriptionRevenue = metrics.subscriptionRevenue;
-  if (metrics.adRevenue !== undefined) projection.adRevenue = metrics.adRevenue;
-  if (metrics.verificationRevenue !== undefined) projection.verificationRevenue = metrics.verificationRevenue;
-  if (metrics.partnerApiRevenue !== undefined) projection.partnerApiRevenue = metrics.partnerApiRevenue;
-  if (metrics.insuranceRevenue !== undefined) projection.insuranceRevenue = metrics.insuranceRevenue;
-  if (metrics.infrastructureCost !== undefined) projection.infrastructureCost = metrics.infrastructureCost;
-  if (metrics.marketingCost !== undefined) projection.marketingCost = metrics.marketingCost;
-  if (metrics.operationalCost !== undefined) projection.operationalCost = metrics.operationalCost;
+  if (metrics.totalUsers !== undefined) (projection as any).totalUsers = metrics.totalUsers;
+  if (metrics.newUsers !== undefined) (projection as any).newUsers = metrics.newUsers;
+  if (metrics.churnedUsers !== undefined) (projection as any).churnedUsers = metrics.churnedUsers;
+  if (metrics.totalDevices !== undefined) (projection as any).totalDevices = metrics.totalDevices;
+  if (metrics.newDevices !== undefined) (projection as any).newDevices = metrics.newDevices;
+  if (metrics.subscriptionRevenue !== undefined) (projection as any).subscriptionRevenue = metrics.subscriptionRevenue;
+  if (metrics.adRevenue !== undefined) (projection as any).adRevenue = metrics.adRevenue;
+  if (metrics.verificationRevenue !== undefined) (projection as any).verificationRevenue = metrics.verificationRevenue;
+  if (metrics.partnerApiRevenue !== undefined) (projection as any).partnerApiRevenue = metrics.partnerApiRevenue;
+  if (metrics.insuranceRevenue !== undefined) (projection as any).insuranceRevenue = metrics.insuranceRevenue;
+  if (metrics.infrastructureCost !== undefined) (projection as any).infrastructureCost = metrics.infrastructureCost;
+  if (metrics.marketingCost !== undefined) (projection as any).marketingCost = metrics.marketingCost;
+  if (metrics.operationalCost !== undefined) (projection as any).operationalCost = metrics.operationalCost;
 
   // Recalculate totals
-  projection.totalRevenue = projection.subscriptionRevenue + 
-                          projection.adRevenue + 
-                          projection.verificationRevenue + 
-                          projection.partnerApiRevenue + 
-                          projection.insuranceRevenue;
+  (projection as any).totalRevenue = (projection as any).subscriptionRevenue + 
+                          (projection as any).adRevenue + 
+                          (projection as any).verificationRevenue + 
+                          (projection as any).partnerApiRevenue + 
+                          (projection as any).insuranceRevenue;
 
-  projection.totalCost = projection.infrastructureCost + 
-                       projection.marketingCost + 
-                       projection.operationalCost;
+  (projection as any).totalCost = (projection as any).infrastructureCost + 
+                       (projection as any).marketingCost + 
+                       (projection as any).operationalCost;
 
-  projection.grossProfit = projection.totalRevenue - projection.totalCost;
-  projection.netProfit = projection.grossProfit; // Simplified
-  projection.profitMargin = projection.totalRevenue > 0 
-    ? (projection.netProfit / projection.totalRevenue) * 100 
+  (projection as any).grossProfit = (projection as any).totalRevenue - (projection as any).totalCost;
+  (projection as any).netProfit = (projection as any).grossProfit; // Simplified
+  (projection as any).profitMargin = (projection as any).totalRevenue > 0 
+    ? ((projection as any).netProfit / (projection as any).totalRevenue) * 100 
     : 0;
 
-  projection.revenueAchieved = projection.targetRevenue 
-    ? projection.totalRevenue >= projection.targetRevenue 
+  (projection as any).revenueAchieved = (projection as any).targetRevenue 
+    ? (projection as any).totalRevenue >= (projection as any).targetRevenue 
     : null;
 
   projection.updatedAt = new Date();
@@ -133,7 +136,7 @@ export async function updateProjectionMetrics(projectionId, metrics) {
 }
 
 // ── Revenue Calculation ─────────────────────────────────────────────────────────
-export async function calculateRevenue(startDate, endDate) {
+export async function calculateRevenue(startDate: Date, endDate: Date) {
   // Subscription revenue
   const subscriptionPayments = await Payment.find({
     createdAt: { $gte: startDate, $lte: endDate },
@@ -141,7 +144,7 @@ export async function calculateRevenue(startDate, endDate) {
     type: "subscription",
   });
 
-  const subscriptionRevenue = subscriptionPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const subscriptionRevenue = subscriptionPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
 
   // Ad revenue
   const adConversions = await AdEvent.find({
@@ -150,7 +153,7 @@ export async function calculateRevenue(startDate, endDate) {
     flagged: false,
   });
 
-  const adRevenue = adConversions.reduce((sum, e) => sum + (e.revenue || 0), 0);
+  const adRevenue = adConversions.reduce((sum: number, e: any) => sum + (e.revenue || 0), 0);
 
   // Verification revenue (simplified - would need dedicated tracking)
   const verificationRevenue = 0;
@@ -174,7 +177,7 @@ export async function calculateRevenue(startDate, endDate) {
 }
 
 // ── User Metrics ───────────────────────────────────────────────────────────────
-export async function calculateUserMetrics(startDate, endDate) {
+export async function calculateUserMetrics(startDate: Date, endDate: Date) {
   const totalUsers = await User.countDocuments();
   
   const newUsers = await User.countDocuments({
@@ -200,7 +203,7 @@ export async function calculateUserMetrics(startDate, endDate) {
 }
 
 // ── Cost Estimation ───────────────────────────────────────────────────────────
-export async function estimateCosts(period) {
+export async function estimateCosts(period: string) {
   // Simplified cost estimation based on user count
   const totalUsers = await User.countDocuments();
   
@@ -238,7 +241,7 @@ export async function updateCurrentProjections() {
   const monthlyUsers = await calculateUserMetrics(monthlyStart, monthlyEnd);
   const monthlyCosts = await estimateCosts("monthly");
 
-  await updateProjectionMetrics(monthly._id, {
+  await updateProjectionMetrics(monthly._id.toString(), {
     ...monthlyRevenue,
     ...monthlyUsers,
     ...monthlyCosts,
@@ -252,7 +255,7 @@ export async function updateCurrentProjections() {
   const quarterlyUsers = await calculateUserMetrics(quarterlyStart, quarterlyEnd);
   const quarterlyCosts = await estimateCosts("quarterly");
 
-  await updateProjectionMetrics(quarterly._id, {
+  await updateProjectionMetrics(quarterly._id.toString(), {
     ...quarterlyRevenue,
     ...quarterlyUsers,
     ...quarterlyCosts,
@@ -265,16 +268,16 @@ export async function updateCurrentProjections() {
   const yearlyUsers = await calculateUserMetrics(yearlyStart, yearlyEnd);
   const yearlyCosts = await estimateCosts("yearly");
 
-  await updateProjectionMetrics(yearly._id, {
+  await updateProjectionMetrics(yearly._id.toString(), {
     ...yearlyRevenue,
     ...yearlyUsers,
     ...yearlyCosts,
   });
 
   return {
-    monthly: await getFinancialProjection(monthly._id),
-    quarterly: await getFinancialProjection(quarterly._id),
-    yearly: await getFinancialProjection(yearly._id),
+    monthly: await getFinancialProjection(monthly._id.toString()),
+    quarterly: await getFinancialProjection(quarterly._id.toString()),
+    yearly: await getFinancialProjection(yearly._id.toString()),
   };
 }
 
@@ -288,7 +291,7 @@ export async function getFinancialDashboard() {
     .sort({ startDate: -1 })
     .limit(12);
 
-  const revenueTrendData = revenueTrend.map(p => ({
+  const revenueTrendData = revenueTrend.map((p: any) => ({
     month: p.startDate.toLocaleString("default", { month: "short" }),
     year: p.startDate.getFullYear(),
     revenue: p.totalRevenue,
@@ -297,17 +300,17 @@ export async function getFinancialDashboard() {
   })).reverse();
 
   const revenueBreakdown = {
-    subscription: projections.monthly.subscriptionRevenue,
-    ads: projections.monthly.adRevenue,
-    verification: projections.monthly.verificationRevenue,
-    partnerApi: projections.monthly.partnerApiRevenue,
-    insurance: projections.monthly.insuranceRevenue,
+    subscription: (projections as any).monthly.subscriptionRevenue,
+    ads: (projections as any).monthly.adRevenue,
+    verification: (projections as any).monthly.verificationRevenue,
+    partnerApi: (projections as any).monthly.partnerApiRevenue,
+    insurance: (projections as any).monthly.insuranceRevenue,
   };
 
   const costBreakdown = {
-    infrastructure: projections.monthly.infrastructureCost,
-    marketing: projections.monthly.marketingCost,
-    operational: projections.monthly.operationalCost,
+    infrastructure: (projections as any).monthly.infrastructureCost,
+    marketing: (projections as any).monthly.marketingCost,
+    operational: (projections as any).monthly.operationalCost,
   };
 
   return {
@@ -320,7 +323,7 @@ export async function getFinancialDashboard() {
 
 // ── Business Plan Projections ───────────────────────────────────────────────────
 export async function generateBusinessPlanProjections() {
-  const projections = [];
+  const projections: any[] = [];
   const baseDate = new Date();
 
   // Generate 12-month projections based on business plan
