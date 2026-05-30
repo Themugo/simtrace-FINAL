@@ -1,4 +1,4 @@
-// services/telecomIntegration.js - Telecom integration services
+// services/telecomIntegration.ts - Telecom integration services
 import crypto from "crypto";
 import {
   SimCardTracking,
@@ -8,7 +8,7 @@ import {
 } from "../db/index.js";
 
 // ── SIM Card Tracking ───────────────────────────────────────────────────────────────
-export async function registerSimCard(data) {
+export async function registerSimCard(data: any) {
   const trackingId = `sim_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify device exists
@@ -35,7 +35,7 @@ export async function registerSimCard(data) {
   return tracking;
 }
 
-export async function updateSimCardLocation(trackingId, location, cellTowerId) {
+export async function updateSimCardLocation(trackingId: string, location: any, cellTowerId: string) {
   const tracking = await SimCardTracking.findOne({ trackingId });
   if (!tracking) throw new Error("SIM card tracking not found");
 
@@ -51,7 +51,7 @@ export async function updateSimCardLocation(trackingId, location, cellTowerId) {
   return tracking;
 }
 
-export async function flagSimCardAsStolen(trackingId, flaggedBy) {
+export async function flagSimCardAsStolen(trackingId: string, flaggedBy: string) {
   const tracking = await SimCardTracking.findOne({ trackingId });
   if (!tracking) throw new Error("SIM card tracking not found");
 
@@ -68,7 +68,7 @@ export async function flagSimCardAsStolen(trackingId, flaggedBy) {
   return tracking;
 }
 
-export async function unflagSimCard(trackingId, unflaggedBy) {
+export async function unflagSimCard(trackingId: string, unflaggedBy: string) {
   const tracking = await SimCardTracking.findOne({ trackingId });
   if (!tracking) throw new Error("SIM card tracking not found");
 
@@ -80,28 +80,28 @@ export async function unflagSimCard(trackingId, unflaggedBy) {
   return tracking;
 }
 
-export async function getSimCardTracking(trackingId) {
+export async function getSimCardTracking(trackingId: string) {
   const tracking = await SimCardTracking.findOne({ trackingId });
   if (!tracking) throw new Error("SIM card tracking not found");
   return tracking;
 }
 
-export async function getSimCardTrackingByDevice(deviceId) {
+export async function getSimCardTrackingByDevice(deviceId: string) {
   const tracking = await SimCardTracking.findOne({ deviceId });
   return tracking;
 }
 
-export async function getSimCardTrackingByCompany(companyId) {
+export async function getSimCardTrackingByCompany(companyId: string) {
   const tracking = await SimCardTracking.find({ companyId }).sort({ createdAt: -1 });
   return tracking;
 }
 
-export async function getSimCardTrackingByICCID(iccid) {
+export async function getSimCardTrackingByICCID(iccid: string) {
   const tracking = await SimCardTracking.findOne({ iccid });
   return tracking;
 }
 
-export async function getSimCardTrackingByMSISDN(msisdn) {
+export async function getSimCardTrackingByMSISDN(msisdn: string) {
   const tracking = await SimCardTracking.findOne({ msisdn });
   return tracking;
 }
@@ -111,13 +111,13 @@ export async function getFlaggedSimCards() {
   return tracking;
 }
 
-export async function getFlaggedSimCardsByCompany(companyId) {
+export async function getFlaggedSimCardsByCompany(companyId: string) {
   const tracking = await SimCardTracking.find({ companyId, flaggedAsStolen: true }).sort({ flaggedAt: -1 });
   return tracking;
 }
 
 // ── Network Activity Tracking ─────────────────────────────────────────────────────────
-export async function recordNetworkActivity(data) {
+export async function recordNetworkActivity(data: any) {
   const activityId = `activity_${crypto.randomBytes(16).toString("hex")}`;
 
   const activity = await NetworkActivity.create({
@@ -137,28 +137,28 @@ export async function recordNetworkActivity(data) {
   return activity;
 }
 
-export async function getNetworkActivity(activityId) {
+export async function getNetworkActivity(activityId: string) {
   const activity = await NetworkActivity.findOne({ activityId });
   if (!activity) throw new Error("Network activity not found");
   return activity;
 }
 
-export async function getNetworkActivityByDevice(deviceId) {
+export async function getNetworkActivityByDevice(deviceId: string) {
   const activities = await NetworkActivity.find({ deviceId }).sort({ timestamp: -1 }).limit(100);
   return activities;
 }
 
-export async function getNetworkActivityByCompany(companyId) {
+export async function getNetworkActivityByCompany(companyId: string) {
   const activities = await NetworkActivity.find({ companyId }).sort({ timestamp: -1 }).limit(100);
   return activities;
 }
 
-export async function getNetworkActivityByType(deviceId, activityType) {
+export async function getNetworkActivityByType(deviceId: string, activityType: string) {
   const activities = await NetworkActivity.find({ deviceId, activityType }).sort({ timestamp: -1 }).limit(100);
   return activities;
 }
 
-export async function getNetworkActivityByDateRange(companyId, startDate, endDate) {
+export async function getNetworkActivityByDateRange(companyId: string, startDate: Date, endDate: Date) {
   const activities = await NetworkActivity.find({
     companyId,
     timestamp: { $gte: startDate, $lte: endDate },
@@ -167,7 +167,7 @@ export async function getNetworkActivityByDateRange(companyId, startDate, endDat
 }
 
 // ── Cell Tower Triangulation ─────────────────────────────────────────────────────────
-export async function triangulateDeviceLocation(deviceId) {
+export async function triangulateDeviceLocation(deviceId: string) {
   // Get recent network activities
   const activities = await NetworkActivity.find({ deviceId })
     .sort({ timestamp: -1 })
@@ -181,9 +181,9 @@ export async function triangulateDeviceLocation(deviceId) {
   // This would use cell tower locations and signal strengths
   // to estimate device location
 
-  const locations = activities.map((a) => a.location).filter(Boolean);
-  const avgLatitude = locations.reduce((sum, l) => sum + l.latitude, 0) / locations.length;
-  const avgLongitude = locations.reduce((sum, l) => sum + l.longitude, 0) / locations.length;
+  const locations = activities.map((a: any) => a.location).filter(Boolean);
+  const avgLatitude = locations.reduce((sum: number, l: any) => sum + l.latitude, 0) / locations.length;
+  const avgLongitude = locations.reduce((sum: number, l: any) => sum + l.longitude, 0) / locations.length;
 
   return {
     latitude: avgLatitude,
@@ -195,7 +195,7 @@ export async function triangulateDeviceLocation(deviceId) {
 }
 
 // ── Commission Calculation ────────────────────────────────────────────────────────────
-export async function calculateCommission(companyId, deviceId, recovery) {
+export async function calculateCommission(companyId: string, deviceId: string, recovery: boolean) {
   const company = await TelecomCompany.findById(companyId);
   if (!company) throw new Error("Telecom company not found");
 
@@ -203,10 +203,10 @@ export async function calculateCommission(companyId, deviceId, recovery) {
 
   if (recovery) {
     // Recovery commission
-    if (company.commission.type === "percentage") {
-      commissionAmount = (company.commission.value / 100) * 100; // Base recovery value
+    if ((company as any).commission.type === "percentage") {
+      commissionAmount = ((company as any).commission.value / 100) * 100; // Base recovery value
     } else {
-      commissionAmount = company.commission.value;
+      commissionAmount = (company as any).commission.value;
     }
 
     // Update company stats
