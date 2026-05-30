@@ -1,10 +1,10 @@
-// services/adminRole.js - Admin role and permission services
+// services/adminRole.ts - Admin role and permission services
 import {
   AdminRolePermission,
 } from "../db/index.js";
 
 // ── Admin Role Permission Management ───────────────────────────────────────────────────
-export async function createAdminRolePermission(data) {
+export async function createAdminRolePermission(data: any) {
   const rolePermission = await AdminRolePermission.create({
     ...data,
     status: "active",
@@ -13,7 +13,7 @@ export async function createAdminRolePermission(data) {
   return rolePermission;
 }
 
-export async function getAdminRolePermission(role) {
+export async function getAdminRolePermission(role: string) {
   const rolePermission = await AdminRolePermission.findOne({ role, status: "active" });
   if (!rolePermission) throw new Error("Admin role permission not found");
   return rolePermission;
@@ -24,7 +24,7 @@ export async function getAllAdminRolePermissions() {
   return rolePermissions;
 }
 
-export async function updateAdminRolePermission(role, updates) {
+export async function updateAdminRolePermission(role: string, updates: any) {
   const rolePermission = await AdminRolePermission.findOneAndUpdate(
     { role },
     {
@@ -37,15 +37,15 @@ export async function updateAdminRolePermission(role, updates) {
   return rolePermission;
 }
 
-export async function updateLayerPermissions(role, layer, permissions) {
+export async function updateLayerPermissions(role: string, layer: string, permissions: string[]) {
   const rolePermission = await AdminRolePermission.findOne({ role });
   if (!rolePermission) throw new Error("Admin role permission not found");
 
-  const layerPermission = rolePermission.layerPermissions.find((lp) => lp.layer === layer);
+  const layerPermission = (rolePermission as any).layerPermissions.find((lp: any) => lp.layer === layer);
   if (layerPermission) {
     layerPermission.permissions = permissions;
   } else {
-    rolePermission.layerPermissions.push({
+    (rolePermission as any).layerPermissions.push({
       layer,
       permissions,
     });
@@ -57,7 +57,7 @@ export async function updateLayerPermissions(role, layer, permissions) {
   return rolePermission;
 }
 
-export async function updateSystemPermissions(role, systemPermissions) {
+export async function updateSystemPermissions(role: string, systemPermissions: string[]) {
   const rolePermission = await AdminRolePermission.findOneAndUpdate(
     { role },
     {
@@ -70,7 +70,7 @@ export async function updateSystemPermissions(role, systemPermissions) {
   return rolePermission;
 }
 
-export async function deactivateAdminRolePermission(role) {
+export async function deactivateAdminRolePermission(role: string) {
   const rolePermission = await AdminRolePermission.findOneAndUpdate(
     { role },
     {
@@ -83,7 +83,7 @@ export async function deactivateAdminRolePermission(role) {
   return rolePermission;
 }
 
-export async function activateAdminRolePermission(role) {
+export async function activateAdminRolePermission(role: string) {
   const rolePermission = await AdminRolePermission.findOneAndUpdate(
     { role },
     {
@@ -97,11 +97,11 @@ export async function activateAdminRolePermission(role) {
 }
 
 // ── Permission Checking ───────────────────────────────────────────────────────────────
-export async function checkAdminPermission(role, layer, permission) {
+export async function checkAdminPermission(role: string, layer: string, permission: string) {
   const rolePermission = await AdminRolePermission.findOne({ role, status: "active" });
   if (!rolePermission) return { allowed: false, reason: "Role permission not found or inactive" };
 
-  const layerPermission = rolePermission.layerPermissions.find((lp) => lp.layer === layer);
+  const layerPermission = (rolePermission as any).layerPermissions.find((lp: any) => lp.layer === layer);
   if (!layerPermission) return { allowed: false, reason: `Layer '${layer}' not accessible for this role` };
 
   if (!layerPermission.permissions.includes(permission)) {
@@ -111,11 +111,11 @@ export async function checkAdminPermission(role, layer, permission) {
   return { allowed: true, rolePermission };
 }
 
-export async function checkSystemPermission(role, permission) {
+export async function checkSystemPermission(role: string, permission: string) {
   const rolePermission = await AdminRolePermission.findOne({ role, status: "active" });
   if (!rolePermission) return { allowed: false, reason: "Role permission not found or inactive" };
 
-  if (!rolePermission.systemPermissions.includes(permission)) {
+  if (!(rolePermission as any).systemPermissions.includes(permission)) {
     return { allowed: false, reason: `System permission '${permission}' not granted for this role` };
   }
 
@@ -124,7 +124,7 @@ export async function checkSystemPermission(role, permission) {
 
 // ── Initialize Default Roles ───────────────────────────────────────────────────────────
 export async function initializeDefaultRoles() {
-  const defaultRoles = [
+  const defaultRoles: any[] = [
     {
       role: "finance",
       description: "Financial management and reporting",
@@ -223,7 +223,7 @@ export async function initializeDefaultRoles() {
     },
   ];
 
-  const createdRoles = [];
+  const createdRoles: any[] = [];
   for (const roleData of defaultRoles) {
     const existing = await AdminRolePermission.findOne({ role: roleData.role });
     if (!existing) {
