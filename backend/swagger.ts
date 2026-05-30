@@ -42,7 +42,7 @@ const options = {
       { apiKey: [] },
     ],
   },
-  apis: ['./routes/*.js'],
+  apis: ['./routes/*.ts'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
