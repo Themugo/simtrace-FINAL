@@ -3,6 +3,7 @@
 
 import rateLimit from 'express-rate-limit';
 import { createClient } from 'redis';
+import { Request, Response, NextFunction } from 'express';
 
 // Redis client for distributed rate limiting
 const redisClient = createClient({
@@ -12,7 +13,7 @@ const redisClient = createClient({
 // IP-based rate limiting with Redis
 export const ipRateLimiter = rateLimit({
   store: {
-    async get(key) {
+    async get(key: string): Promise<any> {
       try {
         const value = await redisClient.get(key);
         return value ? parseInt(value) : null;
@@ -21,14 +22,14 @@ export const ipRateLimiter = rateLimit({
         return null;
       }
     },
-    async set(key, value, ttl) {
+    async set(key: string, value: number, ttl: number): Promise<void> {
       try {
         await redisClient.set(key, value, { EX: ttl });
       } catch (error) {
         console.error('[Rate Limit] Redis set error:', error);
       }
     },
-    async increment(key) {
+    async increment(key: string): Promise<any> {
       try {
         const newValue = await redisClient.incr(key);
         return newValue;
@@ -37,23 +38,21 @@ export const ipRateLimiter = rateLimit({
         return 1;
       }
     },
-    async decrement(key) {
+    async decrement(key: string): Promise<void> {
       try {
-        const newValue = await redisClient.decr(key);
-        return newValue;
+        await redisClient.decr(key);
       } catch (error) {
         console.error('[Rate Limit] Redis decrement error:', error);
-        return 0;
       }
     },
-    async resetKey(key) {
+    async resetKey(key: string): Promise<void> {
       try {
         await redisClient.del(key);
       } catch (error) {
         console.error('[Rate Limit] Redis reset error:', error);
       }
     },
-  },
+  } as any,
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
   message: {
@@ -88,8 +87,8 @@ export const strictRateLimiter = rateLimit({
 });
 
 // IP throttling middleware
-export const ipThrottlingMiddleware = async (req, res, next) => {
-  const ip = req.ip || req.connection.remoteAddress;
+export const ipThrottlingMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  const ip = req.ip || req.socket.remoteAddress;
   const key = `ip_throttle:${ip}`;
   
   try {
@@ -115,8 +114,8 @@ export const ipThrottlingMiddleware = async (req, res, next) => {
 };
 
 // API abuse detection
-export const abuseDetectionMiddleware = async (req, res, next) => {
-  const ip = req.ip || req.connection.remoteAddress;
+export const abuseDetectionMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  const ip = req.ip || req.socket.remoteAddress;
   const userAgent = req.headers['user-agent'];
   const key = `abuse:${ip}:${userAgent}`;
   
@@ -147,7 +146,7 @@ export const abuseDetectionMiddleware = async (req, res, next) => {
 };
 
 // CSRF protection for state-changing requests
-export const csrfProtectionMiddleware = (req, res, next) => {
+export const csrfProtectionMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const csrfToken = req.headers['x-csrf-token'];
   const sessionToken = req.headers['authorization'];
   
@@ -171,7 +170,7 @@ export const csrfProtectionMiddleware = (req, res, next) => {
 };
 
 // Security headers enhancement
-export const securityHeadersMiddleware = (req, res, next) => {
+export const securityHeadersMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // Additional security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
