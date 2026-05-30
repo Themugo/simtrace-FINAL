@@ -2,6 +2,10 @@
 import { getRedisClient } from '../../services/redis.js';
 
 class TelecomProviderManager {
+  providers: Map<string, any>;
+  redis: any;
+  healthCheckInterval: number;
+
   constructor() {
     this.providers = new Map();
     this.redis = getRedisClient();
@@ -9,7 +13,7 @@ class TelecomProviderManager {
   }
 
   // Register provider
-  registerProvider(providerId, config) {
+  registerProvider(providerId: string, config: any) {
     this.providers.set(providerId, {
       ...config,
       healthScore: 100,
@@ -20,13 +24,13 @@ class TelecomProviderManager {
   }
 
   // Get health score for provider
-  getHealthScore(providerId) {
+  getHealthScore(providerId: string): number {
     const provider = this.providers.get(providerId);
     return provider?.healthScore || 0;
   }
 
   // Update provider health
-  updateHealth(providerId, success) {
+  updateHealth(providerId: string, success: boolean) {
     const provider = this.providers.get(providerId);
     if (!provider) return;
 
@@ -51,7 +55,7 @@ class TelecomProviderManager {
   }
 
   // Get best provider for request
-  getBestProvider() {
+  getBestProvider(): string | null {
     let bestProvider = null;
     let bestScore = 0;
 
@@ -66,7 +70,7 @@ class TelecomProviderManager {
   }
 
   // Execute request with failover
-  async executeRequest(operation, data, maxRetries = 3) {
+  async executeRequest(operation: string, data: any, maxRetries: number = 3): Promise<any> {
     let lastError = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -85,7 +89,7 @@ class TelecomProviderManager {
       } catch (error) {
         lastError = error;
         this.updateHealth(providerId, false);
-        console.error(`[Provider Failover] Provider ${providerId} failed:`, error.message);
+        console.error(`[Provider Failover] Provider ${providerId} failed:`, (error as any).message);
       }
     }
 
@@ -93,7 +97,7 @@ class TelecomProviderManager {
   }
 
   // Call specific provider
-  async callProvider(providerId, operation, data) {
+  async callProvider(providerId: string, operation: string, data: any): Promise<any> {
     const provider = this.providers.get(providerId);
     
     // In production, this would call actual telecom provider APIs
@@ -121,7 +125,7 @@ class TelecomProviderManager {
           // Perform health check
           await this.healthCheck(providerId);
         } catch (error) {
-          console.error(`[Health Check] Provider ${providerId} failed:`, error.message);
+          console.error(`[Health Check] Provider ${providerId} failed:`, (error as any).message);
           this.updateHealth(providerId, false);
         }
       }
@@ -131,7 +135,7 @@ class TelecomProviderManager {
   }
 
   // Health check for provider
-  async healthCheck(providerId) {
+  async healthCheck(providerId: string): Promise<void> {
     const provider = this.providers.get(providerId);
     
     // In production, this would call the provider's health endpoint
@@ -142,8 +146,8 @@ class TelecomProviderManager {
   }
 
   // Get provider statistics
-  getProviderStats() {
-    const stats = {};
+  getProviderStats(): Record<string, any> {
+    const stats: Record<string, any> = {};
 
     for (const [id, provider] of this.providers.entries()) {
       stats[id] = {
