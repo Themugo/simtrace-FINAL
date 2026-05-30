@@ -1,0 +1,204 @@
+{
+  "dashboard": {
+    "title": "SimTrace System Overview",
+    "uid": "simtrace-system-overview",
+    "tags": ["simtrace", "overview", "production"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_request_total[5m])",
+            "legendFormat": "{{method}} {{route}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Response Time (p95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{route}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_request_total{status=~\"5..\"}[5m]) / rate(http_request_total[5m]) * 100",
+            "legendFormat": "Error Rate %"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [5],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Error Rate",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 4,
+        "title": "Active Devices",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "devices_tracked_total",
+            "legendFormat": "Total Devices"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Alerts Generated",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(alerts_generated_total[5m])",
+            "legendFormat": "Alerts/sec"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "IMEI Checks",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(imei_checks_total[5m])",
+            "legendFormat": "IMEI Checks/sec"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Queue Depth",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "bullmq_queue_depth{queue=~\".*\"}",
+            "legendFormat": "{{queue}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Queue Processing Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(bullmq_queue_processed_total[5m])",
+            "legendFormat": "{{queue}}"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Database Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(db_operation_duration_seconds_count[5m])",
+            "legendFormat": "{{operation}}"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Database Operation Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(db_operation_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{operation}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "CPU %"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percent"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024 / 1024",
+            "legendFormat": "Memory GB"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "decmbytes"
+          }
+        ]
+      }
+    ]
+  }
+}
