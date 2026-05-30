@@ -1,11 +1,11 @@
-// services/enterprise.js - Enterprise Organization Management
+// services/enterprise.ts - Enterprise Organization Management
 // Corporate device fleet management and enterprise features
 
 import { Organization, OrganizationMember, DeviceFleet, Device, User } from "../db/index.js";
 import { getIO } from "./socket.js";
 
 // ── Organization Management ───────────────────────────────────────────────────────
-export async function createOrganization(data) {
+export async function createOrganization(data: any) {
   const {
     name,
     slug,
@@ -46,28 +46,28 @@ export async function createOrganization(data) {
   return organization;
 }
 
-export async function getOrganization(organizationId) {
+export async function getOrganization(organizationId: string) {
   const organization = await Organization.findById(organizationId)
     .populate("accountManager", "name email");
 
   return organization;
 }
 
-export async function getOrganizationBySlug(slug) {
+export async function getOrganizationBySlug(slug: string) {
   const organization = await Organization.findOne({ slug })
     .populate("accountManager", "name email");
 
   return organization;
 }
 
-export async function updateOrganization(organizationId, updates) {
+export async function updateOrganization(organizationId: string, updates: any) {
   const organization = await Organization.findById(organizationId);
   if (!organization) throw new Error("Organization not found");
 
   const allowedUpdates = ["name", "email", "phone", "address", "industry", "size", "plan", "customSla", "status", "accountManager"];
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      organization[key] = updates[key];
+      (organization as any)[key] = updates[key];
     }
   }
 
@@ -77,13 +77,13 @@ export async function updateOrganization(organizationId, updates) {
   return organization;
 }
 
-export async function upgradePlan(organizationId, newPlan) {
+export async function upgradePlan(organizationId: string, newPlan: string) {
   const organization = await Organization.findById(organizationId);
   if (!organization) throw new Error("Organization not found");
 
-  organization.plan = newPlan;
-  organization.status = "active";
-  organization.trialEndsAt = null;
+  (organization as any).plan = newPlan;
+  (organization as any).status = "active";
+  (organization as any).trialEndsAt = null;
   organization.updatedAt = new Date();
   await organization.save();
 
@@ -91,7 +91,7 @@ export async function upgradePlan(organizationId, newPlan) {
 }
 
 // ── Organization Members ─────────────────────────────────────────────────────────
-export async function addOrganizationMember(data) {
+export async function addOrganizationMember(data: any) {
   const {
     organizationId,
     userId,
@@ -115,9 +115,9 @@ export async function addOrganizationMember(data) {
   if (existing) {
     if (existing.status === "removed") {
       existing.status = "active";
-      existing.role = role || existing.role;
-      existing.permissions = permissions || existing.permissions;
-      existing.joinedAt = new Date();
+      (existing as any).role = role || (existing as any).role;
+      (existing as any).permissions = permissions || (existing as any).permissions;
+      (existing as any).joinedAt = new Date();
       await existing.save();
       return existing;
     }
@@ -144,7 +144,7 @@ export async function addOrganizationMember(data) {
   return member;
 }
 
-export async function removeOrganizationMember(organizationId, userId) {
+export async function removeOrganizationMember(organizationId: string, userId: string) {
   const member = await OrganizationMember.findOne({
     organization: organizationId,
     user: userId,
@@ -152,7 +152,7 @@ export async function removeOrganizationMember(organizationId, userId) {
 
   if (!member) throw new Error("Member not found");
 
-  if (member.role === "owner") {
+  if ((member as any).role === "owner") {
     throw new Error("Cannot remove organization owner");
   }
 
@@ -163,7 +163,7 @@ export async function removeOrganizationMember(organizationId, userId) {
   return member;
 }
 
-export async function updateMemberRole(organizationId, userId, role, permissions) {
+export async function updateMemberRole(organizationId: string, userId: string, role: string, permissions: any) {
   const member = await OrganizationMember.findOne({
     organization: organizationId,
     user: userId,
@@ -171,15 +171,15 @@ export async function updateMemberRole(organizationId, userId, role, permissions
 
   if (!member) throw new Error("Member not found");
 
-  member.role = role;
-  member.permissions = permissions || [];
+  (member as any).role = role;
+  (member as any).permissions = permissions || [];
   member.updatedAt = new Date();
   await member.save();
 
   return member;
 }
 
-export async function getOrganizationMembers(organizationId) {
+export async function getOrganizationMembers(organizationId: string) {
   const members = await OrganizationMember.find({ organization: organizationId })
     .populate("user", "name email")
     .populate("invitedBy", "name email")
@@ -188,7 +188,7 @@ export async function getOrganizationMembers(organizationId) {
   return members;
 }
 
-export async function getUserOrganizations(userId) {
+export async function getUserOrganizations(userId: string) {
   const memberships = await OrganizationMember.find({
     user: userId,
     status: "active",
@@ -196,11 +196,11 @@ export async function getUserOrganizations(userId) {
     .populate("organization")
     .sort({ joinedAt: -1 });
 
-  return memberships.map(m => m.organization);
+  return memberships.map((m: any) => m.organization);
 }
 
 // ── Device Fleet Management ───────────────────────────────────────────────────────
-export async function createDeviceFleet(data) {
+export async function createDeviceFleet(data: any) {
   const {
     organizationId,
     name,
@@ -228,7 +228,7 @@ export async function createDeviceFleet(data) {
   return fleet;
 }
 
-export async function getDeviceFleet(fleetId) {
+export async function getDeviceFleet(fleetId: string) {
   const fleet = await DeviceFleet.findById(fleetId)
     .populate("organization", "name slug")
     .populate("devices", "imei make model");
@@ -236,7 +236,7 @@ export async function getDeviceFleet(fleetId) {
   return fleet;
 }
 
-export async function getOrganizationFleets(organizationId) {
+export async function getOrganizationFleets(organizationId: string) {
   const fleets = await DeviceFleet.find({ organization: organizationId })
     .populate("devices", "imei make model")
     .sort({ createdAt: -1 });
@@ -244,47 +244,47 @@ export async function getOrganizationFleets(organizationId) {
   return fleets;
 }
 
-export async function addDeviceToFleet(fleetId, deviceId) {
+export async function addDeviceToFleet(fleetId: string, deviceId: string) {
   const fleet = await DeviceFleet.findById(fleetId);
   if (!fleet) throw new Error("Fleet not found");
 
   const device = await Device.findById(deviceId);
   if (!device) throw new Error("Device not found");
 
-  if (fleet.devices.includes(deviceId)) {
+  if ((fleet as any).devices.includes(deviceId)) {
     throw new Error("Device already in fleet");
   }
 
-  if (fleet.deviceLimit && fleet.devices.length >= fleet.deviceLimit) {
+  if ((fleet as any).deviceLimit && (fleet as any).devices.length >= (fleet as any).deviceLimit) {
     throw new Error("Fleet device limit reached");
   }
 
-  fleet.devices.push(deviceId);
+  (fleet as any).devices.push(deviceId);
   fleet.updatedAt = new Date();
   await fleet.save();
 
   return fleet;
 }
 
-export async function removeDeviceFromFleet(fleetId, deviceId) {
+export async function removeDeviceFromFleet(fleetId: string, deviceId: string) {
   const fleet = await DeviceFleet.findById(fleetId);
   if (!fleet) throw new Error("Fleet not found");
 
-  fleet.devices.pull(deviceId);
+  (fleet as any).devices.pull(deviceId);
   fleet.updatedAt = new Date();
   await fleet.save();
 
   return fleet;
 }
 
-export async function updateFleetSettings(fleetId, updates) {
+export async function updateFleetSettings(fleetId: string, updates: any) {
   const fleet = await DeviceFleet.findById(fleetId);
   if (!fleet) throw new Error("Fleet not found");
 
   const allowedUpdates = ["name", "description", "autoRegister", "deviceLimit", "monitoringEnabled", "alertThresholds", "status"];
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      fleet[key] = updates[key];
+      (fleet as any)[key] = updates[key];
     }
   }
 
@@ -295,26 +295,26 @@ export async function updateFleetSettings(fleetId, updates) {
 }
 
 // ── Fleet Analytics ─────────────────────────────────────────────────────────────
-export async function getFleetAnalytics(fleetId) {
+export async function getFleetAnalytics(fleetId: string) {
   const fleet = await DeviceFleet.findById(fleetId)
     .populate("devices");
 
   if (!fleet) throw new Error("Fleet not found");
 
-  const devices = fleet.devices || [];
+  const devices = (fleet as any).devices || [];
 
   const totalDevices = devices.length;
-  const activeDevices = devices.filter(d => d.status === "active").length;
-  const stolenDevices = devices.filter(d => d.stolen).length;
-  const blacklistedDevices = devices.filter(d => d.status === "blacklisted").length;
+  const activeDevices = devices.filter((d: any) => d.status === "active").length;
+  const stolenDevices = devices.filter((d: any) => d.stolen).length;
+  const blacklistedDevices = devices.filter((d: any) => d.status === "blacklisted").length;
 
   return {
     totalDevices,
     activeDevices,
     stolenDevices,
     blacklistedDevices,
-    monitoringEnabled: fleet.monitoringEnabled,
-    alertThresholds: fleet.alertThresholds,
+    monitoringEnabled: (fleet as any).monitoringEnabled,
+    alertThresholds: (fleet as any).alertThresholds,
   };
 }
 
@@ -356,7 +356,7 @@ export async function getEnterpriseStatistics() {
     totalMembers,
     totalFleets,
     totalFleetDevices: totalFleetDevices[0]?.total || 0,
-    organizationsBySize: organizationsBySize.map(o => ({ size: o._id, count: o.count })),
-    organizationsByPlan: organizationsByPlan.map(o => ({ plan: o._id, count: o.count })),
+    organizationsBySize: organizationsBySize.map((o: any) => ({ size: o._id, count: o.count })),
+    organizationsByPlan: organizationsByPlan.map((o: any) => ({ plan: o._id, count: o.count })),
   };
 }
