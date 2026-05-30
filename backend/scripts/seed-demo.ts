@@ -1,4 +1,4 @@
-// scripts/seed-demo.js — Run once: node scripts/seed-demo.js
+// scripts/seed-demo.ts — Run once: node scripts/seed-demo.ts
 // Creates a fully operational demo environment for SimTrace
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
@@ -24,8 +24,8 @@ const Ad           = mongoose.model("Ad",           mongoose.models.Ad?.schema  
 const Plan         = mongoose.model("Plan",         mongoose.models.Plan?.schema         || new mongoose.Schema({ id:{type:String,unique:true}, name:String, priceKES:Number, priceUSD:Number, deviceLimit:Number, extraDeviceKES:Number, features:[String], imeiChecksPerDay:Number, aiReportsPerMonth:Number, slaHours:Number }));
 
 // ── Helper ────────────────────────────────────────────────────────────────────
-const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const rand = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 function apiKey() { return "st_" + crypto.randomBytes(28).toString("hex"); }
 function imei()   { return String(Math.floor(Math.random() * 9e14 + 1e14)); }
 
@@ -40,7 +40,7 @@ for (const p of PLANS) await Plan.findOneAndUpdate({ id: p.id }, p, { upsert: tr
 console.log("✅ Plans seeded");
 
 // ── Create accounts ───────────────────────────────────────────────────────────
-const hash = (pw) => bcrypt.hash(pw, 12);
+const hash = (pw: string) => bcrypt.hash(pw, 12);
 
 // Admin
 const adminUser = await User.findOneAndUpdate(
@@ -112,7 +112,7 @@ const DEVICES_DATA = [
   { imei: "354803112467604", make: "Xiaomi",  model: "Redmi Note 13",    owner: freeUser._id, status: "active"      },
   // Stolen / blacklisted devices (no owner — reported)
   { imei: "111222333444555", make: "Apple",   model: "iPhone 14",        owner: proUser._id,  status: "stolen"      },
-  { imei: "999888777666555", make: "Samsung", model: "Galaxy A54",       owner: freeUser._id, status: "blacklisted"  },
+  { imei: "999888777666555", make: "Samsung", model: "Galaxy A54",       owner: proUser._id, status: "blacklisted"  },
   { imei: "444333222111000", make: "Tecno",   model: "Pop 8",            owner: null,         status: "stolen"      },
   // Recovered
   { imei: "321654987654321", make: "Apple",   model: "iPhone 13",        owner: proUser._id,  status: "recovered"   },
