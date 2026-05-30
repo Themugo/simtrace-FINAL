@@ -8,6 +8,8 @@
     "start": "next start",
     "test": "vitest",
     "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "validate-env": "node scripts/validate-env.js"
@@ -27,6 +29,7 @@
     "node": "20.x"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^16.0.0",
     "@types/leaflet": "^1.9.14",
@@ -37,6 +40,7 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.1.0",
     "jsdom": "^25.0.0",
+    "k6": "^0.0.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.7"
   }
