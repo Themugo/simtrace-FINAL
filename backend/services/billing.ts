@@ -1,8 +1,21 @@
-// services/billing.js — SimTrace monetisation engine
+// services/billing.ts — SimTrace monetisation engine
 import { Plan, Subscription, Payment, Device, Ad } from "../db/index.js";
 
 // ── Plan definitions (seeded once on startup) ─────────────────────────────────
-export const PLANS = [
+export interface PlanDefinition {
+  id: string;
+  name: string;
+  priceKES: number;
+  priceUSD: number;
+  deviceLimit: number;
+  extraDeviceKES: number;
+  features: string[];
+  imeiChecksPerDay: number;
+  aiReportsPerMonth: number;
+  slaHours: number | null;
+}
+
+export const PLANS: PlanDefinition[] = [
   {
     id: "free",
     name: "Free",
@@ -53,7 +66,7 @@ export const PLANS = [
   },
 ];
 
-export async function seedPlans() {
+export async function seedPlans(): Promise<void> {
   for (const p of PLANS) {
     await Plan.findOneAndUpdate({ id: p.id }, p, { upsert: true, new: true });
   }
@@ -61,7 +74,7 @@ export async function seedPlans() {
 }
 
 // ── Subscription helpers ──────────────────────────────────────────────────────
-export async function getUserSubscription(userId) {
+export async function getUserSubscription(userId: string) {
   let sub = await Subscription.findOne({ user: userId });
   if (!sub) {
     sub = await Subscription.create({ user: userId, plan: "free", status: "active" });
@@ -69,13 +82,13 @@ export async function getUserSubscription(userId) {
   return sub;
 }
 
-export async function getPlan(planId) {
+export async function getPlan(planId: string) {
   const doc = await Plan.findOne({ id: planId });
   return doc || PLANS.find(p => p.id === planId);
 }
 
 // ── Device limit enforcement ──────────────────────────────────────────────────
-export async function checkDeviceLimit(userId) {
+export async function checkDeviceLimit(userId: string) {
   const [sub, deviceCount] = await Promise.all([
     getUserSubscription(userId),
     Device.countDocuments({ owner: userId }),
@@ -99,18 +112,18 @@ export async function checkDeviceLimit(userId) {
 }
 
 // ── M-Pesa STK Push ───────────────────────────────────────────────────────────
-async function getMpesaToken() {
-  const key    = process.env.MPESA_CONSUMER_KEY;
+async function getMpesaToken(): Promise<{ token: string; baseUrl: string }> {
+  const key = process.env.MPESA_CONSUMER_KEY;
   const secret = process.env.MPESA_CONSUMER_SECRET;
   if (!key || !secret) throw new Error("M-Pesa credentials not configured");
 
-  const creds   = Buffer.from(`${key}:${secret}`).toString("base64");
-  const isProd  = process.env.MPESA_ENV === "production";
+  const creds = Buffer.from(`${key}:${secret}`).toString("base64");
+  const isProd = process.env.MPESA_ENV === "production";
   const baseUrl = isProd
     ? "https://api.safaricom.co.ke"
     : "https://sandbox.safaricom.co.ke";
 
-  const res   = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
+  const res = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
     { headers: { Authorization: `Basic ${creds}` } }
   );
   const data = await res.json();
@@ -118,13 +131,20 @@ async function getMpesaToken() {
   return { token: data.access_token, baseUrl };
 }
 
-export async function initiateMpesaSTK({ phone, amountKES, description, reference, userId, paymentType }) {
+export async function initiateMpesaSTK({ phone, amountKES, description, reference, userId, paymentType }: {
+  phone: string;
+  amountKES: number;
+  description?: string;
+  reference?: string;
+  userId: string;
+  paymentType?: string;
+}) {
   const { token, baseUrl } = await getMpesaToken();
-  const shortcode   = process.env.MPESA_SHORTCODE;
-  const passkey     = process.env.MPESA_PASSKEY;
+  const shortcode = process.env.MPESA_SHORTCODE;
+  const passkey = process.env.MPESA_PASSKEY;
   const callbackUrl = `${process.env.BACKEND_URL}/api/billing/mpesa-callback`;
 
-  const ts  = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
+  const ts = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
   const pwd = Buffer.from(`${shortcode}${passkey}${ts}`).toString("base64");
 
   const normPhone = phone.replace(/^0/, "254").replace(/^\+/, "");
@@ -143,7 +163,7 @@ export async function initiateMpesaSTK({ phone, amountKES, description, referenc
     TransactionDesc: description || "SimTrace payment",
   };
 
-  const res  = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
+  const res = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -164,13 +184,14 @@ export async function initiateMpesaSTK({ phone, amountKES, description, referenc
 
   return { checkoutRequestId: data.CheckoutRequestID, paymentId: payment._id };
 }
+
 // ── M-Pesa STK Query — check payment status from Daraja ──────────────────────
-export async function queryMpesaSTK(checkoutRequestId) {
+export async function queryMpesaSTK(checkoutRequestId: string) {
   const { token, baseUrl } = await getMpesaToken();
   const shortcode = process.env.MPESA_SHORTCODE;
-  const passkey   = process.env.MPESA_PASSKEY;
+  const passkey = process.env.MPESA_PASSKEY;
 
-  const ts  = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
+  const ts = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
   const pwd = Buffer.from(`${shortcode}${passkey}${ts}`).toString("base64");
 
   const res = await fetch(`${baseUrl}/mpesa/stkpushquery/v1/query`, {
@@ -178,8 +199,8 @@ export async function queryMpesaSTK(checkoutRequestId) {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       BusinessShortCode: shortcode,
-      Password:          pwd,
-      Timestamp:         ts,
+      Password: pwd,
+      Timestamp: ts,
       CheckoutRequestID: checkoutRequestId,
     }),
   });
@@ -189,7 +210,7 @@ export async function queryMpesaSTK(checkoutRequestId) {
 }
 
 // ── M-Pesa callback ───────────────────────────────────────────────────────────
-export async function processMpesaCallback(body) {
+export async function processMpesaCallback(body: any): Promise<void> {
   const stk = body?.Body?.stkCallback;
   if (!stk) return;
 
@@ -200,12 +221,12 @@ export async function processMpesaCallback(body) {
   if (!payment) return;
 
   if (resultCode === 0) {
-    const items   = stk.CallbackMetadata?.Item || [];
-    const receipt = items.find(i => i.Name === "MpesaReceiptNumber")?.Value;
+    const items = stk.CallbackMetadata?.Item || [];
+    const receipt = items.find((i: any) => i.Name === "MpesaReceiptNumber")?.Value;
 
-    payment.status       = "completed";
+    payment.status = "completed";
     payment.mpesaReceipt = receipt;
-    payment.paidAt       = new Date();
+    payment.paidAt = new Date();
     await payment.save();
 
     await activateSubscriptionAfterPayment(payment);
@@ -215,7 +236,7 @@ export async function processMpesaCallback(body) {
   }
 }
 
-async function activateSubscriptionAfterPayment(payment) {
+async function activateSubscriptionAfterPayment(payment: any): Promise<void> {
   if (payment.type === "subscription") {
     const period = new Date();
     period.setMonth(period.getMonth() + 1);
@@ -233,7 +254,12 @@ async function activateSubscriptionAfterPayment(payment) {
 }
 
 // ── Stripe ────────────────────────────────────────────────────────────────────
-export async function createStripeIntent({ amountUSD, userId, description, planId }) {
+export async function createStripeIntent({ amountUSD, userId, description, planId }: {
+  amountUSD: number;
+  userId: string;
+  description?: string;
+  planId?: string;
+}) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) throw new Error("Stripe not configured");
 
@@ -241,15 +267,15 @@ export async function createStripeIntent({ amountUSD, userId, description, planI
   const res = await fetch("https://api.stripe.com/v1/payment_intents", {
     method: "POST",
     headers: {
-      Authorization:  `Bearer ${stripeKey}`,
+      Authorization: `Bearer ${stripeKey}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      amount:            amountCents,
-      currency:          "usd",
+      amount: amountCents,
+      currency: "usd",
       "metadata[userId]": userId,
       "metadata[planId]": planId || "",
-      description:       description || "SimTrace subscription",
+      description: description || "SimTrace subscription",
     }),
   });
 
@@ -272,10 +298,11 @@ export async function createStripeIntent({ amountUSD, userId, description, planI
 // ── Revenue stats for admin ── NOW includes ad revenue ────────────────────────
 export async function getRevenueStats() {
   const since30 = new Date(Date.now() - 30 * 24 * 3600000);
-  const since7  = new Date(Date.now() - 7  * 24 * 3600000);
+  const since7 = new Date(Date.now() - 7 * 24 * 3600000);
 
   const [
-    monthlyRevKES, monthlyRevUSD,
+    monthlyRevKES,
+    monthlyRevUSD,
     weeklyRevKES,
     subCounts,
     totalPayments,
@@ -309,11 +336,11 @@ export async function getRevenueStats() {
   ]);
 
   return {
-    monthlyRevKES:  (monthlyRevKES[0]?.total || 0) + (adRevKES[0]?.total || 0),
-    monthlyRevUSD:  monthlyRevUSD[0]?.total || 0,
-    weeklyRevKES:   weeklyRevKES[0]?.total || 0,
-    adRevKES:       adRevKES[0]?.total || 0,
-    subscriptions:  subCounts,
+    monthlyRevKES: (monthlyRevKES[0]?.total || 0) + (adRevKES[0]?.total || 0),
+    monthlyRevUSD: monthlyRevUSD[0]?.total || 0,
+    weeklyRevKES: weeklyRevKES[0]?.total || 0,
+    adRevKES: adRevKES[0]?.total || 0,
+    subscriptions: subCounts,
     totalPayments,
     recentPayments,
   };

@@ -1,25 +1,24 @@
 import "dotenv/config";
-import express from "express";
-import http from "http";
+import express, { Express, Request, Response, NextFunction } from "express";
+import http, { Server as HttpServer } from "http";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
-import pino from "pino";
+import pino, { Logger } from "pino";
 import pinoHttp from "pino-http";
 import { connectDB } from "./db/index.js";
 import { seedPlans } from "./services/billing.js";
 import { initIO } from "./services/socket.js";
 import { authenticateSocket } from "./middleware/auth.js";
 import { sanitizeInput } from "./middleware/validation.js";
-import { errorHandler, notFoundHandler, generateRequestId } from "./middleware/errorHandler.js";
+import { notFoundHandler } from "./middleware/errorHandler.js";
 import { initializeQueues } from "./queues/index.js";
 import { correlationIdMiddleware, globalErrorHandler } from "./middleware/globalErrorHandler.js";
-import { ipRateLimiter, apiRateLimiter, strictRateLimiter, ipThrottlingMiddleware, abuseDetectionMiddleware, securityHeadersMiddleware, initializeSecurityMiddleware } from "./middleware/securityHardening.js";
-import { metricsMiddleware, metricsEndpoint } from "./observability/metrics.js";
+import { ipRateLimiter, ipThrottlingMiddleware, abuseDetectionMiddleware, securityHeadersMiddleware, initializeSecurityMiddleware } from "./middleware/securityHardening.js";
+import { metricsMiddleware } from "./observability/metrics.js";
 import "./observability/tracing.js";
 import { startAlertMonitoring } from "./observability/alerting.js";
-import { specs, swaggerUi } from "./docs/swagger.js";
 import "./sentry.js";
 
 // Route imports
@@ -38,9 +37,9 @@ import lockRoutes      from "./routes/lock.js";
 import healthRoutes    from "./routes/health.js";
 import { startCron }    from "./services/cron.js";
 
-const app    = express();
-const server = http.createServer(app);
-const isProd = process.env.NODE_ENV === "production";
+const app: Express = express();
+const server: HttpServer = http.createServer(app);
+const isProd: boolean = process.env.NODE_ENV === "production";
 
 // Trust Railway/Heroku/Vercel proxy — required for rate-limiter to see real IPs
 app.set("trust proxy", 1);
@@ -81,9 +80,17 @@ app.use(ipThrottlingMiddleware);
 app.use(abuseDetectionMiddleware);
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(",").map(s => s.trim());
+const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(",").map((s: string) => s.trim());
 app.use(cors({
-  origin: (origin, cb) => (!origin || allowedOrigins.includes(origin) ? cb(null, true) : cb(Object.assign(new Error("Not allowed by CORS"), { status: 403 }))),
+  origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      cb(null, true);
+    } else {
+      const error = new Error("Not allowed by CORS") as any;
+      error.status = 403;
+      cb(error);
+    }
+  },
   credentials: true,
 }));
 
@@ -97,7 +104,7 @@ app.use(correlationIdMiddleware);
 app.use(metricsMiddleware);
 
 // ── Structured logging ────────────────────────────────────────────────────────
-export const logger = pino({
+export const logger: Logger = pino({
   level: isProd ? "info" : "debug",
   ...(isProd ? {} : { transport: { target: "pino-pretty", options: { colorize: true } } }),
 });
@@ -109,7 +116,7 @@ app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/health"
 app.post(
   "/api/billing/stripe-webhook",
   express.raw({ type: "application/json" }),
-  (req, res, next) => {
+  (req: Request, res: Response, next: NextFunction) => {
     req.url = "/stripe-webhook";   // strip the /api/billing prefix for the router
     billingRoutes(req, res, next);
   }
@@ -147,13 +154,13 @@ const MPESA_CALLBACK_IPS = new Set([
   "196.201.212.136", "196.201.212.74",  "196.201.212.69",
 ]);
 
-function mpesaIpWhitelist(req, res, next) {
+function mpesaIpWhitelist(req: Request, res: Response, next: NextFunction): void {
   if (process.env.MPESA_ENV !== "production") return next(); // bypass in sandbox
   const ip = req.ip || req.connection.remoteAddress;
   const clean = ip?.replace("::ffff:", "");
-  if (MPESA_CALLBACK_IPS.has(clean)) return next();
+  if (clean && MPESA_CALLBACK_IPS.has(clean)) return next();
   logger.warn({ ip: clean }, "M-Pesa callback rejected — IP not whitelisted");
-  return res.status(403).json({ error: "Forbidden" });
+  res.status(403).json({ error: "Forbidden" });
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -183,7 +190,7 @@ io.on("connection", (socket) => {
   socket.join(`user:${userId}`);
   if (role === "admin") socket.join("role:admin");
 
-  socket.on("subscribe_device", (imei) => {
+  socket.on("subscribe_device", (imei: unknown) => {
     if (typeof imei === "string" && /^\d{15,17}$/.test(imei)) {
       socket.join(`device:${imei}`);
     }
@@ -211,7 +218,7 @@ app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
 // ── DB connection with retry ──────────────────────────────────────────────────
-async function connectWithRetry(retries = 5, delay = 3000) {
+async function connectWithRetry(retries: number = 5, delay: number = 3000): Promise<void> {
   for (let i = 1; i <= retries; i++) {
     try {
       await connectDB();
@@ -219,16 +226,16 @@ async function connectWithRetry(retries = 5, delay = 3000) {
     } catch (err) {
       if (i === retries) throw err;
       console.warn(`MongoDB connection failed (attempt ${i}/${retries}) — retrying in ${delay}ms…`);
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise<void>(resolve => setTimeout(resolve, delay));
     }
   }
 }
 
 // ── Graceful shutdown + uncaught error handlers ───────────────────────────────
-process.on("unhandledRejection", (reason) => {
+process.on("unhandledRejection", (reason: unknown) => {
   console.error("[UnhandledRejection]", reason);
 });
-process.on("uncaughtException", (err) => {
+process.on("uncaughtException", (err: Error) => {
   console.error("[UncaughtException]", err);
   process.exit(1);
 });
@@ -238,7 +245,7 @@ process.on("SIGTERM", () => {
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 4000;
+const PORT: number = parseInt(process.env.PORT || "4000", 10);
 connectWithRetry().then(async () => {
   seedPlans();
   startCron();

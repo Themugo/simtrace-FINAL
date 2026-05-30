@@ -1,26 +1,26 @@
-// services/cron.js — SimTrace scheduled jobs
+// services/cron.ts — SimTrace scheduled jobs
 // Runs on server startup and repeats on interval.
 // No external cron dependency — uses setInterval (adequate for single-instance Railway deployment).
 // For multi-instance deployments, move to a dedicated worker or use BullMQ/Agenda.
 
 import { Subscription, User, Ad, Partner } from "../db/index.js";
-import pino from "pino";
+import pino, { Logger } from "pino";
 
-const log = pino({
+const log: Logger = pino({
   level: process.env.NODE_ENV === "production" ? "info" : "debug",
   ...(process.env.NODE_ENV !== "production" ? { transport: { target: "pino-pretty", options: { colorize: true } } } : {}),
 }).child({ service: "cron" });
 
 // ── Subscription expiry check ─────────────────────────────────────────────────
 // Runs every hour. Downgrades users whose paid subscription has lapsed.
-async function checkExpiredSubscriptions() {
+async function checkExpiredSubscriptions(): Promise<void> {
   try {
     const now = new Date();
 
     // Find paid subscriptions whose period has ended and are still marked active
     const expired = await Subscription.find({
-      plan:             { $nin: ["free", "enterprise"] },
-      status:           "active",
+      plan: { $nin: ["free", "enterprise"] },
+      status: "active",
       currentPeriodEnd: { $lt: now },
     });
 
@@ -29,7 +29,7 @@ async function checkExpiredSubscriptions() {
     log.info(`[Cron] Expiry check: ${expired.length} subscription(s) to downgrade`);
 
     for (const sub of expired) {
-      sub.plan   = "free";
+      sub.plan = "free";
       sub.status = "active";
       await sub.save();
 
@@ -49,7 +49,7 @@ async function checkExpiredSubscriptions() {
 
 // ── Ad budget cleanup ─────────────────────────────────────────────────────────
 // Marks any ad as exhausted if budget is depleted (safety net beyond the click-time check).
-async function cleanupExhaustedAds() {
+async function cleanupExhaustedAds(): Promise<void> {
   try {
     const result = await Ad.updateMany(
       { status: "active", $expr: { $gte: ["$spentKES", "$budgetKES"] } },
@@ -65,9 +65,9 @@ async function cleanupExhaustedAds() {
 
 // ── Partner monthly quota reset ───────────────────────────────────────────────
 // Resets apiCallsMonth on the 1st of each month (belt-and-suspenders alongside validatePartnerKey).
-async function resetPartnerQuotas() {
+async function resetPartnerQuotas(): Promise<void> {
   try {
-    const now       = new Date();
+    const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const result = await Partner.updateMany(
       { lastReset: { $lt: startOfMonth } },
@@ -82,7 +82,7 @@ async function resetPartnerQuotas() {
 }
 
 // ── Scheduler ─────────────────────────────────────────────────────────────────
-export function startCron() {
+export function startCron(): void {
   // Run immediately on startup, then on schedule
   checkExpiredSubscriptions();
   cleanupExhaustedAds();
@@ -90,7 +90,7 @@ export function startCron() {
 
   // Every hour
   setInterval(checkExpiredSubscriptions, 60 * 60 * 1000);
-  setInterval(cleanupExhaustedAds,       60 * 60 * 1000);
+  setInterval(cleanupExhaustedAds, 60 * 60 * 1000);
 
   // Every 6 hours
   setInterval(resetPartnerQuotas, 6 * 60 * 60 * 1000);
