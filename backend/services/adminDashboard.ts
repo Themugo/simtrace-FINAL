@@ -1,4 +1,4 @@
-// services/adminDashboard.js - Admin dashboard services
+// services/adminDashboard.ts - Admin dashboard services
 import crypto from "crypto";
 import {
   AdminDashboard,
@@ -6,7 +6,7 @@ import {
 } from "../db/index.js";
 
 // ── Admin Dashboard Management ───────────────────────────────────────────────────────
-export async function createAdminDashboard(data) {
+export async function createAdminDashboard(data: any) {
   const dashboardId = `adash_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify admin exists
@@ -22,18 +22,18 @@ export async function createAdminDashboard(data) {
   return dashboard;
 }
 
-export async function getAdminDashboard(dashboardId) {
+export async function getAdminDashboard(dashboardId: string) {
   const dashboard = await AdminDashboard.findOne({ dashboardId, status: "active" });
   if (!dashboard) throw new Error("Admin dashboard not found");
   return dashboard;
 }
 
-export async function getAdminDashboardByAdmin(adminId) {
+export async function getAdminDashboardByAdmin(adminId: string) {
   const dashboard = await AdminDashboard.findOne({ adminId, status: "active" });
   return dashboard;
 }
 
-export async function updateAdminDashboard(dashboardId, updates) {
+export async function updateAdminDashboard(dashboardId: string, updates: any) {
   const dashboard = await AdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -46,7 +46,7 @@ export async function updateAdminDashboard(dashboardId, updates) {
   return dashboard;
 }
 
-export async function updateAdminDashboardWidgets(dashboardId, widgets) {
+export async function updateAdminDashboardWidgets(dashboardId: string, widgets: any) {
   const dashboard = await AdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -59,7 +59,7 @@ export async function updateAdminDashboardWidgets(dashboardId, widgets) {
   return dashboard;
 }
 
-export async function updateAdminDashboardSettings(dashboardId, settings) {
+export async function updateAdminDashboardSettings(dashboardId: string, settings: any) {
   const dashboard = await AdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -72,7 +72,7 @@ export async function updateAdminDashboardSettings(dashboardId, settings) {
   return dashboard;
 }
 
-export async function deleteAdminDashboard(dashboardId) {
+export async function deleteAdminDashboard(dashboardId: string) {
   const dashboard = await AdminDashboard.findOneAndDelete({ dashboardId });
   if (!dashboard) throw new Error("Admin dashboard not found");
   return dashboard;
@@ -84,11 +84,11 @@ export async function getAllAdminDashboards() {
 }
 
 // ── Dashboard Data Aggregation ───────────────────────────────────────────────────────
-export async function getAdminDashboardData(dashboardId) {
+export async function getAdminDashboardData(dashboardId: string) {
   const dashboard = await AdminDashboard.findById(dashboardId);
   if (!dashboard) throw new Error("Admin dashboard not found");
 
-  const admin = await Admin.findById(dashboard.adminId);
+  const admin = await Admin.findById((dashboard as any).adminId);
   if (!admin) throw new Error("Admin not found");
 
   // TODO: Aggregate data based on widgets
@@ -102,6 +102,6 @@ export async function getAdminDashboardData(dashboardId) {
   return {
     dashboard,
     admin,
-    layerAccess: admin.layerAccess,
+    layerAccess: (admin as any).layerAccess,
   };
 }
