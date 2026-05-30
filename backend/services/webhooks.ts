@@ -1,11 +1,11 @@
-// services/webhooks.js - Webhook System for Real-time Notifications
+// services/webhooks.ts - Webhook System for Real-time Notifications
 // Developer ecosystem for third-party integrations
 
 import { WebhookSubscription, WebhookDeliveryLog, User } from "../db/index.js";
 import crypto from "crypto";
 
 // ── Webhook Subscription Management ───────────────────────────────────────────────
-export async function createWebhookSubscription(data) {
+export async function createWebhookSubscription(data: any) {
   const {
     userId,
     url,
@@ -30,28 +30,28 @@ export async function createWebhookSubscription(data) {
   return subscription;
 }
 
-export async function getWebhookSubscription(subscriptionId) {
+export async function getWebhookSubscription(subscriptionId: string) {
   const subscription = await WebhookSubscription.findById(subscriptionId)
     .populate("user", "name email");
 
   return subscription;
 }
 
-export async function getWebhookSubscriptionsByUser(userId) {
+export async function getWebhookSubscriptionsByUser(userId: string) {
   const subscriptions = await WebhookSubscription.find({ user: userId })
     .sort({ createdAt: -1 });
 
   return subscriptions;
 }
 
-export async function updateWebhookSubscription(subscriptionId, updates) {
+export async function updateWebhookSubscription(subscriptionId: string, updates: any) {
   const subscription = await WebhookSubscription.findById(subscriptionId);
   if (!subscription) throw new Error("Webhook subscription not found");
 
   const allowedUpdates = ["url", "events", "active"];
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      subscription[key] = updates[key];
+      (subscription as any)[key] = updates[key];
     }
   }
 
@@ -61,14 +61,14 @@ export async function updateWebhookSubscription(subscriptionId, updates) {
   return subscription;
 }
 
-export async function deleteWebhookSubscription(subscriptionId) {
+export async function deleteWebhookSubscription(subscriptionId: string) {
   const subscription = await WebhookSubscription.findByIdAndDelete(subscriptionId);
   if (!subscription) throw new Error("Webhook subscription not found");
 
   return subscription;
 }
 
-export async function regenerateWebhookSecret(subscriptionId) {
+export async function regenerateWebhookSecret(subscriptionId: string) {
   const subscription = await WebhookSubscription.findById(subscriptionId);
   if (!subscription) throw new Error("Webhook subscription not found");
 
@@ -80,7 +80,7 @@ export async function regenerateWebhookSecret(subscriptionId) {
 }
 
 // ── Webhook Delivery ─────────────────────────────────────────────────────────────
-export async function triggerWebhook(event, payload) {
+export async function triggerWebhook(event: string, payload: any) {
   const subscriptions = await WebhookSubscription.find({
     active: true,
     events: event,
@@ -100,7 +100,7 @@ export async function triggerWebhook(event, payload) {
   return deliveries;
 }
 
-async function deliverWebhook(subscription, event, payload) {
+async function deliverWebhook(subscription: any, event: string, payload: any) {
   const signature = generateSignature(payload, subscription.secret);
 
   const response = await fetch(subscription.url, {
@@ -140,7 +140,7 @@ async function deliverWebhook(subscription, event, payload) {
   return log;
 }
 
-function generateSignature(payload, secret) {
+function generateSignature(payload: any, secret: string): string {
   const payloadString = JSON.stringify(payload);
   const hmac = crypto.createHmac("sha256", secret);
   hmac.update(payloadString);
@@ -148,7 +148,7 @@ function generateSignature(payload, secret) {
 }
 
 // ── Webhook Delivery Logs ───────────────────────────────────────────────────────
-export async function getWebhookDeliveryLogs(subscriptionId, limit = 50) {
+export async function getWebhookDeliveryLogs(subscriptionId: string, limit = 50) {
   const logs = await WebhookDeliveryLog.find({ webhook: subscriptionId })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -156,7 +156,7 @@ export async function getWebhookDeliveryLogs(subscriptionId, limit = 50) {
   return logs;
 }
 
-export async function retryFailedWebhook(deliveryId) {
+export async function retryFailedWebhook(deliveryId: string) {
   const delivery = await WebhookDeliveryLog.findById(deliveryId)
     .populate("webhook");
 
@@ -164,7 +164,7 @@ export async function retryFailedWebhook(deliveryId) {
   if (delivery.status === "success") throw new Error("Delivery already successful");
 
   const newDelivery = await deliverWebhook(
-    delivery.webhook,
+    (delivery as any).webhook,
     delivery.event,
     delivery.payload
   );
@@ -225,7 +225,7 @@ export const WEBHOOK_EVENTS = [
 ];
 
 // ── Webhook Testing ─────────────────────────────────────────────────────────────
-export async function testWebhook(subscriptionId) {
+export async function testWebhook(subscriptionId: string) {
   const subscription = await WebhookSubscription.findById(subscriptionId);
   if (!subscription) throw new Error("Webhook subscription not found");
 

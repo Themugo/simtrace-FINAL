@@ -1,4 +1,4 @@
-// services/subscription.js - Subscription management services
+// services/subscription.ts - Subscription management services
 import crypto from "crypto";
 import {
   SubscriptionPlan,
@@ -9,7 +9,7 @@ import {
 } from "../db/index.js";
 
 // ── Subscription Plan Management ───────────────────────────────────────────────────────
-export async function createSubscriptionPlan(data) {
+export async function createSubscriptionPlan(data: any) {
   const planId = `plan_${crypto.randomBytes(16).toString("hex")}`;
 
   const plan = await SubscriptionPlan.create({
@@ -21,13 +21,13 @@ export async function createSubscriptionPlan(data) {
   return plan;
 }
 
-export async function getSubscriptionPlan(planId) {
+export async function getSubscriptionPlan(planId: string) {
   const plan = await SubscriptionPlan.findOne({ planId, status: "active" });
   if (!plan) throw new Error("Subscription plan not found");
   return plan;
 }
 
-export async function getSubscriptionPlanByType(planType) {
+export async function getSubscriptionPlanByType(planType: string) {
   const plan = await SubscriptionPlan.findOne({ planType, status: "active" });
   return plan;
 }
@@ -37,7 +37,7 @@ export async function getAllSubscriptionPlans() {
   return plans;
 }
 
-export async function updateSubscriptionPlan(planId, updates) {
+export async function updateSubscriptionPlan(planId: string, updates: any) {
   const plan = await SubscriptionPlan.findOneAndUpdate(
     { planId },
     {
@@ -50,7 +50,7 @@ export async function updateSubscriptionPlan(planId, updates) {
   return plan;
 }
 
-export async function deactivateSubscriptionPlan(planId) {
+export async function deactivateSubscriptionPlan(planId: string) {
   const plan = await SubscriptionPlan.findOneAndUpdate(
     { planId },
     {
@@ -64,7 +64,7 @@ export async function deactivateSubscriptionPlan(planId) {
 }
 
 // ── User Subscription Management ───────────────────────────────────────────────────────
-export async function createUserSubscription(data) {
+export async function createUserSubscription(data: any) {
   const subscriptionId = `sub_${crypto.randomBytes(16).toString("hex")}`;
 
   const subscription = await UserSubscription.create({
@@ -76,18 +76,18 @@ export async function createUserSubscription(data) {
   return subscription;
 }
 
-export async function getUserSubscription(subscriptionId) {
+export async function getUserSubscription(subscriptionId: string) {
   const subscription = await UserSubscription.findById(subscriptionId).populate("planId");
   if (!subscription) throw new Error("User subscription not found");
   return subscription;
 }
 
-export async function getUserSubscriptionByUserId(userId) {
+export async function getUserSubscriptionByUserId(userId: string) {
   const subscription = await UserSubscription.findOne({ userId, status: "active" }).populate("planId");
   return subscription;
 }
 
-export async function updateUserSubscription(subscriptionId, updates) {
+export async function updateUserSubscription(subscriptionId: string, updates: any) {
   const subscription = await UserSubscription.findByIdAndUpdate(
     subscriptionId,
     {
@@ -100,7 +100,7 @@ export async function updateUserSubscription(subscriptionId, updates) {
   return subscription;
 }
 
-export async function cancelUserSubscription(subscriptionId) {
+export async function cancelUserSubscription(subscriptionId: string) {
   const subscription = await UserSubscription.findByIdAndUpdate(
     subscriptionId,
     {
@@ -114,7 +114,7 @@ export async function cancelUserSubscription(subscriptionId) {
   return subscription;
 }
 
-export async function upgradeUserSubscription(subscriptionId, newPlanId) {
+export async function upgradeUserSubscription(subscriptionId: string, newPlanId: string) {
   const subscription = await UserSubscription.findByIdAndUpdate(
     subscriptionId,
     {
@@ -127,7 +127,7 @@ export async function upgradeUserSubscription(subscriptionId, newPlanId) {
   return subscription;
 }
 
-export async function checkSubscriptionLimits(userId) {
+export async function checkSubscriptionLimits(userId: string) {
   const subscription = await UserSubscription.findOne({ userId, status: "active" }).populate("planId");
   if (!subscription) {
     // Return free tier limits
@@ -142,7 +142,7 @@ export async function checkSubscriptionLimits(userId) {
   }
 
   const currentDevices = await Device.countDocuments({ owner: userId, status: "active" });
-  const plan = subscription.planId;
+  const plan = subscription.planId as any;
 
   return {
     maxDevices: plan.maxDevices,
@@ -155,7 +155,7 @@ export async function checkSubscriptionLimits(userId) {
 }
 
 // ── Payment Transaction Management ───────────────────────────────────────────────────────
-export async function createPaymentTransaction(data) {
+export async function createPaymentTransaction(data: any) {
   const transactionId = `txn_${crypto.randomBytes(16).toString("hex")}`;
 
   const transaction = await PaymentTransaction.create({
@@ -167,13 +167,13 @@ export async function createPaymentTransaction(data) {
   return transaction;
 }
 
-export async function getPaymentTransaction(transactionId) {
+export async function getPaymentTransaction(transactionId: string) {
   const transaction = await PaymentTransaction.findOne({ transactionId });
   if (!transaction) throw new Error("Payment transaction not found");
   return transaction;
 }
 
-export async function updatePaymentTransaction(transactionId, updates) {
+export async function updatePaymentTransaction(transactionId: string, updates: any) {
   const transaction = await PaymentTransaction.findOneAndUpdate(
     { transactionId },
     {
@@ -186,7 +186,7 @@ export async function updatePaymentTransaction(transactionId, updates) {
   return transaction;
 }
 
-export async function completePaymentTransaction(transactionId) {
+export async function completePaymentTransaction(transactionId: string) {
   const transaction = await PaymentTransaction.findOneAndUpdate(
     { transactionId },
     {
@@ -219,7 +219,7 @@ export async function completePaymentTransaction(transactionId) {
   return transaction;
 }
 
-export async function failPaymentTransaction(transactionId) {
+export async function failPaymentTransaction(transactionId: string) {
   const transaction = await PaymentTransaction.findOneAndUpdate(
     { transactionId },
     {
@@ -232,7 +232,7 @@ export async function failPaymentTransaction(transactionId) {
   return transaction;
 }
 
-export async function refundPaymentTransaction(transactionId, refundAmount, refundReason) {
+export async function refundPaymentTransaction(transactionId: string, refundAmount: number, refundReason: string) {
   const transaction = await PaymentTransaction.findOneAndUpdate(
     { transactionId },
     {
@@ -248,7 +248,7 @@ export async function refundPaymentTransaction(transactionId, refundAmount, refu
   return transaction;
 }
 
-export async function getUserPaymentHistory(userId, limit = 50) {
+export async function getUserPaymentHistory(userId: string, limit = 50) {
   const transactions = await PaymentTransaction.find({ userId })
     .sort({ createdAt: -1 })
     .limit(limit);
