@@ -1,5 +1,5 @@
-// routes/financials.js - Financial Projections & Revenue Tracking API endpoints
-import { Router } from "express";
+// routes/financials.ts - Financial Projections & Revenue Tracking API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -19,7 +19,7 @@ import {
 const router = Router();
 
 // ── Projection Management ─────────────────────────────────────────────────────────
-router.post("/projections", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/projections", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       period: z.enum(["monthly", "quarterly", "yearly"]),
@@ -34,12 +34,12 @@ router.post("/projections", authenticate, requireAdmin, async (req, res, next) =
 
     res.status(201).json(projection);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/projections/:id", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/projections/:id", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const projection = await getFinancialProjection(id);
@@ -52,13 +52,13 @@ router.get("/projections/:id", authenticate, requireAdmin, async (req, res, next
   } catch (err) { next(err); }
 });
 
-router.get("/projections", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/projections", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { period } = req.query;
     
     let projections;
     if (period) {
-      projections = await getProjectionsByPeriod(period);
+      projections = await getProjectionsByPeriod(period as string);
     } else {
       projections = await getCurrentProjection("monthly");
     }
@@ -67,7 +67,7 @@ router.get("/projections", authenticate, requireAdmin, async (req, res, next) =>
   } catch (err) { next(err); }
 });
 
-router.get("/projections/current/:period", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/projections/current/:period", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { period } = req.params;
     const projection = await getCurrentProjection(period);
@@ -75,7 +75,7 @@ router.get("/projections/current/:period", authenticate, requireAdmin, async (re
   } catch (err) { next(err); }
 });
 
-router.patch("/projections/:id", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/projections/:id", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const projection = await updateProjectionMetrics(id, req.body);
@@ -84,7 +84,7 @@ router.patch("/projections/:id", authenticate, requireAdmin, async (req, res, ne
 });
 
 // ── Revenue & Metrics Calculation ───────────────────────────────────────────────
-router.get("/revenue", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/revenue", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       startDate: z.date(),
@@ -92,16 +92,16 @@ router.get("/revenue", authenticate, requireAdmin, async (req, res, next) => {
     });
 
     const { startDate, endDate } = schema.parse(req.query);
-    const revenue = await calculateRevenue(new Date(startDate), new Date(endDate));
+    const revenue = await calculateRevenue(new Date(startDate as string), new Date(endDate as string));
 
     res.json(revenue);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/metrics/users", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/metrics/users", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       startDate: z.date(),
@@ -109,16 +109,16 @@ router.get("/metrics/users", authenticate, requireAdmin, async (req, res, next) 
     });
 
     const { startDate, endDate } = schema.parse(req.query);
-    const metrics = await calculateUserMetrics(new Date(startDate), new Date(endDate));
+    const metrics = await calculateUserMetrics(new Date(startDate as string), new Date(endDate as string));
 
     res.json(metrics);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/costs/:period", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/costs/:period", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { period } = req.params;
     const costs = await estimateCosts(period);
@@ -127,7 +127,7 @@ router.get("/costs/:period", authenticate, requireAdmin, async (req, res, next) 
 });
 
 // ── Auto-Update Projections ─────────────────────────────────────────────────────
-router.post("/projections/update", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/projections/update", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const projections = await updateCurrentProjections();
     res.json(projections);
@@ -135,7 +135,7 @@ router.post("/projections/update", authenticate, requireAdmin, async (req, res, 
 });
 
 // ── Financial Dashboard ───────────────────────────────────────────────────────
-router.get("/dashboard", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/dashboard", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const dashboard = await getFinancialDashboard();
     res.json(dashboard);
@@ -143,7 +143,7 @@ router.get("/dashboard", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── Business Plan Projections ─────────────────────────────────────────────────
-router.post("/projections/business-plan", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/projections/business-plan", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const projections = await generateBusinessPlanProjections();
     res.status(201).json({ projections, count: projections.length });

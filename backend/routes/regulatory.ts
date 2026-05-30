@@ -1,5 +1,5 @@
-// routes/regulatory.js - Regulatory Blocking System API endpoints
-import { Router } from "express";
+// routes/regulatory.ts - Regulatory Blocking System API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -23,7 +23,7 @@ import {
 const router = Router();
 
 // ── Block Management ─────────────────────────────────────────────────────────────
-router.post("/blocks", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/blocks", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -42,12 +42,12 @@ router.post("/blocks", authenticate, requireAdmin, async (req, res, next) => {
 
     res.status(201).json(block);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/blocks/:id", authenticate, async (req, res, next) => {
+router.get("/blocks/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const block = await getRegulatoryBlock(id);
@@ -60,7 +60,7 @@ router.get("/blocks/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/blocks/imei/:imei", authenticate, async (req, res, next) => {
+router.get("/blocks/imei/:imei", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const blocks = await getBlocksByImei(imei);
@@ -68,13 +68,13 @@ router.get("/blocks/imei/:imei", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/blocks", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/blocks", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { authority, country } = req.query;
     
     let blocks;
     if (authority) {
-      blocks = await getBlocksByAuthority(authority, country);
+      blocks = await getBlocksByAuthority(authority as string, country as string);
     } else {
       blocks = await getActiveBlocks();
     }
@@ -83,7 +83,7 @@ router.get("/blocks", authenticate, requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/blocks/:id/status", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/blocks/:id/status", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["active", "expired", "lifted", "appealed"]),
@@ -95,13 +95,13 @@ router.patch("/blocks/:id/status", authenticate, requireAdmin, async (req, res, 
 
     res.json(block);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Sync with Authorities ───────────────────────────────────────────────────────
-router.post("/sync/ceir/:imei", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/sync/ceir/:imei", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const result = await syncWithCeir(imei);
@@ -109,7 +109,7 @@ router.post("/sync/ceir/:imei", authenticate, requireAdmin, async (req, res, nex
   } catch (err) { next(err); }
 });
 
-router.post("/sync/national/:country/:imei", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/sync/national/:country/:imei", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { country, imei } = req.params;
     const result = await syncWithNationalRegulator(country, imei);
@@ -118,7 +118,7 @@ router.post("/sync/national/:country/:imei", authenticate, requireAdmin, async (
 });
 
 // ── Appeal Management ───────────────────────────────────────────────────────────
-router.post("/blocks/:id/appeal", authenticate, async (req, res, next) => {
+router.post("/blocks/:id/appeal", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       appealNotes: z.string(),
@@ -130,12 +130,12 @@ router.post("/blocks/:id/appeal", authenticate, async (req, res, next) => {
 
     res.json(block);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/blocks/:id/appeal", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/blocks/:id/appeal", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       appealStatus: z.enum(["submitted", "under_review", "approved", "rejected"]),
@@ -147,13 +147,13 @@ router.patch("/blocks/:id/appeal", authenticate, requireAdmin, async (req, res, 
 
     res.json(block);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── CEIR Integration ─────────────────────────────────────────────────────────────
-router.get("/ceir/:imei", authenticate, async (req, res, next) => {
+router.get("/ceir/:imei", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const status = await checkCeirStatus(imei);
@@ -161,7 +161,7 @@ router.get("/ceir/:imei", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/ceir/blacklist", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/ceir/blacklist", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -174,12 +174,12 @@ router.post("/ceir/blacklist", authenticate, requireAdmin, async (req, res, next
 
     res.status(201).json(block);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/ceir/remove/:imei", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/ceir/remove/:imei", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
     const result = await removeFromCeirBlacklist(imei);
@@ -188,7 +188,7 @@ router.post("/ceir/remove/:imei", authenticate, requireAdmin, async (req, res, n
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getRegulatoryStatistics();
     res.json(stats);
@@ -196,7 +196,7 @@ router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── Block Expiry Check ─────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/check-expiry", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const expiredCount = await checkBlockExpiry();
     res.json({ message: "Expiry check completed", expiredCount });

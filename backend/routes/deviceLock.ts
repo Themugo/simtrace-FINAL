@@ -1,5 +1,5 @@
-// routes/deviceLock.js - Device lock and remote wipe API endpoints
-import { Router } from "express";
+// routes/deviceLock.ts - Device lock and remote wipe API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth.js";
 import {
@@ -17,8 +17,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Device Lock Management ───────────────────────────────────────────────────────────
-router.post("/", authenticate, async (req, res, next) => {
+router.post("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -29,23 +37,23 @@ router.post("/", authenticate, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const lock = await lockDevice({ ...data, createdBy: req.user.id });
+    const lock = await lockDevice({ ...data, createdBy: req.user!.id });
     res.status(201).json(lock);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/:lockId/unlock", authenticate, async (req, res, next) => {
+router.post("/:lockId/unlock", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { lockId } = req.params;
-    const lock = await unlockDevice(lockId, req.user.id);
+    const lock = await unlockDevice(lockId, req.user!.id);
     res.json(lock);
   } catch (err) { next(err); }
 });
 
-router.post("/:lockId/record-attempt", async (req, res, next) => {
+router.post("/:lockId/record-attempt", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       location: z.object({
@@ -60,20 +68,20 @@ router.post("/:lockId/record-attempt", async (req, res, next) => {
     const lock = await recordUnlockAttempt(lockId, data.location);
     res.json(lock);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/:lockId/wipe", authenticate, async (req, res, next) => {
+router.post("/:lockId/wipe", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { lockId } = req.params;
-    const lock = await remoteWipeDevice(lockId, req.user.id);
+    const lock = await remoteWipeDevice(lockId, req.user!.id);
     res.json(lock);
   } catch (err) { next(err); }
 });
 
-router.get("/:lockId", authenticate, async (req, res, next) => {
+router.get("/:lockId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { lockId } = req.params;
     const lock = await getDeviceLock(lockId);
@@ -81,7 +89,7 @@ router.get("/:lockId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const locks = await getDeviceLocksByDevice(deviceId);
@@ -89,7 +97,7 @@ router.get("/device/:deviceId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/user/:userId", authenticate, async (req, res, next) => {
+router.get("/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const locks = await getDeviceLocksByUser(userId);
@@ -97,7 +105,7 @@ router.get("/user/:userId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/device/:deviceId/active", async (req, res, next) => {
+router.get("/device/:deviceId/active", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const lock = await getActiveLocksByDevice(deviceId);
@@ -105,7 +113,7 @@ router.get("/device/:deviceId/active", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/device/:deviceId/status", async (req, res, next) => {
+router.get("/device/:deviceId/status", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const status = await checkDeviceLockStatus(deviceId);
@@ -113,7 +121,7 @@ router.get("/device/:deviceId/status", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/expire-temporary", async (req, res, next) => {
+router.post("/expire-temporary", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await expireTemporaryLocks();
     res.json(result);
