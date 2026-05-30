@@ -44,7 +44,7 @@ describe('Backend API Tests', () => {
 
     it('should have Free, Pro, Business, and Enterprise plans', async () => {
       const response = await request(API_URL).get('/api/billing/plans');
-      const planIds = response.body.plans.map(plan => plan.id);
+      const planIds = response.body.plans.map((plan: any) => plan.id);
       expect(planIds).toContain('free');
       expect(planIds).toContain('pro');
       expect(planIds).toContain('business');
