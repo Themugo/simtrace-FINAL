@@ -2,15 +2,20 @@
 // Handles retry logic for failed operations
 
 export class RetryHandler {
-  constructor(options = {}) {
+  maxRetries: number;
+  initialDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+
+  constructor(options: any = {}) {
     this.maxRetries = options.maxRetries || 3;
     this.initialDelay = options.initialDelay || 1000;
     this.maxDelay = options.maxDelay || 30000;
     this.backoffMultiplier = options.backoffMultiplier || 2;
   }
 
-  async execute(operation, context = {}) {
-    let lastError;
+  async execute(operation: () => Promise<any>, context: any = {}): Promise<any> {
+    let lastError: any;
     let delay = this.initialDelay;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -41,11 +46,11 @@ export class RetryHandler {
     throw lastError;
   }
 
-  sleep(ms) {
+  sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async executeWithTimeout(operation, timeout = 5000) {
+  async executeWithTimeout(operation: () => Promise<any>, timeout: number = 5000): Promise<any> {
     return Promise.race([
       this.execute(operation),
       new Promise((_, reject) => 
@@ -95,12 +100,12 @@ export const timeoutConfig = {
 };
 
 // Decorator for automatic retry
-export function withRetry(retryType = 'externalApi') {
-  return function (target, propertyKey, descriptor) {
+export function withRetry(retryType: string = 'externalApi') {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
-    const handler = retryHandlers[retryType];
+    const handler = (retryHandlers as any)[retryType];
 
-    descriptor.value = async function (...args) {
+    descriptor.value = async function (...args: any[]) {
       return handler.execute(() => originalMethod.apply(this, args));
     };
 
@@ -109,11 +114,11 @@ export function withRetry(retryType = 'externalApi') {
 }
 
 // Decorator for timeout
-export function withTimeout(timeoutMs) {
-  return function (target, propertyKey, descriptor) {
+export function withTimeout(timeoutMs: number) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args) {
+    descriptor.value = async function (...args: any[]) {
       return Promise.race([
         originalMethod.apply(this, args),
         new Promise((_, reject) => 
