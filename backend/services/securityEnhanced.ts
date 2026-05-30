@@ -1,11 +1,11 @@
-// services/securityEnhanced.js - Enhanced Security Features
+// services/securityEnhanced.ts - Enhanced Security Features
 // Nearby device detection, guardian system, parent-child tracking, panic mode
 
 import { NearbyDeviceDetection, Guardian, ParentChild, PanicMode, Device, User, SatellitePing } from "../db/index.js";
 import { getIO } from "./socket.js";
 
 // ── Nearby Device Detection ───────────────────────────────────────────────────────
-export async function detectNearbyDevices(data) {
+export async function detectNearbyDevices(data: any) {
   const {
     deviceId,
     userId,
@@ -30,7 +30,7 @@ export async function detectNearbyDevices(data) {
     .populate("device")
     .limit(20);
 
-  const nearbyDevices = nearbyPings.map(ping => ({
+  const nearbyDevices = nearbyPings.map((ping: any) => ({
     imei: ping.device.imei,
     signalStrength: ping.signalStrength || 50,
     distance: calculateDistance(location.lat, location.lng, ping.latitude, ping.longitude),
@@ -60,7 +60,7 @@ export async function detectNearbyDevices(data) {
   return detection;
 }
 
-function calculateDistance(lat1, lon1, lat2, lon2) {
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -71,7 +71,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c * 1000; // Return in meters
 }
 
-export async function getNearbyDeviceDetection(detectionId) {
+export async function getNearbyDeviceDetection(detectionId: string) {
   const detection = await NearbyDeviceDetection.findById(detectionId)
     .populate("device", "imei make model")
     .populate("user", "name email")
@@ -80,26 +80,26 @@ export async function getNearbyDeviceDetection(detectionId) {
   return detection;
 }
 
-export async function getNearbyDetectionsByDevice(deviceId) {
+export async function getNearbyDetectionsByDevice(deviceId: string) {
   const detections = await NearbyDeviceDetection.find({ device: deviceId })
     .sort({ timestamp: -1 });
 
   return detections;
 }
 
-export async function addPotentialWitness(detectionId, witnessData) {
+export async function addPotentialWitness(detectionId: string, witnessData: any) {
   const detection = await NearbyDeviceDetection.findById(detectionId);
   if (!detection) throw new Error("Detection not found");
 
-  detection.potentialWitnesses.push(witnessData);
-  detection.status = "investigating";
+  (detection as any).potentialWitnesses.push(witnessData);
+  (detection as any).status = "investigating";
   await detection.save();
 
   return detection;
 }
 
 // ── Guardian/Nominee System ─────────────────────────────────────────────────────
-export async function addGuardian(data) {
+export async function addGuardian(data: any) {
   const {
     userId,
     guardianId,
@@ -121,9 +121,9 @@ export async function addGuardian(data) {
   const guardianRelation = await Guardian.create({
     user: userId,
     guardian: guardianId,
-    name: name || guardian.name,
-    phone: phone || guardian.phone,
-    email: email || guardian.email,
+    name: name || (guardian as any).name,
+    phone: phone || (guardian as any).phone,
+    email: email || (guardian as any).email,
     relationship,
     permissions: permissions || [{ type: "report_theft", enabled: true }],
     canReportTheft: canReportTheft !== false,
@@ -134,14 +134,14 @@ export async function addGuardian(data) {
   // Notify guardian
   getIO().to(`user:${guardianId}`).emit("guardian_added", {
     guardianId: guardianRelation._id,
-    userName: user.name,
+    userName: (user as any).name,
     relationship,
   });
 
   return guardianRelation;
 }
 
-export async function getGuardians(userId) {
+export async function getGuardians(userId: string) {
   const guardians = await Guardian.find({ user: userId, status: "active" })
     .populate("guardian", "name email phone")
     .sort({ createdAt: -1 });
@@ -149,40 +149,40 @@ export async function getGuardians(userId) {
   return guardians;
 }
 
-export async function removeGuardian(userId, guardianId) {
+export async function removeGuardian(userId: string, guardianId: string) {
   const guardian = await Guardian.findOne({ user: userId, guardian: guardianId });
   if (!guardian) throw new Error("Guardian not found");
 
-  guardian.status = "revoked";
+  (guardian as any).status = "revoked";
   guardian.updatedAt = new Date();
   await guardian.save();
 
   return guardian;
 }
 
-export async function updateGuardianPermissions(userId, guardianId, permissions) {
+export async function updateGuardianPermissions(userId: string, guardianId: string, permissions: any) {
   const guardian = await Guardian.findOne({ user: userId, guardian: guardianId });
   if (!guardian) throw new Error("Guardian not found");
 
-  guardian.permissions = permissions;
+  (guardian as any).permissions = permissions;
   guardian.updatedAt = new Date();
   await guardian.save();
 
   return guardian;
 }
 
-export async function guardianReportTheft(guardianId, deviceId, reason) {
+export async function guardianReportTheft(guardianId: string, deviceId: string, reason: string) {
   const guardian = await Guardian.findById(guardianId);
   if (!guardian) throw new Error("Guardian not found");
 
-  if (!guardian.canReportTheft) {
+  if (!(guardian as any).canReportTheft) {
     throw new Error("Guardian does not have permission to report theft");
   }
 
-  if (guardian.emergencyOnly) {
+  if ((guardian as any).emergencyOnly) {
     // Log emergency report
-    guardian.usageCount += 1;
-    guardian.lastUsed = new Date();
+    (guardian as any).usageCount += 1;
+    (guardian as any).lastUsed = new Date();
     await guardian.save();
   }
 
@@ -199,7 +199,7 @@ export async function guardianReportTheft(guardianId, deviceId, reason) {
 }
 
 // ── Parent-Child Relationship System ─────────────────────────────────────────────
-export async function addChild(data) {
+export async function addChild(data: any) {
   const {
     parentId,
     childId,
@@ -220,7 +220,7 @@ export async function addChild(data) {
   const parentChild = await ParentChild.create({
     parent: parentId,
     child: childId,
-    childName: childName || child.name,
+    childName: childName || (child as any).name,
     childAge,
     school,
     canTrack: canTrack !== false,
@@ -232,13 +232,13 @@ export async function addChild(data) {
   // Notify parent
   getIO().to(`user:${parentId}`).emit("child_added", {
     parentChildId: parentChild._id,
-    childName: parentChild.childName,
+    childName: (parentChild as any).childName,
   });
 
   return parentChild;
 }
 
-export async function getChildren(parentId) {
+export async function getChildren(parentId: string) {
   const children = await ParentChild.find({ parent: parentId, status: "active" })
     .populate("child", "name email phone")
     .sort({ createdAt: -1 });
@@ -246,22 +246,22 @@ export async function getChildren(parentId) {
   return children;
 }
 
-export async function enableLiveTracking(parentChildId, reason, durationHours = 24) {
+export async function enableLiveTracking(parentChildId: string, reason: string, durationHours = 24) {
   const parentChild = await ParentChild.findById(parentChildId);
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
   const startTime = new Date();
   const endTime = new Date(Date.now() + durationHours * 60 * 60 * 1000);
 
-  parentChild.liveTrackingEnabled = true;
-  parentChild.liveTrackingReason = reason;
-  parentChild.liveTrackingStartTime = startTime;
-  parentChild.liveTrackingEndTime = endTime;
+  (parentChild as any).liveTrackingEnabled = true;
+  (parentChild as any).liveTrackingReason = reason;
+  (parentChild as any).liveTrackingStartTime = startTime;
+  (parentChild as any).liveTrackingEndTime = endTime;
   parentChild.updatedAt = new Date();
   await parentChild.save();
 
   // Notify child
-  getIO().to(`user:${parentChild.child}`).emit("live_tracking_enabled", {
+  getIO().to(`user:${(parentChild as any).child}`).emit("live_tracking_enabled", {
     reason,
     endTime,
   });
@@ -269,39 +269,39 @@ export async function enableLiveTracking(parentChildId, reason, durationHours = 
   return parentChild;
 }
 
-export async function disableLiveTracking(parentChildId) {
+export async function disableLiveTracking(parentChildId: string) {
   const parentChild = await ParentChild.findById(parentChildId);
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
-  parentChild.liveTrackingEnabled = false;
-  parentChild.liveTrackingReason = null;
-  parentChild.liveTrackingStartTime = null;
-  parentChild.liveTrackingEndTime = null;
+  (parentChild as any).liveTrackingEnabled = false;
+  (parentChild as any).liveTrackingReason = null;
+  (parentChild as any).liveTrackingStartTime = null;
+  (parentChild as any).liveTrackingEndTime = null;
   parentChild.updatedAt = new Date();
   await parentChild.save();
 
   // Notify child
-  getIO().to(`user:${parentChild.child}`).emit("live_tracking_disabled", {});
+  getIO().to(`user:${(parentChild as any).child}`).emit("live_tracking_disabled", {});
 
   return parentChild;
 }
 
-export async function addGeofence(parentChildId, geofenceData) {
+export async function addGeofence(parentChildId: string, geofenceData: any) {
   const parentChild = await ParentChild.findById(parentChildId);
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
-  parentChild.geofences.push(geofenceData);
+  (parentChild as any).geofences.push(geofenceData);
   parentChild.updatedAt = new Date();
   await parentChild.save();
 
   return parentChild;
 }
 
-export async function removeGeofence(parentChildId, geofenceIndex) {
+export async function removeGeofence(parentChildId: string, geofenceIndex: number) {
   const parentChild = await ParentChild.findById(parentChildId);
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
-  parentChild.geofences.splice(geofenceIndex, 1);
+  (parentChild as any).geofences.splice(geofenceIndex, 1);
   parentChild.updatedAt = new Date();
   await parentChild.save();
 
@@ -309,7 +309,7 @@ export async function removeGeofence(parentChildId, geofenceIndex) {
 }
 
 // ── Panic Mode System ───────────────────────────────────────────────────────────
-export async function activatePanicMode(data) {
+export async function activatePanicMode(data: any) {
   const {
     userId,
     deviceId,
@@ -339,7 +339,7 @@ export async function activatePanicMode(data) {
   for (const tracker of authorizedTrackers) {
     getIO().to(`user:${tracker.userId}`).emit("panic_activated", {
       panicId: panicMode._id,
-      userName: user.name,
+      userName: (user as any).name,
       panicType,
       location,
     });
@@ -353,7 +353,7 @@ export async function activatePanicMode(data) {
   return panicMode;
 }
 
-export async function getPanicMode(panicId) {
+export async function getPanicMode(panicId: string) {
   const panicMode = await PanicMode.findById(panicId)
     .populate("user", "name email phone")
     .populate("device", "imei make model")
@@ -362,7 +362,7 @@ export async function getPanicMode(panicId) {
   return panicMode;
 }
 
-export async function getActivePanicModes(userId) {
+export async function getActivePanicModes(userId: string) {
   const panicModes = await PanicMode.find({
     $or: [
       { user: userId },
@@ -375,24 +375,24 @@ export async function getActivePanicModes(userId) {
   return panicModes;
 }
 
-export async function resolvePanicMode(panicId, resolvedBy, resolutionNotes) {
+export async function resolvePanicMode(panicId: string, resolvedBy: string, resolutionNotes: string) {
   const panicMode = await PanicMode.findById(panicId);
   if (!panicMode) throw new Error("Panic mode not found");
 
-  panicMode.status = "resolved";
-  panicMode.resolvedAt = new Date();
-  panicMode.resolvedBy = resolvedBy;
-  panicMode.resolutionNotes = resolutionNotes;
+  (panicMode as any).status = "resolved";
+  (panicMode as any).resolvedAt = new Date();
+  (panicMode as any).resolvedBy = resolvedBy;
+  (panicMode as any).resolutionNotes = resolutionNotes;
   panicMode.updatedAt = new Date();
   await panicMode.save();
 
   // Notify all involved parties
-  getIO().to(`user:${panicMode.user}`).emit("panic_resolved", {
+  getIO().to(`user:${(panicMode as any).user}`).emit("panic_resolved", {
     panicId: panicMode._id,
     resolutionNotes,
   });
 
-  for (const tracker of panicMode.authorizedTrackers) {
+  for (const tracker of (panicMode as any).authorizedTrackers) {
     getIO().to(`user:${tracker.userId}`).emit("panic_resolved", {
       panicId: panicMode._id,
       resolutionNotes,
@@ -402,20 +402,20 @@ export async function resolvePanicMode(panicId, resolvedBy, resolutionNotes) {
   return panicMode;
 }
 
-export async function cancelPanicMode(panicId) {
+export async function cancelPanicMode(panicId: string) {
   const panicMode = await PanicMode.findById(panicId);
   if (!panicMode) throw new Error("Panic mode not found");
 
-  panicMode.status = "cancelled";
+  (panicMode as any).status = "cancelled";
   panicMode.updatedAt = new Date();
   await panicMode.save();
 
   // Notify all involved parties
-  getIO().to(`user:${panicMode.user}`).emit("panic_cancelled", {
+  getIO().to(`user:${(panicMode as any).user}`).emit("panic_cancelled", {
     panicId: panicMode._id,
   });
 
-  for (const tracker of panicMode.authorizedTrackers) {
+  for (const tracker of (panicMode as any).authorizedTrackers) {
     getIO().to(`user:${tracker.userId}`).emit("panic_cancelled", {
       panicId: panicMode._id,
     });
