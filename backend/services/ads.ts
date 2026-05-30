@@ -1,10 +1,10 @@
-// services/ads.js — SimTrace Ad Engine
+// services/ads.ts — SimTrace Ad Engine
 import { Ad, AdEvent, Subscription } from "../db/index.js";
 import crypto from "crypto";
 
 // ── Serve ads for a placement ─────────────────────────────────────────────────
 // Only shows ads to free/unauth users (paid users are ad-free)
-export async function serveAd({ placement, userId }) {
+export async function serveAd({ placement, userId }: { placement: string; userId?: string }) {
   // Check if user is on paid plan — if so, no ads
   if (userId) {
     const sub = await Subscription.findOne({ user: userId });
@@ -47,12 +47,12 @@ export async function serveAd({ placement, userId }) {
 }
 
 // ── Record impression or click ────────────────────────────────────────────────
-export async function recordAdEvent({ adId, userId, type, ip }) {
+export async function recordAdEvent({ adId, userId, type, ip }: { adId: string; userId?: string; type: string; ip?: string }) {
   await AdEvent.create({ ad: adId, user: userId, type, ip });
 
   // Fetch cpcKES before incrementing so we charge the correct amount
   const adDoc = await Ad.findById(adId).select("cpcKES").lean();
-  const cpc   = adDoc?.cpcKES || 5;
+  const cpc   = (adDoc as any)?.cpcKES || 5;
   await Ad.findByIdAndUpdate(adId, {
     $inc: {
       impressions: type === "impression" ? 1 : 0,
@@ -69,7 +69,7 @@ export async function recordAdEvent({ adId, userId, type, ip }) {
 }
 
 // ── Ad analytics for advertiser ───────────────────────────────────────────────
-export async function getAdStats(adId, advertiserId) {
+export async function getAdStats(adId: string, advertiserId: string) {
   const ad = await Ad.findOne({ _id: adId, advertiser: advertiserId });
   if (!ad) return null;
 
@@ -88,7 +88,7 @@ export async function getAdStats(adId, advertiserId) {
 }
 
 // ── Generate unique ad token for click tracking ───────────────────────────────
-export function signAdClick(adId) {
+export function signAdClick(adId: string): string {
   return crypto.createHmac("sha256", process.env.JWT_SECRET || "ads")
     .update(`${adId}:${Date.now()}`)
     .digest("hex")
