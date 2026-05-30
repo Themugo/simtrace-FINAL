@@ -2,6 +2,10 @@
 import { getRedisClient } from '../../services/redis.js';
 
 class AIRequestCache {
+  redis: any;
+  cachePrefix: string;
+  metricsPrefix: string;
+
   constructor() {
     this.redis = getRedisClient();
     this.cachePrefix = 'ai_cache:';
@@ -9,7 +13,7 @@ class AIRequestCache {
   }
 
   // Cache AI response
-  async cacheResponse(requestHash, response, ttl = 3600) {
+  async cacheResponse(requestHash: string, response: any, ttl: number = 3600): Promise<void> {
     try {
       await this.redis.set(
         `${this.cachePrefix}${requestHash}`,
@@ -22,7 +26,7 @@ class AIRequestCache {
   }
 
   // Get cached response
-  async getCachedResponse(requestHash) {
+  async getCachedResponse(requestHash: string): Promise<any> {
     try {
       const cached = await this.redis.get(`${this.cachePrefix}${requestHash}`);
       return cached ? JSON.parse(cached) : null;
@@ -33,7 +37,7 @@ class AIRequestCache {
   }
 
   // Track token usage
-  async trackTokenUsage(userId, model, inputTokens, outputTokens) {
+  async trackTokenUsage(userId: string, model: string, inputTokens: number, outputTokens: number): Promise<void> {
     try {
       const key = `${this.metricsPrefix}tokens:${userId}:${model}`;
       const data = {
@@ -51,20 +55,20 @@ class AIRequestCache {
   }
 
   // Get token usage for user
-  async getTokenUsage(userId, model, hours = 24) {
+  async getTokenUsage(userId: string, model: string, hours: number = 24): Promise<any> {
     try {
       const key = `${this.metricsPrefix}tokens:${userId}:${model}`;
       const data = await this.redis.lrange(key, 0, -1);
       
       const cutoff = Date.now() - (hours * 60 * 60 * 1000);
       const recentData = data
-        .map(item => JSON.parse(item))
-        .filter(item => item.timestamp > cutoff);
+        .map((item: string) => JSON.parse(item))
+        .filter((item: any) => item.timestamp > cutoff);
 
       return {
-        totalTokens: recentData.reduce((sum, item) => sum + item.totalTokens, 0),
-        inputTokens: recentData.reduce((sum, item) => sum + item.inputTokens, 0),
-        outputTokens: recentData.reduce((sum, item) => sum + item.outputTokens, 0),
+        totalTokens: recentData.reduce((sum: number, item: any) => sum + item.totalTokens, 0),
+        inputTokens: recentData.reduce((sum: number, item: any) => sum + item.inputTokens, 0),
+        outputTokens: recentData.reduce((sum: number, item: any) => sum + item.outputTokens, 0),
         requestCount: recentData.length,
       };
     } catch (error) {
@@ -74,8 +78,8 @@ class AIRequestCache {
   }
 
   // Calculate cost
-  calculateCost(model, inputTokens, outputTokens) {
-    const pricing = {
+  calculateCost(model: string, inputTokens: number, outputTokens: number): number {
+    const pricing: Record<string, { input: number; output: number }> = {
       'gpt-4': { input: 0.03, output: 0.06 },
       'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
       'claude-3': { input: 0.015, output: 0.075 },
@@ -90,25 +94,25 @@ class AIRequestCache {
   }
 
   // Get cost analytics
-  async getCostAnalytics(userId, hours = 24) {
+  async getCostAnalytics(userId: string, hours: number = 24): Promise<any> {
     try {
       const pattern = `${this.metricsPrefix}tokens:${userId}:*`;
       const keys = await this.redis.keys(pattern);
       
       let totalCost = 0;
-      const modelCosts = {};
+      const modelCosts: Record<string, number> = {};
 
       for (const key of keys) {
-        const model = key.split(':').pop();
+        const model = key.split(':').pop() as string;
         const data = await this.redis.lrange(key, 0, -1);
         
         const cutoff = Date.now() - (hours * 60 * 60 * 1000);
         const recentData = data
-          .map(item => JSON.parse(item))
-          .filter(item => item.timestamp > cutoff);
+          .map((item: string) => JSON.parse(item))
+          .filter((item: any) => item.timestamp > cutoff);
 
-        const inputTokens = recentData.reduce((sum, item) => sum + item.inputTokens, 0);
-        const outputTokens = recentData.reduce((sum, item) => sum + item.outputTokens, 0);
+        const inputTokens = recentData.reduce((sum: number, item: any) => sum + item.inputTokens, 0);
+        const outputTokens = recentData.reduce((sum: number, item: any) => sum + item.outputTokens, 0);
         
         const cost = this.calculateCost(model, inputTokens, outputTokens);
         totalCost += cost;
