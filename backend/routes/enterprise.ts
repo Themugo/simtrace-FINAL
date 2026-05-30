@@ -1,5 +1,5 @@
-// routes/enterprise.js - Enterprise Organization API endpoints
-import { Router } from "express";
+// routes/enterprise.ts - Enterprise Organization API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -25,8 +25,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Organization Management ───────────────────────────────────────────────────────
-router.post("/organizations", authenticate, async (req, res, next) => {
+router.post("/organizations", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       name: z.string().min(2).max(100),
@@ -51,12 +59,12 @@ router.post("/organizations", authenticate, async (req, res, next) => {
 
     res.status(201).json(organization);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/organizations/:id", authenticate, async (req, res, next) => {
+router.get("/organizations/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const organization = await getOrganization(id);
@@ -69,7 +77,7 @@ router.get("/organizations/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/organizations/slug/:slug", async (req, res, next) => {
+router.get("/organizations/slug/:slug", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug } = req.params;
     const organization = await getOrganizationBySlug(slug);
@@ -82,7 +90,7 @@ router.get("/organizations/slug/:slug", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/organizations/:id", authenticate, async (req, res, next) => {
+router.patch("/organizations/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const organization = await updateOrganization(id, req.body);
@@ -90,7 +98,7 @@ router.patch("/organizations/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/organizations/:id/upgrade", authenticate, async (req, res, next) => {
+router.post("/organizations/:id/upgrade", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       newPlan: z.enum(["enterprise_basic", "enterprise_pro", "enterprise_custom"]),
@@ -102,13 +110,13 @@ router.post("/organizations/:id/upgrade", authenticate, async (req, res, next) =
 
     res.json(organization);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Organization Members ─────────────────────────────────────────────────────────
-router.post("/organizations/:id/members", authenticate, async (req, res, next) => {
+router.post("/organizations/:id/members", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -121,17 +129,17 @@ router.post("/organizations/:id/members", authenticate, async (req, res, next) =
     const member = await addOrganizationMember({
       ...data,
       organizationId: id,
-      invitedBy: req.user.id,
+      invitedBy: req.user!.id,
     });
 
     res.status(201).json(member);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/organizations/:id/members/:userId", authenticate, async (req, res, next) => {
+router.delete("/organizations/:id/members/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id, userId } = req.params;
     const member = await removeOrganizationMember(id, userId);
@@ -139,7 +147,7 @@ router.delete("/organizations/:id/members/:userId", authenticate, async (req, re
   } catch (err) { next(err); }
 });
 
-router.patch("/organizations/:id/members/:userId", authenticate, async (req, res, next) => {
+router.patch("/organizations/:id/members/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       role: z.enum(["owner", "admin", "manager", "member"]),
@@ -152,12 +160,12 @@ router.patch("/organizations/:id/members/:userId", authenticate, async (req, res
 
     res.json(member);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/organizations/:id/members", authenticate, async (req, res, next) => {
+router.get("/organizations/:id/members", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const members = await getOrganizationMembers(id);
@@ -165,15 +173,15 @@ router.get("/organizations/:id/members", authenticate, async (req, res, next) =>
   } catch (err) { next(err); }
 });
 
-router.get("/user/organizations", authenticate, async (req, res, next) => {
+router.get("/user/organizations", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const organizations = await getUserOrganizations(req.user.id);
+    const organizations = await getUserOrganizations(req.user!.id);
     res.json({ organizations, count: organizations.length });
   } catch (err) { next(err); }
 });
 
 // ── Device Fleet Management ───────────────────────────────────────────────────────
-router.post("/fleets", authenticate, async (req, res, next) => {
+router.post("/fleets", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       organizationId: z.string(),
@@ -193,12 +201,12 @@ router.post("/fleets", authenticate, async (req, res, next) => {
 
     res.status(201).json(fleet);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/fleets/:id", authenticate, async (req, res, next) => {
+router.get("/fleets/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const fleet = await getDeviceFleet(id);
@@ -211,7 +219,7 @@ router.get("/fleets/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/organizations/:id/fleets", authenticate, async (req, res, next) => {
+router.get("/organizations/:id/fleets", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const fleets = await getOrganizationFleets(id);
@@ -219,7 +227,7 @@ router.get("/organizations/:id/fleets", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.post("/fleets/:id/devices", authenticate, async (req, res, next) => {
+router.post("/fleets/:id/devices", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -231,12 +239,12 @@ router.post("/fleets/:id/devices", authenticate, async (req, res, next) => {
 
     res.json(fleet);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/fleets/:id/devices/:deviceId", authenticate, async (req, res, next) => {
+router.delete("/fleets/:id/devices/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id, deviceId } = req.params;
     const fleet = await removeDeviceFromFleet(id, deviceId);
@@ -244,7 +252,7 @@ router.delete("/fleets/:id/devices/:deviceId", authenticate, async (req, res, ne
   } catch (err) { next(err); }
 });
 
-router.patch("/fleets/:id", authenticate, async (req, res, next) => {
+router.patch("/fleets/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const fleet = await updateFleetSettings(id, req.body);
@@ -252,7 +260,7 @@ router.patch("/fleets/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/fleets/:id/analytics", authenticate, async (req, res, next) => {
+router.get("/fleets/:id/analytics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const analytics = await getFleetAnalytics(id);
@@ -261,7 +269,7 @@ router.get("/fleets/:id/analytics", authenticate, async (req, res, next) => {
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getEnterpriseStatistics();
     res.json(stats);

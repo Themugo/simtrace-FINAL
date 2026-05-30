@@ -1,5 +1,5 @@
-// routes/lawEnforcement.js - Law enforcement agency API endpoints
-import { Router } from "express";
+// routes/lawEnforcement.ts - Law enforcement agency API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -25,8 +25,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Law Enforcement Agency Management ───────────────────────────────────────────────────
-router.post("/", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyName: z.string(),
@@ -45,15 +53,15 @@ router.post("/", authenticate, requireAdmin, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const agency = await createLawEnforcementAgency({ ...data, createdBy: req.user.id });
+    const agency = await createLawEnforcementAgency({ ...data, createdBy: req.user!.id });
     res.status(201).json(agency);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/:agencyId", authenticate, async (req, res, next) => {
+router.get("/:agencyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
     const agency = await getLawEnforcementAgency(agencyId);
@@ -61,7 +69,7 @@ router.get("/:agencyId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/email/:officialEmail", authenticate, async (req, res, next) => {
+router.get("/email/:officialEmail", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { officialEmail } = req.params;
     const agency = await getLawEnforcementAgencyByEmail(officialEmail);
@@ -69,31 +77,31 @@ router.get("/email/:officialEmail", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/:agencyId", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/:agencyId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const agency = await updateLawEnforcementAgency(agencyId, req.body, req.user.id);
+    const agency = await updateLawEnforcementAgency(agencyId, req.body, req.user!.id);
     res.json(agency);
   } catch (err) { next(err); }
 });
 
-router.post("/:agencyId/suspend", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/:agencyId/suspend", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const agency = await suspendLawEnforcementAgency(agencyId, req.user.id);
+    const agency = await suspendLawEnforcementAgency(agencyId, req.user!.id);
     res.json(agency);
   } catch (err) { next(err); }
 });
 
-router.post("/:agencyId/verify", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/:agencyId/verify", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const agency = await verifyLawEnforcementAgency(agencyId, req.user.id);
+    const agency = await verifyLawEnforcementAgency(agencyId, req.user!.id);
     res.json(agency);
   } catch (err) { next(err); }
 });
 
-router.get("/country/:countryCode", authenticate, async (req, res, next) => {
+router.get("/country/:countryCode", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { countryCode } = req.params;
     const agencies = await getLawEnforcementAgenciesByCountry(countryCode);
@@ -101,7 +109,7 @@ router.get("/country/:countryCode", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/country/:countryCode/region/:region", authenticate, async (req, res, next) => {
+router.get("/country/:countryCode/region/:region", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { countryCode, region } = req.params;
     const agencies = await getLawEnforcementAgenciesByRegion(countryCode, region);
@@ -109,7 +117,7 @@ router.get("/country/:countryCode/region/:region", authenticate, async (req, res
   } catch (err) { next(err); }
 });
 
-router.get("/type/:agencyType", authenticate, async (req, res, next) => {
+router.get("/type/:agencyType", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyType } = req.params;
     const agencies = await getLawEnforcementAgenciesByType(agencyType);
@@ -118,7 +126,7 @@ router.get("/type/:agencyType", authenticate, async (req, res, next) => {
 });
 
 // ── API Key Management ─────────────────────────────────────────────────────────────
-router.post("/:agencyId/api-keys", authenticate, async (req, res, next) => {
+router.post("/:agencyId/api-keys", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       permissions: z.array(z.string()),
@@ -130,12 +138,12 @@ router.post("/:agencyId/api-keys", authenticate, async (req, res, next) => {
     const apiKey = await generateLawEnforcementApiKey(agencyId, data.permissions, data.expiresAt);
     res.json({ apiKey });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/:agencyId/api-keys/:apiKey", authenticate, async (req, res, next) => {
+router.delete("/:agencyId/api-keys/:apiKey", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyId, apiKey } = req.params;
     const agency = await revokeLawEnforcementApiKey(agencyId, apiKey);
@@ -143,7 +151,7 @@ router.delete("/:agencyId/api-keys/:apiKey", authenticate, async (req, res, next
   } catch (err) { next(err); }
 });
 
-router.post("/validate-api-key", async (req, res, next) => {
+router.post("/validate-api-key", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       apiKey: z.string(),
@@ -153,13 +161,13 @@ router.post("/validate-api-key", async (req, res, next) => {
     const result = await validateLawEnforcementApiKey(data.apiKey);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Permission Checks ──────────────────────────────────────────────────────────────
-router.post("/:agencyId/check-permission", authenticate, async (req, res, next) => {
+router.post("/:agencyId/check-permission", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       permission: z.string(),
@@ -170,30 +178,30 @@ router.post("/:agencyId/check-permission", authenticate, async (req, res, next) 
     const result = await checkLawEnforcementPermission(agencyId, data.permission);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Police Hierarchy Integration ───────────────────────────────────────────────────────
-router.post("/:agencyId/hierarchy/:hierarchyUnitId", authenticate, async (req, res, next) => {
+router.post("/:agencyId/hierarchy/:hierarchyUnitId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId, hierarchyUnitId } = req.params;
-    const agency = await linkHierarchyUnit(agencyId, hierarchyUnitId, req.user.id);
+    const agency = await linkHierarchyUnit(agencyId, hierarchyUnitId, req.user!.id);
     res.json(agency);
   } catch (err) { next(err); }
 });
 
-router.delete("/:agencyId/hierarchy/:hierarchyUnitId", authenticate, async (req, res, next) => {
+router.delete("/:agencyId/hierarchy/:hierarchyUnitId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId, hierarchyUnitId } = req.params;
-    const agency = await unlinkHierarchyUnit(agencyId, hierarchyUnitId, req.user.id);
+    const agency = await unlinkHierarchyUnit(agencyId, hierarchyUnitId, req.user!.id);
     res.json(agency);
   } catch (err) { next(err); }
 });
 
 // ── Case Management ───────────────────────────────────────────────────────────────────
-router.get("/:agencyId/cases", authenticate, async (req, res, next) => {
+router.get("/:agencyId/cases", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
     const cases = await getAgencyCases(agencyId);
@@ -202,7 +210,7 @@ router.get("/:agencyId/cases", authenticate, async (req, res, next) => {
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────────
-router.get("/:agencyId/statistics", authenticate, async (req, res, next) => {
+router.get("/:agencyId/statistics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
     const stats = await getLawEnforcementStatistics(agencyId);
@@ -210,7 +218,7 @@ router.get("/:agencyId/statistics", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/statistics", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/statistics", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getLawEnforcementAgencyStatistics();
     res.json(stats);

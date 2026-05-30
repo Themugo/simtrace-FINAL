@@ -1,5 +1,5 @@
-// routes/telecomIntegration.js - Telecom integration API endpoints
-import { Router } from "express";
+// routes/telecomIntegration.ts - Telecom integration API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth.js";
 import {
@@ -26,8 +26,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── SIM Card Tracking ───────────────────────────────────────────────────────────────
-router.post("/sim-cards", authenticate, async (req, res, next) => {
+router.post("/sim-cards", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -41,15 +49,15 @@ router.post("/sim-cards", authenticate, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const tracking = await registerSimCard({ ...data, createdBy: req.user.id });
+    const tracking = await registerSimCard({ ...data, createdBy: req.user!.id });
     res.status(201).json(tracking);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/sim-cards/:trackingId/location", async (req, res, next) => {
+router.patch("/sim-cards/:trackingId/location", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       location: z.object({
@@ -65,28 +73,28 @@ router.patch("/sim-cards/:trackingId/location", async (req, res, next) => {
     const tracking = await updateSimCardLocation(trackingId, data.location, data.cellTowerId);
     res.json(tracking);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/sim-cards/:trackingId/flag-stolen", authenticate, async (req, res, next) => {
+router.post("/sim-cards/:trackingId/flag-stolen", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { trackingId } = req.params;
-    const tracking = await flagSimCardAsStolen(trackingId, req.user.id);
+    const tracking = await flagSimCardAsStolen(trackingId, req.user!.id);
     res.json(tracking);
   } catch (err) { next(err); }
 });
 
-router.post("/sim-cards/:trackingId/unflag", authenticate, async (req, res, next) => {
+router.post("/sim-cards/:trackingId/unflag", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { trackingId } = req.params;
-    const tracking = await unflagSimCard(trackingId, req.user.id);
+    const tracking = await unflagSimCard(trackingId, req.user!.id);
     res.json(tracking);
   } catch (err) { next(err); }
 });
 
-router.get("/sim-cards/:trackingId", authenticate, async (req, res, next) => {
+router.get("/sim-cards/:trackingId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { trackingId } = req.params;
     const tracking = await getSimCardTracking(trackingId);
@@ -94,7 +102,7 @@ router.get("/sim-cards/:trackingId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/sim-cards/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/sim-cards/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const tracking = await getSimCardTrackingByDevice(deviceId);
@@ -102,7 +110,7 @@ router.get("/sim-cards/device/:deviceId", authenticate, async (req, res, next) =
   } catch (err) { next(err); }
 });
 
-router.get("/sim-cards/company/:companyId", authenticate, async (req, res, next) => {
+router.get("/sim-cards/company/:companyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { companyId } = req.params;
     const tracking = await getSimCardTrackingByCompany(companyId);
@@ -110,7 +118,7 @@ router.get("/sim-cards/company/:companyId", authenticate, async (req, res, next)
   } catch (err) { next(err); }
 });
 
-router.get("/sim-cards/iccid/:iccid", authenticate, async (req, res, next) => {
+router.get("/sim-cards/iccid/:iccid", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { iccid } = req.params;
     const tracking = await getSimCardTrackingByICCID(iccid);
@@ -118,7 +126,7 @@ router.get("/sim-cards/iccid/:iccid", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/sim-cards/msisdn/:msisdn", authenticate, async (req, res, next) => {
+router.get("/sim-cards/msisdn/:msisdn", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { msisdn } = req.params;
     const tracking = await getSimCardTrackingByMSISDN(msisdn);
@@ -126,14 +134,14 @@ router.get("/sim-cards/msisdn/:msisdn", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.get("/sim-cards/flagged", authenticate, async (req, res, next) => {
+router.get("/sim-cards/flagged", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tracking = await getFlaggedSimCards();
     res.json({ tracking, count: tracking.length });
   } catch (err) { next(err); }
 });
 
-router.get("/sim-cards/flagged/:companyId", authenticate, async (req, res, next) => {
+router.get("/sim-cards/flagged/:companyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { companyId } = req.params;
     const tracking = await getFlaggedSimCardsByCompany(companyId);
@@ -142,7 +150,7 @@ router.get("/sim-cards/flagged/:companyId", authenticate, async (req, res, next)
 });
 
 // ── Network Activity Tracking ─────────────────────────────────────────────────────────
-router.post("/network-activity", async (req, res, next) => {
+router.post("/network-activity", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -165,12 +173,12 @@ router.post("/network-activity", async (req, res, next) => {
     const activity = await recordNetworkActivity({ ...data, createdBy: req.user?.id });
     res.status(201).json(activity);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/network-activity/:activityId", authenticate, async (req, res, next) => {
+router.get("/network-activity/:activityId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { activityId } = req.params;
     const activity = await getNetworkActivity(activityId);
@@ -178,7 +186,7 @@ router.get("/network-activity/:activityId", authenticate, async (req, res, next)
   } catch (err) { next(err); }
 });
 
-router.get("/network-activity/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/network-activity/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const activities = await getNetworkActivityByDevice(deviceId);
@@ -186,7 +194,7 @@ router.get("/network-activity/device/:deviceId", authenticate, async (req, res, 
   } catch (err) { next(err); }
 });
 
-router.get("/network-activity/company/:companyId", authenticate, async (req, res, next) => {
+router.get("/network-activity/company/:companyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { companyId } = req.params;
     const activities = await getNetworkActivityByCompany(companyId);
@@ -194,7 +202,7 @@ router.get("/network-activity/company/:companyId", authenticate, async (req, res
   } catch (err) { next(err); }
 });
 
-router.get("/network-activity/device/:deviceId/:activityType", authenticate, async (req, res, next) => {
+router.get("/network-activity/device/:deviceId/:activityType", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId, activityType } = req.params;
     const activities = await getNetworkActivityByType(deviceId, activityType);
@@ -202,7 +210,7 @@ router.get("/network-activity/device/:deviceId/:activityType", authenticate, asy
   } catch (err) { next(err); }
 });
 
-router.get("/network-activity/company/:companyId/date-range", authenticate, async (req, res, next) => {
+router.get("/network-activity/company/:companyId/date-range", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       startDate: z.date(),
@@ -214,13 +222,13 @@ router.get("/network-activity/company/:companyId/date-range", authenticate, asyn
     const activities = await getNetworkActivityByDateRange(companyId, data.startDate, data.endDate);
     res.json({ activities, count: activities.length });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Cell Tower Triangulation ─────────────────────────────────────────────────────────
-router.post("/triangulate/:deviceId", authenticate, async (req, res, next) => {
+router.post("/triangulate/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const location = await triangulateDeviceLocation(deviceId);
@@ -229,7 +237,7 @@ router.post("/triangulate/:deviceId", authenticate, async (req, res, next) => {
 });
 
 // ── Commission Calculation ────────────────────────────────────────────────────────────
-router.post("/commission/:companyId/:deviceId", authenticate, async (req, res, next) => {
+router.post("/commission/:companyId/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       recovery: z.boolean(),
@@ -240,7 +248,7 @@ router.post("/commission/:companyId/:deviceId", authenticate, async (req, res, n
     const commission = await calculateCommission(companyId, deviceId, data.recovery);
     res.json({ commission });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });

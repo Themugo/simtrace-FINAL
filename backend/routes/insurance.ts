@@ -1,5 +1,5 @@
-// routes/insurance.js - Insurance Tech API endpoints
-import { Router } from "express";
+// routes/insurance.ts - Insurance Tech API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -21,8 +21,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Policy Management ─────────────────────────────────────────────────────────────
-router.post("/policies", authenticate, async (req, res, next) => {
+router.post("/policies", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       provider: z.string(),
@@ -40,17 +48,17 @@ router.post("/policies", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const policy = await createInsurancePolicy({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(policy);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/policies/:id", authenticate, async (req, res, next) => {
+router.get("/policies/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const policy = await getInsurancePolicy(id);
@@ -63,14 +71,14 @@ router.get("/policies/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/policies", authenticate, async (req, res, next) => {
+router.get("/policies", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const policies = await getPoliciesByUser(req.user.id);
+    const policies = await getPoliciesByUser(req.user!.id);
     res.json({ policies, count: policies.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/policies/:id/status", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/policies/:id/status", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["active", "expired", "cancelled", "pending"]),
@@ -82,12 +90,12 @@ router.patch("/policies/:id/status", authenticate, requireAdmin, async (req, res
 
     res.json(policy);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/policies/:id/renew", authenticate, async (req, res, next) => {
+router.post("/policies/:id/renew", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       newEndDate: z.date(),
@@ -99,13 +107,13 @@ router.post("/policies/:id/renew", authenticate, async (req, res, next) => {
 
     res.json(policy);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Claim Management ─────────────────────────────────────────────────────────────
-router.post("/claims", authenticate, async (req, res, next) => {
+router.post("/claims", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policyId: z.string(),
@@ -132,17 +140,17 @@ router.post("/claims", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const claim = await createInsuranceClaim({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(claim);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/claims/:id", authenticate, async (req, res, next) => {
+router.get("/claims/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const claim = await getInsuranceClaim(id);
@@ -155,14 +163,14 @@ router.get("/claims/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/claims", authenticate, async (req, res, next) => {
+router.get("/claims", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const claims = await getClaimsByUser(req.user.id);
+    const claims = await getClaimsByUser(req.user!.id);
     res.json({ claims, count: claims.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/claims/:id/status", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/claims/:id/status", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["submitted", "under_review", "investigating", "approved", "rejected", "paid", "closed"]),
@@ -172,16 +180,16 @@ router.patch("/claims/:id/status", authenticate, requireAdmin, async (req, res, 
 
     const { id } = req.params;
     const { status, assessmentNotes, approvedAmount } = schema.parse(req.body);
-    const claim = await updateClaimStatus(id, status, req.user.id, assessmentNotes, approvedAmount);
+    const claim = await updateClaimStatus(id, status, req.user!.id, assessmentNotes, approvedAmount);
 
     res.json(claim);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/claims/:id/evidence", authenticate, async (req, res, next) => {
+router.post("/claims/:id/evidence", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       type: z.string(),
@@ -195,12 +203,12 @@ router.post("/claims/:id/evidence", authenticate, async (req, res, next) => {
 
     res.json(claim);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/claims/:id/recovered", authenticate, async (req, res, next) => {
+router.post("/claims/:id/recovered", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const claim = await markDeviceRecovered(id);
@@ -209,14 +217,14 @@ router.post("/claims/:id/recovered", authenticate, async (req, res, next) => {
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getInsuranceStatistics();
     res.json(stats);
   } catch (err) { next(err); }
 });
 
-router.get("/stats/provider/:providerId", authenticate, async (req, res, next) => {
+router.get("/stats/provider/:providerId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { providerId } = req.params;
     const stats = await getProviderStatistics(providerId);
@@ -225,7 +233,7 @@ router.get("/stats/provider/:providerId", authenticate, async (req, res, next) =
 });
 
 // ── Policy Expiry Check ─────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/check-expiry", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await checkPolicyExpiry();
     res.json(result);
