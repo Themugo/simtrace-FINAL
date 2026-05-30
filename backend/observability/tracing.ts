@@ -25,7 +25,7 @@ console.log('[Tracing] OpenTelemetry initialized');
 export const tracer = sdk.tracerProvider.getTracer('simtrace-backend');
 
 // Helper function to create spans
-export async function withTracing(name, fn, attributes = {}) {
+export async function withTracing<T>(name: string, fn: () => Promise<T>, attributes: any = {}): Promise<T> {
   const span = tracer.startSpan(name, { attributes });
   
   try {
@@ -33,8 +33,8 @@ export async function withTracing(name, fn, attributes = {}) {
     span.setStatus({ code: 1 }); // OK
     return result;
   } catch (error) {
-    span.recordException(error);
-    span.setStatus({ code: 2, message: error.message }); // ERROR
+    span.recordException(error as Error);
+    span.setStatus({ code: 2, message: (error as Error).message }); // ERROR
     throw error;
   } finally {
     span.end();
@@ -42,11 +42,11 @@ export async function withTracing(name, fn, attributes = {}) {
 }
 
 // Decorator for automatic tracing
-export function traced(operationName) {
-  return function (target, propertyKey, descriptor) {
+export function traced(operationName: string) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args) {
+    descriptor.value = async function (...args: any[]) {
       return withTracing(
         `${target.constructor.name}.${propertyKey}`,
         () => originalMethod.apply(this, args),

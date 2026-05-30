@@ -1,9 +1,9 @@
 // Audit Logging System
 // Logs admin actions, tenant actions, login attempts, security events
 
-import pino from 'pino';
+import pino, { Logger } from 'pino';
 
-const auditLogger = pino({
+const auditLogger: Logger = pino({
   level: 'info',
   transport: {
     target: 'pino/file',
@@ -13,7 +13,7 @@ const auditLogger = pino({
   },
 });
 
-export function logAdminAction(userId, action, details = {}) {
+export function logAdminAction(userId: string, action: string, details: any = {}): void {
   auditLogger.info({
     type: 'admin_action',
     userId,
@@ -23,7 +23,7 @@ export function logAdminAction(userId, action, details = {}) {
   });
 }
 
-export function logTenantAction(tenantId, userId, action, details = {}) {
+export function logTenantAction(tenantId: string, userId: string, action: string, details: any = {}): void {
   auditLogger.info({
     type: 'tenant_action',
     tenantId,
@@ -34,7 +34,7 @@ export function logTenantAction(tenantId, userId, action, details = {}) {
   });
 }
 
-export function logLoginAttempt(userId, email, success, ip, details = {}) {
+export function logLoginAttempt(userId: string, email: string, success: boolean, ip: string, details: any = {}): void {
   auditLogger.info({
     type: 'login_attempt',
     userId,
@@ -46,7 +46,7 @@ export function logLoginAttempt(userId, email, success, ip, details = {}) {
   });
 }
 
-export function logSecurityEvent(eventType, severity, details = {}) {
+export function logSecurityEvent(eventType: string, severity: string, details: any = {}): void {
   auditLogger.warn({
     type: 'security_event',
     eventType,
@@ -56,7 +56,7 @@ export function logSecurityEvent(eventType, severity, details = {}) {
   });
 }
 
-export function logPaymentEvent(userId, paymentId, amount, status, details = {}) {
+export function logPaymentEvent(userId: string, paymentId: string, amount: number, status: string, details: any = {}): void {
   auditLogger.info({
     type: 'payment_event',
     userId,
@@ -68,7 +68,7 @@ export function logPaymentEvent(userId, paymentId, amount, status, details = {})
   });
 }
 
-export function logApiAccess(userId, endpoint, method, statusCode, details = {}) {
+export function logApiAccess(userId: string, endpoint: string, method: string, statusCode: number, details: any = {}): void {
   auditLogger.info({
     type: 'api_access',
     userId,

@@ -1,5 +1,6 @@
 // Prometheus Metrics Collection
 import promClient from 'prom-client';
+import { Request, Response, NextFunction } from 'express';
 
 // Create a Registry
 const register = new promClient.Registry();
@@ -92,7 +93,7 @@ register.registerMetric(alertsGenerated);
 register.registerMetric(imeiChecksPerformed);
 
 // Middleware to track HTTP requests
-export function metricsMiddleware(req, res, next) {
+export function metricsMiddleware(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
   
   res.on('finish', () => {
@@ -108,37 +109,37 @@ export function metricsMiddleware(req, res, next) {
 }
 
 // Helper functions to update metrics
-export function trackDbOperation(operation, collection, duration) {
+export function trackDbOperation(operation: string, collection: string, duration: number) {
   dbOperationDuration.observe({ operation, collection }, duration);
 }
 
-export function trackQueueJob(queue, jobType, status, duration) {
-  queueJobDuration.observe({ queue, jobType, status }, duration);
-  queueJobCounter.inc({ queue, jobType, status });
+export function trackQueueJob(queue: string, jobType: string, status: string, duration: number) {
+  queueJobDuration.observe({ queue, job_type: jobType, status }, duration);
+  queueJobCounter.inc({ queue, job_type: jobType, status });
 }
 
-export function setActiveConnections(type, count) {
+export function setActiveConnections(type: string, count: number) {
   activeConnections.set({ type }, count);
 }
 
-export function incrementError(type, severity = 'error') {
+export function incrementError(type: string, severity = 'error') {
   errorCounter.inc({ type, severity });
 }
 
-export function setDevicesTracked(count) {
+export function setDevicesTracked(count: number) {
   devicesTracked.set(count);
 }
 
-export function incrementAlert(alertType, severity) {
+export function incrementAlert(alertType: string, severity: string) {
   alertsGenerated.inc({ alert_type: alertType, severity });
 }
 
-export function incrementImeiCheck(result) {
+export function incrementImeiCheck(result: string) {
   imeiChecksPerformed.inc({ result });
 }
 
 // Metrics endpoint
-export async function metricsEndpoint(req, res) {
+export async function metricsEndpoint(req: Request, res: Response) {
   res.set('Content-Type', register.contentType);
   res.end(await register.metrics());
 }

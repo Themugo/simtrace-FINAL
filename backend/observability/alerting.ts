@@ -24,7 +24,7 @@ const alertState = {
 };
 
 // Check error rate
-export function checkErrorRate() {
+export function checkErrorRate(): void {
   if (alertState.totalRequests === 0) return;
   
   const errorRate = alertState.errorCount / alertState.totalRequests;
@@ -40,7 +40,7 @@ export function checkErrorRate() {
 }
 
 // Check queue failure rate
-export function checkQueueFailureRate() {
+export function checkQueueFailureRate(): void {
   if (alertState.totalQueueJobs === 0) return;
   
   const failureRate = alertState.queueFailures / alertState.totalQueueJobs;
@@ -56,7 +56,7 @@ export function checkQueueFailureRate() {
 }
 
 // Check API timeout rate
-export function checkApiTimeoutRate() {
+export function checkApiTimeoutRate(): void {
   if (alertState.totalApiCalls === 0) return;
   
   const timeoutRate = alertState.apiTimeouts / alertState.totalApiCalls;
@@ -72,7 +72,7 @@ export function checkApiTimeoutRate() {
 }
 
 // Trigger alert
-function triggerAlert(alertType, severity, details) {
+function triggerAlert(alertType: string, severity: string, details: any): void {
   console.error(`[ALERT] ${alertType}:`, details);
   incrementError(alertType, severity);
   
@@ -81,21 +81,21 @@ function triggerAlert(alertType, severity, details) {
 }
 
 // Update alert state
-export function recordRequest(isError = false) {
+export function recordRequest(isError = false): void {
   alertState.totalRequests++;
   if (isError) {
     alertState.errorCount++;
   }
 }
 
-export function recordQueueJob(isFailure = false) {
+export function recordQueueJob(isFailure = false): void {
   alertState.totalQueueJobs++;
   if (isFailure) {
     alertState.queueFailures++;
   }
 }
 
-export function recordApiCall(isTimeout = false) {
+export function recordApiCall(isTimeout = false): void {
   alertState.totalApiCalls++;
   if (isTimeout) {
     alertState.apiTimeouts++;
@@ -103,7 +103,7 @@ export function recordApiCall(isTimeout = false) {
 }
 
 // Reset alert state (call periodically)
-export function resetAlertState() {
+export function resetAlertState(): void {
   alertState.errorCount = 0;
   alertState.totalRequests = 0;
   alertState.queueFailures = 0;
@@ -113,7 +113,7 @@ export function resetAlertState() {
 }
 
 // Start alert monitoring
-export function startAlertMonitoring(intervalMs = 60000) {
+export function startAlertMonitoring(intervalMs = 60000): void {
   setInterval(() => {
     checkErrorRate();
     checkQueueFailureRate();
