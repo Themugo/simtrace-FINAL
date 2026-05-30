@@ -1,10 +1,10 @@
-// services/partnerMarketplace.js - Partner Marketplace
+// services/partnerMarketplace.ts - Partner Marketplace
 // Marketplace for telecom, insurance, recovery, and verification partners
 
 import { PartnerListing, User, Organization } from "../db/index.js";
 
 // ── Partner Listing Management ───────────────────────────────────────────────────
-export async function createPartnerListing(data) {
+export async function createPartnerListing(data: any) {
   const {
     userId,
     organizationId,
@@ -49,7 +49,7 @@ export async function createPartnerListing(data) {
   return listing;
 }
 
-export async function getPartnerListing(listingId) {
+export async function getPartnerListing(listingId: string) {
   const listing = await PartnerListing.findById(listingId)
     .populate("user", "name email")
     .populate("organization", "name slug")
@@ -58,14 +58,14 @@ export async function getPartnerListing(listingId) {
   return listing;
 }
 
-export async function getPartnerListingsByUser(userId) {
+export async function getPartnerListingsByUser(userId: string) {
   const listings = await PartnerListing.find({ user: userId })
     .sort({ createdAt: -1 });
 
   return listings;
 }
 
-export async function updatePartnerListing(listingId, updates) {
+export async function updatePartnerListing(listingId: string, updates: any) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
@@ -85,7 +85,7 @@ export async function updatePartnerListing(listingId, updates) {
 
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      listing[key] = updates[key];
+      (listing as any)[key] = updates[key];
     }
   }
 
@@ -95,7 +95,7 @@ export async function updatePartnerListing(listingId, updates) {
   return listing;
 }
 
-export async function deletePartnerListing(listingId) {
+export async function deletePartnerListing(listingId: string) {
   const listing = await PartnerListing.findByIdAndDelete(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
@@ -103,36 +103,36 @@ export async function deletePartnerListing(listingId) {
 }
 
 // ── Partner Verification ───────────────────────────────────────────────────────
-export async function verifyPartnerListing(listingId, verifiedBy) {
+export async function verifyPartnerListing(listingId: string, verifiedBy: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  listing.verified = true;
-  listing.verifiedAt = new Date();
-  listing.verifiedBy = verifiedBy;
-  listing.status = "approved";
+  (listing as any).verified = true;
+  (listing as any).verifiedAt = new Date();
+  (listing as any).verifiedBy = verifiedBy;
+  (listing as any).status = "approved";
   listing.updatedAt = new Date();
   await listing.save();
 
   return listing;
 }
 
-export async function rejectPartnerListing(listingId) {
+export async function rejectPartnerListing(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  listing.status = "rejected";
+  (listing as any).status = "rejected";
   listing.updatedAt = new Date();
   await listing.save();
 
   return listing;
 }
 
-export async function suspendPartnerListing(listingId) {
+export async function suspendPartnerListing(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  listing.status = "suspended";
+  (listing as any).status = "suspended";
   listing.updatedAt = new Date();
   await listing.save();
 
@@ -140,7 +140,7 @@ export async function suspendPartnerListing(listingId) {
 }
 
 // ── Partner Discovery ───────────────────────────────────────────────────────────
-export async function searchPartnerListings(query) {
+export async function searchPartnerListings(query: string) {
   const listings = await PartnerListing.find({
     status: "approved",
     $or: [
@@ -157,7 +157,7 @@ export async function searchPartnerListings(query) {
   return listings;
 }
 
-export async function getPartnersByCategory(category) {
+export async function getPartnersByCategory(category: string) {
   const listings = await PartnerListing.find({
     category,
     status: "approved",
@@ -169,7 +169,7 @@ export async function getPartnersByCategory(category) {
   return listings;
 }
 
-export async function getPartnersByCountry(country) {
+export async function getPartnersByCountry(country: string) {
   const listings = await PartnerListing.find({
     countries: country,
     status: "approved",
@@ -204,33 +204,33 @@ export async function getPendingVerifications() {
 }
 
 // ── Partner Metrics ─────────────────────────────────────────────────────────────
-export async function incrementPartnerViews(listingId) {
+export async function incrementPartnerViews(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  listing.views += 1;
+  (listing as any).views += 1;
   listing.updatedAt = new Date();
   await listing.save();
 
   return listing;
 }
 
-export async function incrementPartnerClicks(listingId) {
+export async function incrementPartnerClicks(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  listing.clicks += 1;
+  (listing as any).clicks += 1;
   listing.updatedAt = new Date();
   await listing.save();
 
   return listing;
 }
 
-export async function incrementPartnerInquiries(listingId) {
+export async function incrementPartnerInquiries(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  listing.inquiries += 1;
+  (listing as any).inquiries += 1;
   listing.updatedAt = new Date();
   await listing.save();
 
@@ -289,7 +289,7 @@ export async function getMarketplaceStatistics() {
     totalViews: totalViews[0]?.total || 0,
     totalClicks: totalClicks[0]?.total || 0,
     totalInquiries: totalInquiries[0]?.total || 0,
-    listingsByCategory: listingsByCategory.map(l => ({ category: l._id, count: l.count })),
-    listingsByCountry: listingsByCountry.map(l => ({ country: l._id, count: l.count })),
+    listingsByCategory: listingsByCategory.map((l: any) => ({ category: l._id, count: l.count })),
+    listingsByCountry: listingsByCountry.map((l: any) => ({ country: l._id, count: l.count })),
   };
 }
