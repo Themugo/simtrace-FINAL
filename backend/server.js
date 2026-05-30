@@ -16,6 +16,9 @@ import { errorHandler, notFoundHandler, generateRequestId } from "./middleware/e
 import { initializeQueues } from "./queues/index.js";
 import { correlationIdMiddleware, globalErrorHandler } from "./middleware/globalErrorHandler.js";
 import { ipRateLimiter, apiRateLimiter, strictRateLimiter, ipThrottlingMiddleware, abuseDetectionMiddleware, securityHeadersMiddleware, initializeSecurityMiddleware } from "./middleware/securityHardening.js";
+import { metricsMiddleware, metricsEndpoint } from "./observability/metrics.js";
+import "./observability/tracing.js";
+import { startAlertMonitoring } from "./observability/alerting.js";
 import "./sentry.js";
 
 // Route imports
@@ -88,6 +91,9 @@ app.use(sanitizeInput);
 
 // ── Correlation ID middleware ───────────────────────────────────────────────────
 app.use(correlationIdMiddleware);
+
+// ── Metrics middleware ───────────────────────────────────────────────────────────
+app.use(metricsMiddleware);
 
 // ── Structured logging ────────────────────────────────────────────────────────
 export const logger = pino({
@@ -237,6 +243,7 @@ connectWithRetry().then(async () => {
   startCron();
   await initializeQueues();
   await initializeSecurityMiddleware();
+  startAlertMonitoring();
   server.listen(PORT, () => console.log(`SimTrace API → port ${PORT} [${isProd ? "production" : "development"}]`));
 }).catch(err => {
   console.error("Failed to connect to MongoDB after retries:", err);
