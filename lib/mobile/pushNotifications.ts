@@ -1,7 +1,19 @@
 // Push Notifications
 // Handles push notification registration and management
 
+interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 class PushNotificationManager {
+  private registration: ServiceWorkerRegistration | null = null;
+  private subscription: PushSubscription | null = null;
+  private isSupported: boolean;
+
   constructor() {
     this.registration = null;
     this.subscription = null;
@@ -9,7 +21,7 @@ class PushNotificationManager {
   }
 
   // Initialize push notifications
-  async init() {
+  async init(): Promise<boolean> {
     if (!this.isSupported) {
       console.warn('[Push Notifications] Not supported in this browser');
       return false;
@@ -30,7 +42,7 @@ class PushNotificationManager {
       // Subscribe to push
       this.subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+        applicationServerKey: this.urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''),
       });
 
       // Send subscription to server
@@ -45,7 +57,7 @@ class PushNotificationManager {
   }
 
   // Convert VAPID key
-  urlBase64ToUint8Array(base64String) {
+  urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
@@ -59,7 +71,7 @@ class PushNotificationManager {
   }
 
   // Send subscription to server
-  async sendSubscriptionToServer(subscription) {
+  async sendSubscriptionToServer(subscription: PushSubscription): Promise<any> {
     try {
       const response = await fetch('/api/push/subscribe', {
         method: 'POST',
@@ -80,7 +92,7 @@ class PushNotificationManager {
   }
 
   // Unsubscribe from push notifications
-  async unsubscribe() {
+  async unsubscribe(): Promise<void> {
     if (!this.subscription) {
       return;
     }
@@ -96,7 +108,7 @@ class PushNotificationManager {
   }
 
   // Send unsubscription to server
-  async sendUnsubscriptionToServer(subscription) {
+  async sendUnsubscriptionToServer(subscription: PushSubscription): Promise<void> {
     try {
       const response = await fetch('/api/push/unsubscribe', {
         method: 'POST',
@@ -115,12 +127,12 @@ class PushNotificationManager {
   }
 
   // Get current subscription
-  getSubscription() {
+  getSubscription(): PushSubscription | null {
     return this.subscription;
   }
 
   // Check if subscribed
-  isSubscribed() {
+  isSubscribed(): boolean {
     return !!this.subscription;
   }
 }
@@ -129,7 +141,7 @@ class PushNotificationManager {
 export const pushNotificationManager = new PushNotificationManager();
 
 // Background sync registration
-export async function registerBackgroundSync(tag, minInterval = 1000) {
+export async function registerBackgroundSync(tag: string, minInterval: number = 1000): Promise<void> {
   if ('serviceWorker' in navigator && 'sync' in ServiceWorkerRegistration.prototype) {
     try {
       const registration = await navigator.serviceWorker.ready;

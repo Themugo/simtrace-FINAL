@@ -1,7 +1,14 @@
 // Offline Cache
 // Handles caching of data for offline access
 
+interface CachedData {
+  [key: string]: any;
+}
+
 class OfflineCache {
+  private cacheName: string;
+  private cachedUrls: string[];
+
   constructor() {
     this.cacheName = 'simtrace-offline-v1';
     this.cachedUrls = [
@@ -13,7 +20,7 @@ class OfflineCache {
   }
 
   // Initialize cache
-  async init() {
+  async init(): Promise<void> {
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
@@ -25,7 +32,7 @@ class OfflineCache {
   }
 
   // Cache data
-  async cache(url, data) {
+  async cache(url: string, data: CachedData): Promise<void> {
     try {
       const cache = await caches.open(this.cacheName);
       const response = new Response(JSON.stringify(data), {
@@ -38,7 +45,7 @@ class OfflineCache {
   }
 
   // Get cached data
-  async get(url) {
+  async get(url: string): Promise<CachedData | null> {
     try {
       const cache = await caches.open(this.cacheName);
       const response = await cache.match(url);
@@ -55,17 +62,17 @@ class OfflineCache {
   }
 
   // Cache API response
-  async cacheApiResponse(url, data) {
+  async cacheApiResponse(url: string, data: CachedData): Promise<void> {
     await this.cache(url, data);
   }
 
   // Get cached API response
-  async getCachedApiResponse(url) {
+  async getCachedApiResponse(url: string): Promise<CachedData | null> {
     return this.get(url);
   }
 
   // Clear cache
-  async clear() {
+  async clear(): Promise<void> {
     try {
       await caches.delete(this.cacheName);
       console.log('[Offline Cache] Cache cleared');
@@ -75,7 +82,7 @@ class OfflineCache {
   }
 
   // Pre-cache critical resources
-  async precache() {
+  async precache(): Promise<void> {
     try {
       const cache = await caches.open(this.cacheName);
       await cache.addAll(this.cachedUrls);
