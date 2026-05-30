@@ -1,11 +1,11 @@
-// services/regulatory.js - Regulatory Blocking System
+// services/regulatory.ts - Regulatory Blocking System
 // Integration with CEIR and national regulatory bodies
 
 import { RegulatoryBlock, Device } from "../db/index.js";
 import { getIO } from "./socket.js";
 
 // ── Block Management ─────────────────────────────────────────────────────────────
-export async function createRegulatoryBlock(data) {
+export async function createRegulatoryBlock(data: any) {
   const {
     imei,
     deviceId,
@@ -36,7 +36,7 @@ export async function createRegulatoryBlock(data) {
   });
 
   // Sync with authority (simulation)
-  await syncWithAuthority(block._id, authority);
+  await syncWithAuthority(block._id.toString(), authority);
 
   // Notify via socket
   getIO().emit("regulatory_block_created", {
@@ -49,14 +49,14 @@ export async function createRegulatoryBlock(data) {
   return block;
 }
 
-export async function getRegulatoryBlock(blockId) {
+export async function getRegulatoryBlock(blockId: string) {
   const block = await RegulatoryBlock.findById(blockId)
     .populate("device");
 
   return block;
 }
 
-export async function getBlocksByImei(imei) {
+export async function getBlocksByImei(imei: string) {
   const blocks = await RegulatoryBlock.find({ imei })
     .populate("device")
     .sort({ blockedAt: -1 });
@@ -64,8 +64,8 @@ export async function getBlocksByImei(imei) {
   return blocks;
 }
 
-export async function getBlocksByAuthority(authority, country) {
-  const query = { authority };
+export async function getBlocksByAuthority(authority: string, country?: string) {
+  const query: any = { authority };
   if (country) query.country = country;
 
   const blocks = await RegulatoryBlock.find(query)
@@ -83,11 +83,11 @@ export async function getActiveBlocks() {
   return blocks;
 }
 
-export async function updateBlockStatus(blockId, status) {
+export async function updateBlockStatus(blockId: string, status: string) {
   const block = await RegulatoryBlock.findById(blockId);
   if (!block) throw new Error("Block not found");
 
-  block.status = status;
+  (block as any).status = status;
   block.updatedAt = new Date();
   await block.save();
 
@@ -95,14 +95,14 @@ export async function updateBlockStatus(blockId, status) {
   getIO().emit("regulatory_block_updated", {
     blockId,
     status,
-    imei: block.imei,
+    imei: (block as any).imei,
   });
 
   return block;
 }
 
 // ── Sync with Authorities ───────────────────────────────────────────────────────
-async function syncWithAuthority(blockId, authority) {
+async function syncWithAuthority(blockId: string, authority: string) {
   const block = await RegulatoryBlock.findById(blockId);
   if (!block) return;
 
@@ -113,23 +113,23 @@ async function syncWithAuthority(blockId, authority) {
     status: "success",
   };
 
-  block.syncedWith.push(syncResult);
+  (block as any).syncedWith.push(syncResult);
   await block.save();
 
   return syncResult;
 }
 
-export async function syncWithCeir(imei) {
+export async function syncWithCeir(imei: string) {
   const blocks = await RegulatoryBlock.find({ imei, authority: "CEIR" });
   
   for (const block of blocks) {
-    await syncWithAuthority(block._id, "CEIR");
+    await syncWithAuthority(block._id.toString(), "CEIR");
   }
 
   return { synced: blocks.length };
 }
 
-export async function syncWithNationalRegulator(country, imei) {
+export async function syncWithNationalRegulator(country: string, imei: string) {
   const blocks = await RegulatoryBlock.find({ 
     imei, 
     country,
@@ -137,45 +137,45 @@ export async function syncWithNationalRegulator(country, imei) {
   });
   
   for (const block of blocks) {
-    await syncWithAuthority(block._id, block.authority);
+    await syncWithAuthority(block._id.toString(), (block as any).authority);
   }
 
   return { synced: blocks.length };
 }
 
 // ── Appeal Management ───────────────────────────────────────────────────────────
-export async function submitAppeal(blockId, appealNotes) {
+export async function submitAppeal(blockId: string, appealNotes: string) {
   const block = await RegulatoryBlock.findById(blockId);
   if (!block) throw new Error("Block not found");
 
-  if (block.status !== "active") {
+  if ((block as any).status !== "active") {
     throw new Error("Can only appeal active blocks");
   }
 
-  block.appealStatus = "submitted";
-  block.appealDate = new Date();
-  block.appealNotes = appealNotes;
+  (block as any).appealStatus = "submitted";
+  (block as any).appealDate = new Date();
+  (block as any).appealNotes = appealNotes;
   block.updatedAt = new Date();
   await block.save();
 
   // Notify via socket
   getIO().emit("regulatory_appeal_submitted", {
     blockId,
-    imei: block.imei,
+    imei: (block as any).imei,
   });
 
   return block;
 }
 
-export async function updateAppealStatus(blockId, appealStatus) {
+export async function updateAppealStatus(blockId: string, appealStatus: string) {
   const block = await RegulatoryBlock.findById(blockId);
   if (!block) throw new Error("Block not found");
 
-  block.appealStatus = appealStatus;
+  (block as any).appealStatus = appealStatus;
   block.updatedAt = new Date();
 
   if (appealStatus === "approved") {
-    block.status = "lifted";
+    (block as any).status = "lifted";
   }
 
   await block.save();
@@ -192,7 +192,7 @@ export async function checkBlockExpiry() {
   });
 
   for (const block of expiredBlocks) {
-    await updateBlockStatus(block._id, "expired");
+    await updateBlockStatus(block._id.toString(), "expired");
   }
 
   return expiredBlocks.length;
@@ -236,15 +236,15 @@ export async function getRegulatoryStatistics() {
     expiredBlocks,
     liftedBlocks,
     appealedBlocks,
-    blocksByAuthority: blocksByAuthority.map(b => ({
+    blocksByAuthority: blocksByAuthority.map((b: any) => ({
       authority: b._id,
       count: b.count,
     })),
-    blocksByType: blocksByType.map(b => ({
+    blocksByType: blocksByType.map((b: any) => ({
       type: b._id,
       count: b.count,
     })),
-    blocksByCountry: blocksByCountry.map(b => ({
+    blocksByCountry: blocksByCountry.map((b: any) => ({
       country: b._id,
       count: b.count,
     })),
@@ -252,7 +252,7 @@ export async function getRegulatoryStatistics() {
 }
 
 // ── CEIR Integration (Simulation) ─────────────────────────────────────────────────
-export async function checkCeirStatus(imei) {
+export async function checkCeirStatus(imei: string) {
   // In production, this would call the actual CEIR API
   const block = await RegulatoryBlock.findOne({
     imei,
@@ -263,14 +263,14 @@ export async function checkCeirStatus(imei) {
   return {
     imei,
     blocked: !!block,
-    blockType: block?.blockType || null,
-    blockReason: block?.blockReason || null,
-    blockReference: block?.blockReference || null,
-    blockedAt: block?.blockedAt || null,
+    blockType: (block as any)?.blockType || null,
+    blockReason: (block as any)?.blockReason || null,
+    blockReference: (block as any)?.blockReference || null,
+    blockedAt: (block as any)?.blockedAt || null,
   };
 }
 
-export async function addToCeirBlacklist(imei, reason, reference) {
+export async function addToCeirBlacklist(imei: string, reason: string, reference: string) {
   const block = await createRegulatoryBlock({
     imei,
     authority: "CEIR",
@@ -284,7 +284,7 @@ export async function addToCeirBlacklist(imei, reason, reference) {
   return block;
 }
 
-export async function removeFromCeirBlacklist(imei) {
+export async function removeFromCeirBlacklist(imei: string) {
   const block = await RegulatoryBlock.findOne({
     imei,
     authority: "CEIR",
@@ -295,5 +295,5 @@ export async function removeFromCeirBlacklist(imei) {
     throw new Error("No active CEIR block found for this IMEI");
   }
 
-  return await updateBlockStatus(block._id, "lifted");
+  return await updateBlockStatus(block._id.toString(), "lifted");
 }
