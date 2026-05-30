@@ -4,13 +4,16 @@
 import mongoose from 'mongoose';
 
 class AnalyticsEngine {
+  aggregationCache: Map<string, any>;
+  cacheTTL: number;
+
   constructor() {
     this.aggregationCache = new Map();
     this.cacheTTL = 300000; // 5 minutes
   }
 
   // Tenant analytics
-  async getTenantAnalytics(tenantId, startDate, endDate) {
+  async getTenantAnalytics(tenantId: string, startDate: string, endDate: string): Promise<any> {
     const cacheKey = `tenant:${tenantId}:${startDate}:${endDate}`;
     
     if (this.aggregationCache.has(cacheKey)) {
@@ -37,29 +40,29 @@ class AnalyticsEngine {
   }
 
   // Get device count for tenant
-  async getDeviceCount(tenantId) {
-    return mongoose.connection.db.collection('devices').countDocuments({ tenantId });
+  async getDeviceCount(tenantId: string): Promise<number> {
+    return mongoose.connection.db!.collection('devices').countDocuments({ tenantId });
   }
 
   // Get alert count for tenant
-  async getAlertCount(tenantId, startDate, endDate) {
-    return mongoose.connection.db.collection('alerts').countDocuments({
+  async getAlertCount(tenantId: string, startDate: string, endDate: string): Promise<number> {
+    return mongoose.connection.db!.collection('alerts').countDocuments({
       tenantId,
       timestamp: { $gte: new Date(startDate), $lte: new Date(endDate) },
     });
   }
 
   // Get active device count
-  async getActiveDeviceCount(tenantId) {
+  async getActiveDeviceCount(tenantId: string): Promise<number> {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    return mongoose.connection.db.collection('devices').countDocuments({
+    return mongoose.connection.db!.collection('devices').countDocuments({
       tenantId,
       lastSeen: { $gte: thirtyDaysAgo },
     });
   }
 
   // Get risk distribution
-  async getRiskDistribution(tenantId) {
+  async getRiskDistribution(tenantId: string): Promise<Record<string, number>> {
     const pipeline = [
       { $match: { tenantId } },
       {
@@ -70,16 +73,16 @@ class AnalyticsEngine {
       },
     ];
 
-    const result = await mongoose.connection.db.collection('devices').aggregate(pipeline).toArray();
+    const result = await mongoose.connection.db!.collection('devices').aggregate(pipeline).toArray();
     
-    return result.reduce((acc, item) => {
+    return result.reduce((acc: Record<string, number>, item: any) => {
       acc[item._id] = item.count;
       return acc;
     }, {});
   }
 
   // Get location heatmap
-  async getLocationHeatmap(tenantId, startDate, endDate) {
+  async getLocationHeatmap(tenantId: string, startDate: string, endDate: string): Promise<any[]> {
     const pipeline = [
       {
         $match: {
@@ -100,11 +103,11 @@ class AnalyticsEngine {
       { $limit: 100 },
     ];
 
-    return mongoose.connection.db.collection('trackingEvents').aggregate(pipeline).toArray();
+    return mongoose.connection.db!.collection('trackingEvents').aggregate(pipeline).toArray();
   }
 
   // Device intelligence trends
-  async getDeviceIntelligenceTrends(days = 30) {
+  async getDeviceIntelligenceTrends(days: number = 30): Promise<any[]> {
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     const pipeline = [
@@ -127,14 +130,14 @@ class AnalyticsEngine {
       },
     ];
 
-    return mongoose.connection.db.collection('trackingEvents').aggregate(pipeline).toArray();
+    return mongoose.connection.db!.collection('trackingEvents').aggregate(pipeline).toArray();
   }
 
   // Operational dashboard metrics
-  async getOperationalMetrics() {
+  async getOperationalMetrics(): Promise<any> {
     return {
-      totalDevices: await mongoose.connection.db.collection('devices').countDocuments(),
-      totalAlerts: await mongoose.connection.db.collection('alerts').countDocuments({
+      totalDevices: await mongoose.connection.db!.collection('devices').countDocuments(),
+      totalAlerts: await mongoose.connection.db!.collection('alerts').countDocuments({
         timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       }),
       activeUsers: await this.getActiveUserCount(),
@@ -145,33 +148,33 @@ class AnalyticsEngine {
   }
 
   // Get active user count
-  async getActiveUserCount() {
+  async getActiveUserCount(): Promise<number> {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    return mongoose.connection.db.collection('users').countDocuments({
+    return mongoose.connection.db!.collection('users').countDocuments({
       lastActive: { $gte: twentyFourHoursAgo },
     });
   }
 
   // Get API request count
-  async getApiRequestCount() {
+  async getApiRequestCount(): Promise<number> {
     // This would typically come from metrics/logs
     return 0;
   }
 
   // Get error rate
-  async getErrorRate() {
+  async getErrorRate(): Promise<number> {
     // This would typically come from metrics/logs
     return 0;
   }
 
   // Get average response time
-  async getAvgResponseTime() {
+  async getAvgResponseTime(): Promise<number> {
     // This would typically come from metrics/logs
     return 0;
   }
 
   // Clear cache
-  clearCache() {
+  clearCache(): void {
     this.aggregationCache.clear();
   }
 }
