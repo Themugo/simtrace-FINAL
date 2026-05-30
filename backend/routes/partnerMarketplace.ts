@@ -1,5 +1,5 @@
-// routes/partnerMarketplace.js - Partner Marketplace API endpoints
-import { Router } from "express";
+// routes/partnerMarketplace.ts - Partner Marketplace API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -24,8 +24,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Partner Listing Management ───────────────────────────────────────────────────
-router.post("/listings", authenticate, async (req, res, next) => {
+router.post("/listings", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       organizationId: z.string().optional(),
@@ -45,17 +53,17 @@ router.post("/listings", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const listing = await createPartnerListing({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
     });
 
     res.status(201).json(listing);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/listings/:id", async (req, res, next) => {
+router.get("/listings/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const listing = await getPartnerListing(id);
@@ -71,14 +79,14 @@ router.get("/listings/:id", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/listings", authenticate, async (req, res, next) => {
+router.get("/listings", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const listings = await getPartnerListingsByUser(req.user.id);
+    const listings = await getPartnerListingsByUser(req.user!.id);
     res.json({ listings, count: listings.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/listings/:id", authenticate, async (req, res, next) => {
+router.patch("/listings/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const listing = await updatePartnerListing(id, req.body);
@@ -86,7 +94,7 @@ router.patch("/listings/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.delete("/listings/:id", authenticate, async (req, res, next) => {
+router.delete("/listings/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const listing = await deletePartnerListing(id);
@@ -95,15 +103,15 @@ router.delete("/listings/:id", authenticate, async (req, res, next) => {
 });
 
 // ── Partner Verification ───────────────────────────────────────────────────────
-router.post("/listings/:id/verify", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/listings/:id/verify", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const listing = await verifyPartnerListing(id, req.user.id);
+    const listing = await verifyPartnerListing(id, req.user!.id);
     res.json(listing);
   } catch (err) { next(err); }
 });
 
-router.post("/listings/:id/reject", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/listings/:id/reject", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const listing = await rejectPartnerListing(id);
@@ -111,7 +119,7 @@ router.post("/listings/:id/reject", authenticate, requireAdmin, async (req, res,
   } catch (err) { next(err); }
 });
 
-router.post("/listings/:id/suspend", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/listings/:id/suspend", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const listing = await suspendPartnerListing(id);
@@ -120,19 +128,19 @@ router.post("/listings/:id/suspend", authenticate, requireAdmin, async (req, res
 });
 
 // ── Partner Discovery ───────────────────────────────────────────────────────────
-router.get("/search", async (req, res, next) => {
+router.get("/search", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { q } = req.query;
     if (!q) {
       return res.status(400).json({ error: "Search query required" });
     }
 
-    const listings = await searchPartnerListings(q);
+    const listings = await searchPartnerListings(q as string);
     res.json({ listings, count: listings.length });
   } catch (err) { next(err); }
 });
 
-router.get("/category/:category", async (req, res, next) => {
+router.get("/category/:category", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { category } = req.params;
     const listings = await getPartnersByCategory(category);
@@ -140,7 +148,7 @@ router.get("/category/:category", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/country/:country", async (req, res, next) => {
+router.get("/country/:country", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
     const listings = await getPartnersByCountry(country);
@@ -148,14 +156,14 @@ router.get("/country/:country", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/verified", async (req, res, next) => {
+router.get("/verified", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const listings = await getVerifiedPartners();
     res.json({ listings, count: listings.length });
   } catch (err) { next(err); }
 });
 
-router.get("/pending", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/pending", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const listings = await getPendingVerifications();
     res.json({ listings, count: listings.length });
@@ -163,7 +171,7 @@ router.get("/pending", authenticate, requireAdmin, async (req, res, next) => {
 });
 
 // ── Partner Metrics ─────────────────────────────────────────────────────────────
-router.post("/listings/:id/click", async (req, res, next) => {
+router.post("/listings/:id/click", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const listing = await incrementPartnerClicks(id);
@@ -171,7 +179,7 @@ router.post("/listings/:id/click", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/listings/:id/inquire", async (req, res, next) => {
+router.post("/listings/:id/inquire", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const listing = await incrementPartnerInquiries(id);
@@ -180,7 +188,7 @@ router.post("/listings/:id/inquire", async (req, res, next) => {
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getMarketplaceStatistics();
     res.json(stats);

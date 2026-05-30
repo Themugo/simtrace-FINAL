@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { Ad } from "../db/index.js";
@@ -6,9 +6,16 @@ import { serveAd, recordAdEvent, getAdStats } from "../services/ads.js";
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
 
 // GET /api/ads/serve?placement=dashboard_banner — serve one ad for a placement
-router.get("/serve", async (req, res, next) => {
+router.get("/serve", async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const placement = req.query.placement || "dashboard_banner";
     const userId    = req.user?.id;                 // optional auth
@@ -19,7 +26,7 @@ router.get("/serve", async (req, res, next) => {
 
 
 // POST /api/ads — create a new ad campaign
-router.post("/", authenticate, async (req, res, next) => {
+router.post("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       title:     z.string().min(3).max(80),
@@ -36,28 +43,28 @@ router.post("/", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const ad   = await Ad.create({
       ...data,
-      advertiser: req.user.id,
+      advertiser: req.user!.id,
       status: "pending",                             // admin must approve
     });
     res.status(201).json(ad);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 
 // GET /api/ads/mine — advertiser's own campaigns
-router.get("/mine", authenticate, async (req, res, next) => {
+router.get("/mine", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const ads = await Ad.find({ advertiser: req.user.id }).sort({ createdAt: -1 });
+    const ads = await Ad.find({ advertiser: req.user!.id }).sort({ createdAt: -1 });
     res.json(ads);
   } catch (err) { next(err); }
 });
 
 
 // GET /api/ads/admin/all — all ads for review
-router.get("/admin/all", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/admin/all", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const ads = await Ad.find().populate("advertiser", "name email").sort({ createdAt: -1 });
     res.json(ads);
@@ -66,7 +73,7 @@ router.get("/admin/all", authenticate, requireAdmin, async (req, res, next) => {
 
 
 // POST /api/ads/:id/click — record a click
-router.post("/:id/click", async (req, res, next) => {
+router.post("/:id/click", async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     await recordAdEvent({ adId: req.params.id, userId: req.user?.id, type: "click", ip: req.ip });
     res.json({ ok: true });
@@ -75,9 +82,9 @@ router.post("/:id/click", async (req, res, next) => {
 
 
 // GET /api/ads/:id/stats — campaign analytics
-router.get("/:id/stats", authenticate, async (req, res, next) => {
+router.get("/:id/stats", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const stats = await getAdStats(req.params.id, req.user.id);
+    const stats = await getAdStats(req.params.id, req.user!.id);
     if (!stats) return res.status(404).json({ error: "Ad not found" });
     res.json(stats);
   } catch (err) { next(err); }
@@ -87,7 +94,7 @@ router.get("/:id/stats", authenticate, async (req, res, next) => {
 
 
 // PATCH /api/ads/:id/status — approve / reject / pause
-router.patch("/:id/status", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/:id/status", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { status } = z.object({
       status: z.enum(["active","paused","rejected"])
@@ -101,7 +108,7 @@ router.patch("/:id/status", authenticate, requireAdmin, async (req, res, next) =
     if (!ad) return res.status(404).json({ error: "Ad not found" });
     res.json(ad);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });

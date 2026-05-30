@@ -1,5 +1,5 @@
-// routes/adsEnhanced.js - Enhanced Advertisement Board API endpoints
-import { Router } from "express";
+// routes/adsEnhanced.ts - Enhanced Advertisement Board API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -23,8 +23,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Campaign Management ───────────────────────────────────────────────────────────
-router.post("/campaigns", authenticate, async (req, res, next) => {
+router.post("/campaigns", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       name: z.string().min(2).max(100),
@@ -79,17 +87,17 @@ router.post("/campaigns", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const campaign = await createAdCampaign({
       ...data,
-      advertiser: req.user.id,
+      advertiser: req.user!.id,
     });
 
     res.status(201).json(campaign);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/campaigns/:id/submit", authenticate, async (req, res, next) => {
+router.post("/campaigns/:id/submit", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const campaign = await submitCampaignForReview(id);
@@ -97,7 +105,7 @@ router.post("/campaigns/:id/submit", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/campaigns/:id/review", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/campaigns/:id/review", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       approved: z.boolean(),
@@ -109,12 +117,12 @@ router.post("/campaigns/:id/review", authenticate, requireAdmin, async (req, res
     const campaign = await reviewCampaign(id, approved, rejectionReason);
     res.json(campaign);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/campaigns/:id/status", authenticate, async (req, res, next) => {
+router.patch("/campaigns/:id/status", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["draft", "pending", "active", "paused", "completed", "exhausted"]),
@@ -125,13 +133,13 @@ router.patch("/campaigns/:id/status", authenticate, async (req, res, next) => {
     const campaign = await updateCampaignStatus(id, status);
     res.json(campaign);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Campaign Queries ───────────────────────────────────────────────────────────────
-router.get("/campaigns/:id", authenticate, async (req, res, next) => {
+router.get("/campaigns/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const campaign = await getCampaign(id);
@@ -144,17 +152,17 @@ router.get("/campaigns/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/campaigns", authenticate, async (req, res, next) => {
+router.get("/campaigns", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { advertiserId, status, placement } = req.query;
 
     let campaigns;
     if (advertiserId) {
-      campaigns = await getCampaignsByAdvertiser(advertiserId);
+      campaigns = await getCampaignsByAdvertiser(advertiserId as string);
     } else if (status === "active") {
       campaigns = await getActiveCampaigns();
     } else if (placement) {
-      campaigns = await getCampaignsByPlacement(placement);
+      campaigns = await getCampaignsByPlacement(placement as string);
     } else {
       return res.status(400).json({ error: "Specify advertiserId, status, or placement" });
     }
@@ -164,7 +172,7 @@ router.get("/campaigns", authenticate, async (req, res, next) => {
 });
 
 // ── Ad Delivery & Tracking ───────────────────────────────────────────────────────
-router.post("/select", async (req, res, next) => {
+router.post("/select", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       placement: z.string(),
@@ -187,12 +195,12 @@ router.post("/select", async (req, res, next) => {
 
     res.json({ campaign });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/deliver/:campaignId", async (req, res, next) => {
+router.post("/deliver/:campaignId", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { campaignId } = req.params;
     const context = req.body;
@@ -201,7 +209,7 @@ router.post("/deliver/:campaignId", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/track", async (req, res, next) => {
+router.post("/track", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       campaignId: z.string(),
@@ -234,13 +242,13 @@ router.post("/track", async (req, res, next) => {
     const event = await trackAdEvent(data);
     res.status(201).json(event);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Campaign Optimization ─────────────────────────────────────────────────────────
-router.post("/campaigns/:id/optimize", authenticate, async (req, res, next) => {
+router.post("/campaigns/:id/optimize", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const campaign = await optimizeCampaign(id);
@@ -248,7 +256,7 @@ router.post("/campaigns/:id/optimize", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/campaigns/:id/auto-optimize", authenticate, async (req, res, next) => {
+router.post("/campaigns/:id/auto-optimize", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const campaign = await enableAutoOptimization(id);
@@ -257,24 +265,24 @@ router.post("/campaigns/:id/auto-optimize", authenticate, async (req, res, next)
 });
 
 // ── Analytics & Revenue ───────────────────────────────────────────────────────────
-router.get("/campaigns/:id/analytics", authenticate, async (req, res, next) => {
+router.get("/campaigns/:id/analytics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { period } = req.query;
-    const analytics = await getCampaignAnalytics(id, period);
+    const analytics = await getCampaignAnalytics(id, period as string);
     res.json(analytics);
   } catch (err) { next(err); }
 });
 
-router.get("/revenue", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/revenue", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { period } = req.query;
-    const revenue = await getPlatformRevenue(period);
+    const revenue = await getPlatformRevenue(period as string);
     res.json(revenue);
   } catch (err) { next(err); }
 });
 
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getAdBoardStatistics();
     res.json(stats);

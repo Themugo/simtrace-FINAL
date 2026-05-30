@@ -1,5 +1,5 @@
-// routes/superAdminDashboard.js - Super admin dashboard API endpoints
-import { Router } from "express";
+// routes/superAdminDashboard.ts - Super admin dashboard API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth.js";
 import {
@@ -17,7 +17,7 @@ import {
 const router = Router();
 
 // ── Super Admin Dashboard Management ───────────────────────────────────────────────────
-router.post("/", authenticate, async (req, res, next) => {
+router.post("/", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       superAdminId: z.string(),
@@ -45,12 +45,12 @@ router.post("/", authenticate, async (req, res, next) => {
     const dashboard = await createSuperAdminDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/:dashboardId", authenticate, async (req, res, next) => {
+router.get("/:dashboardId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
     const dashboard = await getSuperAdminDashboard(dashboardId);
@@ -58,7 +58,7 @@ router.get("/:dashboardId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/super-admin/:superAdminId", authenticate, async (req, res, next) => {
+router.get("/super-admin/:superAdminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
     const dashboard = await getSuperAdminDashboardBySuperAdmin(superAdminId);
@@ -66,7 +66,7 @@ router.get("/super-admin/:superAdminId", authenticate, async (req, res, next) =>
   } catch (err) { next(err); }
 });
 
-router.patch("/:dashboardId", authenticate, async (req, res, next) => {
+router.patch("/:dashboardId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
     const dashboard = await updateSuperAdminDashboard(dashboardId, req.body);
@@ -74,7 +74,7 @@ router.patch("/:dashboardId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/:dashboardId/widgets", authenticate, async (req, res, next) => {
+router.patch("/:dashboardId/widgets", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       widgets: z.array(z.object({
@@ -94,12 +94,12 @@ router.patch("/:dashboardId/widgets", authenticate, async (req, res, next) => {
     const dashboard = await updateSuperAdminDashboardWidgets(dashboardId, data.widgets);
     res.json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/:dashboardId/settings", authenticate, async (req, res, next) => {
+router.patch("/:dashboardId/settings", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       settings: z.object({
@@ -115,12 +115,12 @@ router.patch("/:dashboardId/settings", authenticate, async (req, res, next) => {
     const dashboard = await updateSuperAdminDashboardSettings(dashboardId, data.settings);
     res.json(dashboard);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/:dashboardId", authenticate, async (req, res, next) => {
+router.delete("/:dashboardId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
     const dashboard = await deleteSuperAdminDashboard(dashboardId);
@@ -128,7 +128,7 @@ router.delete("/:dashboardId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/", authenticate, async (req, res, next) => {
+router.get("/", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const dashboards = await getAllSuperAdminDashboards();
     res.json({ dashboards, count: dashboards.length });
@@ -136,7 +136,7 @@ router.get("/", authenticate, async (req, res, next) => {
 });
 
 // ── Dashboard Data ───────────────────────────────────────────────────────────────────
-router.get("/:dashboardId/data", authenticate, async (req, res, next) => {
+router.get("/:dashboardId/data", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
     const data = await getSuperAdminDashboardData(dashboardId);
