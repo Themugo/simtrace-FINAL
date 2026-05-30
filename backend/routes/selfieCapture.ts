@@ -1,5 +1,5 @@
-// routes/selfieCapture.js - Selfie capture and thief identification API endpoints
-import { Router } from "express";
+// routes/selfieCapture.ts - Selfie capture and thief identification API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth.js";
 import {
@@ -22,8 +22,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Selfie Capture Management ─────────────────────────────────────────────────────────
-router.post("/", async (req, res, next) => {
+router.post("/", async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -41,12 +49,12 @@ router.post("/", async (req, res, next) => {
     const capture = await captureSelfie({ ...data, createdBy: req.user?.id });
     res.status(201).json(capture);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/:captureId/analyze", authenticate, async (req, res, next) => {
+router.post("/:captureId/analyze", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { captureId } = req.params;
     const capture = await analyzeSelfie(captureId);
@@ -54,7 +62,7 @@ router.post("/:captureId/analyze", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/:captureId", authenticate, async (req, res, next) => {
+router.get("/:captureId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { captureId } = req.params;
     const capture = await getSelfieCapture(captureId);
@@ -62,7 +70,7 @@ router.get("/:captureId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const captures = await getSelfieCapturesByDevice(deviceId);
@@ -70,7 +78,7 @@ router.get("/device/:deviceId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/user/:userId", authenticate, async (req, res, next) => {
+router.get("/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const captures = await getSelfieCapturesByUser(userId);
@@ -78,14 +86,14 @@ router.get("/user/:userId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/pending", authenticate, async (req, res, next) => {
+router.get("/pending", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const captures = await getPendingCaptures();
     res.json({ captures, count: captures.length });
   } catch (err) { next(err); }
 });
 
-router.get("/thieves", authenticate, async (req, res, next) => {
+router.get("/thieves", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const captures = await getThiefCaptures();
     res.json({ captures, count: captures.length });
@@ -93,7 +101,7 @@ router.get("/thieves", authenticate, async (req, res, next) => {
 });
 
 // ── Thief Report Management ───────────────────────────────────────────────────────────
-router.post("/reports", authenticate, async (req, res, next) => {
+router.post("/reports", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -114,23 +122,23 @@ router.post("/reports", authenticate, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const report = await reportThief({ ...data, createdBy: req.user.id });
+    const report = await reportThief({ ...data, createdBy: req.user!.id });
     res.status(201).json(report);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/reports/:reportId", authenticate, async (req, res, next) => {
+router.patch("/reports/:reportId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { reportId } = req.params;
-    const report = await updateThiefReport(reportId, req.body, req.user.id);
+    const report = await updateThiefReport(reportId, req.body, req.user!.id);
     res.json(report);
   } catch (err) { next(err); }
 });
 
-router.post("/reports/:reportId/resolve", authenticate, async (req, res, next) => {
+router.post("/reports/:reportId/resolve", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       resolution: z.string(),
@@ -138,15 +146,15 @@ router.post("/reports/:reportId/resolve", authenticate, async (req, res, next) =
 
     const { reportId } = req.params;
     const data = schema.parse(req.body);
-    const report = await resolveThiefReport(reportId, data.resolution, req.user.id);
+    const report = await resolveThiefReport(reportId, data.resolution, req.user!.id);
     res.json(report);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/reports/:reportId", authenticate, async (req, res, next) => {
+router.get("/reports/:reportId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { reportId } = req.params;
     const report = await getThiefReport(reportId);
@@ -154,7 +162,7 @@ router.get("/reports/:reportId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/reports/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/reports/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const reports = await getThiefReportsByDevice(deviceId);
@@ -162,7 +170,7 @@ router.get("/reports/device/:deviceId", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.get("/reports/user/:userId", authenticate, async (req, res, next) => {
+router.get("/reports/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const reports = await getThiefReportsByUser(userId);
@@ -170,14 +178,14 @@ router.get("/reports/user/:userId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/reports/pending", authenticate, async (req, res, next) => {
+router.get("/reports/pending", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const reports = await getPendingThiefReports();
     res.json({ reports, count: reports.length });
   } catch (err) { next(err); }
 });
 
-router.get("/reports/investigating", authenticate, async (req, res, next) => {
+router.get("/reports/investigating", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const reports = await getInvestigatingThiefReports();
     res.json({ reports, count: reports.length });

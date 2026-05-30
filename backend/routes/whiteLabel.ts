@@ -1,5 +1,5 @@
-// routes/whiteLabel.js - White Label Solutions API endpoints
-import { Router } from "express";
+// routes/whiteLabel.ts - White Label Solutions API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -29,7 +29,7 @@ import {
 const router = Router();
 
 // ── Instance Management ───────────────────────────────────────────────────────────
-router.post("/instances", authenticate, async (req, res, next) => {
+router.post("/instances", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       name: z.string().min(2).max(100),
@@ -64,12 +64,12 @@ router.post("/instances", authenticate, async (req, res, next) => {
 
     res.status(201).json(instance);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/instances/:instanceId", authenticate, async (req, res, next) => {
+router.get("/instances/:instanceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const instance = await getWhiteLabelInstance(instanceId);
@@ -82,7 +82,7 @@ router.get("/instances/:instanceId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/instances/:instanceId", authenticate, async (req, res, next) => {
+router.patch("/instances/:instanceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const instance = await updateWhiteLabelInstance(instanceId, req.body);
@@ -90,7 +90,7 @@ router.patch("/instances/:instanceId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/activate", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/instances/:instanceId/activate", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const instance = await activateInstance(instanceId);
@@ -98,7 +98,7 @@ router.post("/instances/:instanceId/activate", authenticate, requireAdmin, async
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/suspend", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/instances/:instanceId/suspend", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const { reason } = req.body;
@@ -107,7 +107,7 @@ router.post("/instances/:instanceId/suspend", authenticate, requireAdmin, async 
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/terminate", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/instances/:instanceId/terminate", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const instance = await terminateInstance(instanceId);
@@ -116,15 +116,15 @@ router.post("/instances/:instanceId/terminate", authenticate, requireAdmin, asyn
 });
 
 // ── Instance Queries ───────────────────────────────────────────────────────────────
-router.get("/instances", authenticate, async (req, res, next) => {
+router.get("/instances", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { ownerId, partnerId, status } = req.query;
 
     let instances;
     if (ownerId) {
-      instances = await getInstancesByOwner(ownerId);
+      instances = await getInstancesByOwner(ownerId as string);
     } else if (partnerId) {
-      instances = await getInstancesByPartner(partnerId);
+      instances = await getInstancesByPartner(partnerId as string);
     } else if (status === "active") {
       instances = await getActiveInstances();
     } else if (status === "pending") {
@@ -138,7 +138,7 @@ router.get("/instances", authenticate, async (req, res, next) => {
 });
 
 // ── API Key Management ─────────────────────────────────────────────────────────────
-router.post("/instances/:instanceId/regenerate-key", authenticate, async (req, res, next) => {
+router.post("/instances/:instanceId/regenerate-key", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const result = await regenerateApiKey(instanceId);
@@ -147,7 +147,7 @@ router.post("/instances/:instanceId/regenerate-key", authenticate, async (req, r
 });
 
 // ── Feature Management ─────────────────────────────────────────────────────────────
-router.post("/instances/:instanceId/features/:feature/enable", authenticate, async (req, res, next) => {
+router.post("/instances/:instanceId/features/:feature/enable", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId, feature } = req.params;
     const instance = await enableFeature(instanceId, feature);
@@ -155,7 +155,7 @@ router.post("/instances/:instanceId/features/:feature/enable", authenticate, asy
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/features/:feature/disable", authenticate, async (req, res, next) => {
+router.post("/instances/:instanceId/features/:feature/disable", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId, feature } = req.params;
     const instance = await disableFeature(instanceId, feature);
@@ -163,7 +163,7 @@ router.post("/instances/:instanceId/features/:feature/disable", authenticate, as
   } catch (err) { next(err); }
 });
 
-router.patch("/instances/:instanceId/rate-limits", authenticate, async (req, res, next) => {
+router.patch("/instances/:instanceId/rate-limits", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const limits = req.body;
@@ -173,7 +173,7 @@ router.patch("/instances/:instanceId/rate-limits", authenticate, async (req, res
 });
 
 // ── Metrics & Revenue ───────────────────────────────────────────────────────────
-router.patch("/instances/:instanceId/metrics", authenticate, async (req, res, next) => {
+router.patch("/instances/:instanceId/metrics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const metrics = req.body;
@@ -182,17 +182,17 @@ router.patch("/instances/:instanceId/metrics", authenticate, async (req, res, ne
   } catch (err) { next(err); }
 });
 
-router.get("/instances/:instanceId/revenue", authenticate, async (req, res, next) => {
+router.get("/instances/:instanceId/revenue", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const { period } = req.query;
-    const revenue = await calculateInstanceRevenue(instanceId, period);
+    const revenue = await calculateInstanceRevenue(instanceId, period as string);
     res.json(revenue);
   } catch (err) { next(err); }
 });
 
 // ── Webhook Management ─────────────────────────────────────────────────────────────
-router.patch("/instances/:instanceId/webhook", authenticate, async (req, res, next) => {
+router.patch("/instances/:instanceId/webhook", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const { webhookUrl } = req.body;
@@ -201,7 +201,7 @@ router.patch("/instances/:instanceId/webhook", authenticate, async (req, res, ne
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/webhook/test", authenticate, async (req, res, next) => {
+router.post("/instances/:instanceId/webhook/test", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const result = await testWebhook(instanceId);
@@ -210,7 +210,7 @@ router.post("/instances/:instanceId/webhook/test", authenticate, async (req, res
 });
 
 // ── Instance Cloning ─────────────────────────────────────────────────────────────
-router.post("/instances/:templateId/clone", authenticate, async (req, res, next) => {
+router.post("/instances/:templateId/clone", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { templateId } = req.params;
     const { newOwner, newName } = req.body;
@@ -220,7 +220,7 @@ router.post("/instances/:templateId/clone", authenticate, async (req, res, next)
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getWhiteLabelStatistics();
     res.json(stats);

@@ -1,5 +1,5 @@
-// routes/superAdmin.js - Super admin API endpoints
-import { Router } from "express";
+// routes/superAdmin.ts - Super admin API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth.js";
 import {
@@ -26,7 +26,7 @@ import {
 const router = Router();
 
 // ── Super Admin Management ─────────────────────────────────────────────────────────────
-router.post("/", async (req, res, next) => {
+router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       personalEmail: z.string().email(),
@@ -39,12 +39,12 @@ router.post("/", async (req, res, next) => {
     const superAdmin = await createSuperAdmin(data);
     res.status(201).json(superAdmin);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/:superAdminId", authenticate, async (req, res, next) => {
+router.get("/:superAdminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
     const superAdmin = await getSuperAdmin(superAdminId);
@@ -52,7 +52,7 @@ router.get("/:superAdminId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/personal-email/:personalEmail", authenticate, async (req, res, next) => {
+router.get("/personal-email/:personalEmail", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { personalEmail } = req.params;
     const superAdmin = await getSuperAdminByPersonalEmail(personalEmail);
@@ -60,7 +60,7 @@ router.get("/personal-email/:personalEmail", authenticate, async (req, res, next
   } catch (err) { next(err); }
 });
 
-router.get("/official-email/:officialEmail", authenticate, async (req, res, next) => {
+router.get("/official-email/:officialEmail", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { officialEmail } = req.params;
     const superAdmin = await getSuperAdminByOfficialEmail(officialEmail);
@@ -68,7 +68,7 @@ router.get("/official-email/:officialEmail", authenticate, async (req, res, next
   } catch (err) { next(err); }
 });
 
-router.patch("/:superAdminId", authenticate, async (req, res, next) => {
+router.patch("/:superAdminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
     const superAdmin = await updateSuperAdmin(superAdminId, req.body);
@@ -76,7 +76,7 @@ router.patch("/:superAdminId", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/:superAdminId/lock", authenticate, async (req, res, next) => {
+router.post("/:superAdminId/lock", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
     const superAdmin = await lockSuperAdmin(superAdminId);
@@ -84,7 +84,7 @@ router.post("/:superAdminId/lock", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/:superAdminId/unlock", authenticate, async (req, res, next) => {
+router.post("/:superAdminId/unlock", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
     const superAdmin = await unlockSuperAdmin(superAdminId);
@@ -93,7 +93,7 @@ router.post("/:superAdminId/unlock", authenticate, async (req, res, next) => {
 });
 
 // ── Official Email Management ───────────────────────────────────────────────────────────
-router.post("/:superAdminId/official-emails", authenticate, async (req, res, next) => {
+router.post("/:superAdminId/official-emails", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       email: z.string().email(),
@@ -108,12 +108,12 @@ router.post("/:superAdminId/official-emails", authenticate, async (req, res, nex
     const superAdmin = await addOfficialEmail(superAdminId, data);
     res.json(superAdmin);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/:superAdminId/official-emails/:email", authenticate, async (req, res, next) => {
+router.delete("/:superAdminId/official-emails/:email", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId, email } = req.params;
     const superAdmin = await removeOfficialEmail(superAdminId, email);
@@ -121,7 +121,7 @@ router.delete("/:superAdminId/official-emails/:email", authenticate, async (req,
   } catch (err) { next(err); }
 });
 
-router.post("/:superAdminId/official-emails/:email/primary", authenticate, async (req, res, next) => {
+router.post("/:superAdminId/official-emails/:email/primary", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId, email } = req.params;
     const superAdmin = await setPrimaryOfficialEmail(superAdminId, email);
@@ -129,7 +129,7 @@ router.post("/:superAdminId/official-emails/:email/primary", authenticate, async
   } catch (err) { next(err); }
 });
 
-router.post("/:superAdminId/official-emails/:email/backup", authenticate, async (req, res, next) => {
+router.post("/:superAdminId/official-emails/:email/backup", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId, email } = req.params;
     const superAdmin = await setBackupOfficialEmail(superAdminId, email);
@@ -137,7 +137,7 @@ router.post("/:superAdminId/official-emails/:email/backup", authenticate, async 
   } catch (err) { next(err); }
 });
 
-router.post("/:superAdminId/official-emails/:email/verify", authenticate, async (req, res, next) => {
+router.post("/:superAdminId/official-emails/:email/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId, email } = req.params;
     const superAdmin = await verifyOfficialEmail(superAdminId, email);
@@ -146,7 +146,7 @@ router.post("/:superAdminId/official-emails/:email/verify", authenticate, async 
 });
 
 // ── System Settings Management ─────────────────────────────────────────────────────────
-router.patch("/:superAdminId/system-settings", authenticate, async (req, res, next) => {
+router.patch("/:superAdminId/system-settings", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       maintenanceMode: z.boolean().optional(),
@@ -159,12 +159,12 @@ router.patch("/:superAdminId/system-settings", authenticate, async (req, res, ne
     const superAdmin = await updateSystemSettings(superAdminId, data);
     res.json(superAdmin);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/:superAdminId/system-settings", authenticate, async (req, res, next) => {
+router.get("/:superAdminId/system-settings", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
     const settings = await getSystemSettings(superAdminId);
@@ -173,7 +173,7 @@ router.get("/:superAdminId/system-settings", authenticate, async (req, res, next
 });
 
 // ── Admin Management ───────────────────────────────────────────────────────────────────
-router.get("/:superAdminId/admins", authenticate, async (req, res, next) => {
+router.get("/:superAdminId/admins", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
     const admins = await getManagedAdmins(superAdminId);
@@ -181,7 +181,7 @@ router.get("/:superAdminId/admins", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/:superAdminId/admins/statistics", authenticate, async (req, res, next) => {
+router.get("/:superAdminId/admins/statistics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
     const stats = await getAdminStatistics(superAdminId);
@@ -190,7 +190,7 @@ router.get("/:superAdminId/admins/statistics", authenticate, async (req, res, ne
 });
 
 // ── Login History ─────────────────────────────────────────────────────────────────────
-router.post("/:superAdminId/login", async (req, res, next) => {
+router.post("/:superAdminId/login", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       ipAddress: z.string(),
@@ -203,15 +203,15 @@ router.post("/:superAdminId/login", async (req, res, next) => {
     const superAdmin = await recordLogin(superAdminId, data.ipAddress, data.userAgent, data.success);
     res.json(superAdmin);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/:superAdminId/login-history", authenticate, async (req, res, next) => {
+router.get("/:superAdminId/login-history", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
-    const limit = parseInt(req.query.limit) || 50;
+    const limit = parseInt((req.query.limit as string) || "50");
     const history = await getLoginHistory(superAdminId, limit);
     res.json({ history, count: history.length });
   } catch (err) { next(err); }
