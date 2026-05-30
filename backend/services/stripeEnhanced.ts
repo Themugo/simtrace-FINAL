@@ -1,4 +1,4 @@
-// services/stripeEnhanced.js - Enhanced Stripe Integration for Visa/Mastercard
+// services/stripeEnhanced.ts - Enhanced Stripe Integration for Visa/Mastercard
 // Multi-currency support and enhanced payment methods
 
 import Stripe from "stripe";
@@ -13,7 +13,7 @@ const SUPPORTED_CURRENCIES = [
 ];
 
 // ── Card Type Detection ───────────────────────────────────────────────────────────
-function getCardType(paymentMethod) {
+function getCardType(paymentMethod: any): string {
   const card = paymentMethod.card;
   if (!card) return "unknown";
 
@@ -26,7 +26,7 @@ function getCardType(paymentMethod) {
 }
 
 // ── Create Payment Intent with Multi-Currency ─────────────────────────────────────
-export async function createEnhancedPaymentIntent(data) {
+export async function createEnhancedPaymentIntent(data: any) {
   const {
     userId,
     amount,
@@ -84,7 +84,7 @@ export async function createEnhancedPaymentIntent(data) {
 }
 
 // ── Create Payment Method (Save Card) ─────────────────────────────────────────────
-export async function createPaymentMethod(data) {
+export async function createPaymentMethod(data: any) {
   const {
     userId,
     paymentMethodId,
@@ -97,7 +97,7 @@ export async function createPaymentMethod(data) {
   if (!user) throw new Error("User not found");
 
   // Attach payment method to customer
-  let customerId = user.stripeCustomerId;
+  let customerId = (user as any).stripeCustomerId;
 
   if (!customerId) {
     const customer = await stripe.customers.create({
@@ -107,7 +107,7 @@ export async function createPaymentMethod(data) {
     });
 
     customerId = customer.id;
-    user.stripeCustomerId = customerId;
+    (user as any).stripeCustomerId = customerId;
     await user.save();
   }
 
@@ -129,20 +129,20 @@ export async function createPaymentMethod(data) {
 }
 
 // ── Get Saved Payment Methods ─────────────────────────────────────────────────────
-export async function getSavedPaymentMethods(userId) {
+export async function getSavedPaymentMethods(userId: string) {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
-  if (!user.stripeCustomerId) {
+  if (!(user as any).stripeCustomerId) {
     return [];
   }
 
   const paymentMethods = await stripe.paymentMethods.list({
-    customer: user.stripeCustomerId,
+    customer: (user as any).stripeCustomerId,
     type: "card",
   });
 
-  return paymentMethods.data.map(pm => ({
+  return paymentMethods.data.map((pm: any) => ({
     id: pm.id,
     cardType: getCardType(pm),
     last4: pm.card.last4,
@@ -154,7 +154,7 @@ export async function getSavedPaymentMethods(userId) {
 }
 
 // ── Delete Payment Method ─────────────────────────────────────────────────────────
-export async function deletePaymentMethod(userId, paymentMethodId) {
+export async function deletePaymentMethod(userId: string, paymentMethodId: string) {
   if (!stripe) throw new Error("Stripe not configured");
 
   const paymentMethod = await stripe.paymentMethods.detach(paymentMethodId);
@@ -162,13 +162,13 @@ export async function deletePaymentMethod(userId, paymentMethodId) {
 }
 
 // ── Set Default Payment Method ─────────────────────────────────────────────────────
-export async function setDefaultPaymentMethod(userId, paymentMethodId) {
+export async function setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
   if (!stripe) throw new Error("Stripe not configured");
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
-  if (!user.stripeCustomerId) throw new Error("No Stripe customer found");
+  if (!(user as any).stripeCustomerId) throw new Error("No Stripe customer found");
 
   // Update payment method metadata
   await stripe.paymentMethods.update(paymentMethodId, {
@@ -176,7 +176,7 @@ export async function setDefaultPaymentMethod(userId, paymentMethodId) {
   });
 
   // Update customer default payment method
-  await stripe.customers.update(user.stripeCustomerId, {
+  await stripe.customers.update((user as any).stripeCustomerId, {
     invoice_settings: { default_payment_method: paymentMethodId },
   });
 
@@ -184,7 +184,7 @@ export async function setDefaultPaymentMethod(userId, paymentMethodId) {
 }
 
 // ── Charge Saved Payment Method ───────────────────────────────────────────────────
-export async function chargeSavedPaymentMethod(data) {
+export async function chargeSavedPaymentMethod(data: any) {
   const {
     userId,
     paymentMethodId,
@@ -199,12 +199,12 @@ export async function chargeSavedPaymentMethod(data) {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
-  if (!user.stripeCustomerId) throw new Error("No Stripe customer found");
+  if (!(user as any).stripeCustomerId) throw new Error("No Stripe customer found");
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(amount * 100),
     currency: currency.toLowerCase(),
-    customer: user.stripeCustomerId,
+    customer: (user as any).stripeCustomerId,
     payment_method: paymentMethodId,
     description: description || "SIMTrace payment",
     confirm: true,
@@ -231,7 +231,7 @@ export async function chargeSavedPaymentMethod(data) {
 }
 
 // ── Process Refund ───────────────────────────────────────────────────────────────
-export async function processRefund(paymentId, reason) {
+export async function processRefund(paymentId: string, reason?: string) {
   if (!stripe) throw new Error("Stripe not configured");
 
   const payment = await Payment.findOne({ reference: paymentId });
@@ -247,22 +247,22 @@ export async function processRefund(paymentId, reason) {
   });
 
   payment.status = "refunded";
-  payment.refundId = refund.id;
-  payment.refundedAt = new Date();
+  (payment as any).refundId = refund.id;
+  (payment as any).refundedAt = new Date();
   await payment.save();
 
   return payment;
 }
 
 // ── Currency Conversion ───────────────────────────────────────────────────────────
-export async function getExchangeRate(fromCurrency, toCurrency) {
+export async function getExchangeRate(fromCurrency: string, toCurrency: string) {
   if (fromCurrency.toLowerCase() === toCurrency.toLowerCase()) {
     return { rate: 1, from: fromCurrency, to: toCurrency };
   }
 
   // In production, use a real currency API
   // For now, return approximate rates
-  const rates = {
+  const rates: Record<string, Record<string, number>> = {
     usd: { eur: 0.92, gbp: 0.79, kes: 130, ngn: 1550, zar: 18.5 },
     eur: { usd: 1.09, gbp: 0.86, kes: 141, ngn: 1685, zar: 20.1 },
     gbp: { usd: 1.27, eur: 1.16, kes: 164, ngn: 1960, zar: 23.4 },
@@ -278,7 +278,7 @@ export async function getExchangeRate(fromCurrency, toCurrency) {
 }
 
 // ── Get Supported Currencies ─────────────────────────────────────────────────────
-export function getSupportedCurrencies() {
+export function getSupportedCurrencies(): string[] {
   return SUPPORTED_CURRENCIES;
 }
 
@@ -293,9 +293,9 @@ export async function getCardTypeStatistics() {
   let totalAmount = 0;
 
   for (const payment of payments) {
-    const cardType = payment.metadata?.cardType || "other";
-    if (cardTypes[cardType] !== undefined) {
-      cardTypes[cardType]++;
+    const cardType = (payment as any).metadata?.cardType || "other";
+    if (cardTypes[cardType as keyof typeof cardTypes] !== undefined) {
+      cardTypes[cardType as keyof typeof cardTypes]++;
     } else {
       cardTypes.other++;
     }
