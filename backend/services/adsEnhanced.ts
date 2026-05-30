@@ -1,10 +1,10 @@
-// services/adsEnhanced.js - Enhanced Advertisement Board
+// services/adsEnhanced.ts - Enhanced Advertisement Board
 // Advanced monetization and partnership platform
 
 import { AdCampaign, AdEvent, User, WhiteLabelInstance } from "../db/index.js";
 
 // ── Campaign Management ─────────────────────────────────────────────────────────────
-export async function createAdCampaign(data) {
+export async function createAdCampaign(data: any) {
   const {
     name,
     advertiser,
@@ -66,35 +66,35 @@ export async function createAdCampaign(data) {
   return campaign;
 }
 
-export async function submitCampaignForReview(campaignId) {
+export async function submitCampaignForReview(campaignId: string) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  if (campaign.status !== "draft") {
+  if ((campaign as any).status !== "draft") {
     throw new Error("Only draft campaigns can be submitted");
   }
 
-  campaign.status = "pending";
-  campaign.submittedAt = new Date();
+  (campaign as any).status = "pending";
+  (campaign as any).submittedAt = new Date();
   await campaign.save();
 
   return campaign;
 }
 
-export async function reviewCampaign(campaignId, approved, rejectionReason = null) {
+export async function reviewCampaign(campaignId: string, approved: boolean, rejectionReason: string | null = null) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  if (campaign.status !== "pending") {
+  if ((campaign as any).status !== "pending") {
     throw new Error("Only pending campaigns can be reviewed");
   }
 
-  campaign.status = approved ? "active" : "rejected";
-  campaign.reviewedAt = new Date();
-  campaign.rejectionReason = rejectionReason;
+  (campaign as any).status = approved ? "active" : "rejected";
+  (campaign as any).reviewedAt = new Date();
+  (campaign as any).rejectionReason = rejectionReason;
 
   if (approved) {
-    campaign.schedule.startDate = campaign.schedule.startDate || new Date();
+    (campaign as any).schedule.startDate = (campaign as any).schedule.startDate || new Date();
   }
 
   await campaign.save();
@@ -102,11 +102,11 @@ export async function reviewCampaign(campaignId, approved, rejectionReason = nul
   return campaign;
 }
 
-export async function updateCampaignStatus(campaignId, status) {
+export async function updateCampaignStatus(campaignId: string, status: string) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  const validTransitions = {
+  const validTransitions: Record<string, string[]> = {
     draft: ["pending", "paused"],
     pending: ["active", "rejected"],
     active: ["paused", "completed", "exhausted"],
@@ -116,11 +116,11 @@ export async function updateCampaignStatus(campaignId, status) {
     exhausted: [],
   };
 
-  if (!validTransitions[campaign.status].includes(status)) {
-    throw new Error(`Invalid status transition from ${campaign.status} to ${status}`);
+  if (!validTransitions[(campaign as any).status].includes(status)) {
+    throw new Error(`Invalid status transition from ${(campaign as any).status} to ${status}`);
   }
 
-  campaign.status = status;
+  (campaign as any).status = status;
   campaign.updatedAt = new Date();
   await campaign.save();
 
@@ -128,7 +128,7 @@ export async function updateCampaignStatus(campaignId, status) {
 }
 
 // ── Ad Event Tracking ─────────────────────────────────────────────────────────────
-export async function trackAdEvent(data) {
+export async function trackAdEvent(data: any) {
   const {
     campaignId,
     creativeId,
@@ -172,7 +172,7 @@ export async function trackAdEvent(data) {
   return event;
 }
 
-function calculateFraudScore({ type, context, userId }) {
+function calculateFraudScore({ type, context, userId }: any): number {
   let score = 0;
 
   // High frequency from same user
@@ -195,37 +195,37 @@ function calculateFraudScore({ type, context, userId }) {
   return Math.min(score, 100);
 }
 
-async function updateCampaignMetrics(campaignId, eventType, revenue) {
+async function updateCampaignMetrics(campaignId: string, eventType: string, revenue?: number) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) return;
 
   switch (eventType) {
     case "impression":
-      campaign.metrics.impressions += 1;
+      (campaign as any).metrics.impressions += 1;
       break;
     case "click":
-      campaign.metrics.clicks += 1;
+      (campaign as any).metrics.clicks += 1;
       break;
     case "conversion":
-      campaign.metrics.conversions += 1;
+      (campaign as any).metrics.conversions += 1;
       if (revenue) {
-        campaign.metrics.spend += revenue;
+        (campaign as any).metrics.spend += revenue;
       }
       break;
   }
 
   // Recalculate derived metrics
-  if (campaign.metrics.impressions > 0) {
-    campaign.metrics.ctr = (campaign.metrics.clicks / campaign.metrics.impressions) * 100;
+  if ((campaign as any).metrics.impressions > 0) {
+    (campaign as any).metrics.ctr = ((campaign as any).metrics.clicks / (campaign as any).metrics.impressions) * 100;
   }
 
-  if (campaign.metrics.conversions > 0 && campaign.metrics.spend > 0) {
-    campaign.metrics.cpa = campaign.metrics.spend / campaign.metrics.conversions;
+  if ((campaign as any).metrics.conversions > 0 && (campaign as any).metrics.spend > 0) {
+    (campaign as any).metrics.cpa = (campaign as any).metrics.spend / (campaign as any).metrics.conversions;
   }
 
   // Check budget exhaustion
-  if (campaign.metrics.spend >= campaign.budget.total) {
-    campaign.status = "exhausted";
+  if ((campaign as any).metrics.spend >= (campaign as any).budget.total) {
+    (campaign as any).status = "exhausted";
   }
 
   campaign.updatedAt = new Date();
@@ -233,7 +233,7 @@ async function updateCampaignMetrics(campaignId, eventType, revenue) {
 }
 
 // ── Campaign Queries ─────────────────────────────────────────────────────────────
-export async function getCampaign(campaignId) {
+export async function getCampaign(campaignId: string) {
   const campaign = await AdCampaign.findById(campaignId)
     .populate("advertiser", "name email")
     .populate("whiteLabel");
@@ -241,7 +241,7 @@ export async function getCampaign(campaignId) {
   return campaign;
 }
 
-export async function getCampaignsByAdvertiser(advertiserId) {
+export async function getCampaignsByAdvertiser(advertiserId: string) {
   const campaigns = await AdCampaign.find({ advertiser: advertiserId })
     .populate("whiteLabel")
     .sort({ createdAt: -1 });
@@ -265,7 +265,7 @@ export async function getActiveCampaigns() {
   return campaigns;
 }
 
-export async function getCampaignsByPlacement(placementType) {
+export async function getCampaignsByPlacement(placementType: string) {
   const campaigns = await AdCampaign.find({
     status: "active",
     "placements.type": placementType,
@@ -277,14 +277,14 @@ export async function getCampaignsByPlacement(placementType) {
 }
 
 // ── Ad Selection & Delivery ───────────────────────────────────────────────────────
-export async function selectAdForPlacement(context) {
+export async function selectAdForPlacement(context: any) {
   const { placement, user, location, imeiStatus } = context;
 
   // Get active campaigns for this placement
   const campaigns = await getCampaignsByPlacement(placement);
 
   // Filter by targeting
-  const targetedCampaigns = campaigns.filter(campaign => {
+  const targetedCampaigns = campaigns.filter((campaign: any) => {
     const targeting = campaign.targeting;
 
     // Location targeting
@@ -322,13 +322,13 @@ export async function selectAdForPlacement(context) {
   });
 
   // Sort by bid (simplified - in production, use more sophisticated auction)
-  targetedCampaigns.sort((a, b) => b.bidding.currentBid - a.bidding.currentBid);
+  targetedCampaigns.sort((a: any, b: any) => b.bidding.currentBid - a.bidding.currentBid);
 
   // Return top campaign
   return targetedCampaigns[0] || null;
 }
 
-export async function deliverAd(campaignId, context) {
+export async function deliverAd(campaignId: string, context: any) {
   const campaign = await getCampaign(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
@@ -340,8 +340,8 @@ export async function deliverAd(campaignId, context) {
   });
 
   // Select creative (rotate through creatives)
-  const creativeIndex = campaign.metrics.impressions % campaign.creatives.length;
-  const creative = campaign.creatives[creativeIndex];
+  const creativeIndex = (campaign as any).metrics.impressions % (campaign as any).creatives.length;
+  const creative = (campaign as any).creatives[creativeIndex];
 
   return {
     campaignId,
@@ -351,11 +351,11 @@ export async function deliverAd(campaignId, context) {
 }
 
 // ── Campaign Optimization ─────────────────────────────────────────────────────────
-export async function optimizeCampaign(campaignId) {
+export async function optimizeCampaign(campaignId: string) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  if (!campaign.optimization.autoOptimize) {
+  if (!(campaign as any).optimization.autoOptimize) {
     throw new Error("Auto-optimization is not enabled for this campaign");
   }
 
@@ -365,46 +365,46 @@ export async function optimizeCampaign(campaignId) {
     timestamp: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
   });
 
-  const impressions = recentEvents.filter(e => e.type === "impression").length;
-  const clicks = recentEvents.filter(e => e.type === "click").length;
+  const impressions = recentEvents.filter((e: any) => e.type === "impression").length;
+  const clicks = recentEvents.filter((e: any) => e.type === "click").length;
   const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
   // Adjust bid based on performance
   if (ctr > 2) {
     // Good performance, increase bid
-    campaign.bidding.currentBid = Math.min(
-      campaign.bidding.currentBid * 1.1,
-      campaign.bidding.maxBid
+    (campaign as any).bidding.currentBid = Math.min(
+      (campaign as any).bidding.currentBid * 1.1,
+      (campaign as any).bidding.maxBid
     );
   } else if (ctr < 0.5) {
     // Poor performance, decrease bid
-    campaign.bidding.currentBid = Math.max(
-      campaign.bidding.currentBid * 0.9,
-      campaign.bidding.maxBid * 0.5
+    (campaign as any).bidding.currentBid = Math.max(
+      (campaign as any).bidding.currentBid * 0.9,
+      (campaign as any).bidding.maxBid * 0.5
     );
   }
 
-  campaign.optimization.lastOptimized = new Date();
+  (campaign as any).optimization.lastOptimized = new Date();
   campaign.updatedAt = new Date();
   await campaign.save();
 
   return campaign;
 }
 
-export async function enableAutoOptimization(campaignId) {
+export async function enableAutoOptimization(campaignId: string) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  campaign.optimization.autoOptimize = true;
-  campaign.optimization.learningModel = "v1";
-  campaign.optimization.lastOptimized = new Date();
+  (campaign as any).optimization.autoOptimize = true;
+  (campaign as any).optimization.learningModel = "v1";
+  (campaign as any).optimization.lastOptimized = new Date();
   await campaign.save();
 
   return campaign;
 }
 
 // ── Revenue & Analytics ───────────────────────────────────────────────────────────
-export async function getCampaignAnalytics(campaignId, period = "7d") {
+export async function getCampaignAnalytics(campaignId: string, period = "7d") {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
@@ -422,15 +422,15 @@ export async function getCampaignAnalytics(campaignId, period = "7d") {
     timestamp: { $gte: startDate },
   });
 
-  const impressions = events.filter(e => e.type === "impression").length;
-  const clicks = events.filter(e => e.type === "click").length;
-  const conversions = events.filter(e => e.type === "conversion").length;
-  const totalRevenue = events.reduce((sum, e) => sum + (e.revenue || 0), 0);
-  const flaggedEvents = events.filter(e => e.flagged).length;
+  const impressions = events.filter((e: any) => e.type === "impression").length;
+  const clicks = events.filter((e: any) => e.type === "click").length;
+  const conversions = events.filter((e: any) => e.type === "conversion").length;
+  const totalRevenue = events.reduce((sum: number, e: any) => sum + (e.revenue || 0), 0);
+  const flaggedEvents = events.filter((e: any) => e.flagged).length;
 
   // Daily breakdown
-  const dailyData = {};
-  events.forEach(event => {
+  const dailyData: Record<string, any> = {};
+  events.forEach((event: any) => {
     const date = event.timestamp.toISOString().split("T")[0];
     if (!dailyData[date]) {
       dailyData[date] = { impressions: 0, clicks: 0, conversions: 0, revenue: 0 };
@@ -475,7 +475,7 @@ export async function getPlatformRevenue(period = "month") {
     flagged: false,
   });
 
-  const totalRevenue = events.reduce((sum, e) => sum + (e.revenue || 0), 0);
+  const totalRevenue = events.reduce((sum: number, e: any) => sum + (e.revenue || 0), 0);
 
   // Revenue by campaign
   const revenueByCampaign = await AdEvent.aggregate([
@@ -533,7 +533,7 @@ export async function getAdBoardStatistics() {
       { $match: { type: "conversion", flagged: false } },
       { $group: { _id: null, total: { $sum: "$revenue" } } },
     ]),
-    AdCampaign.distinct("advertiser").then(ids => ids.length),
+    AdCampaign.distinct("advertiser").then((ids: any[]) => ids.length),
   ]);
 
   const avgCtr = totalImpressions > 0 
