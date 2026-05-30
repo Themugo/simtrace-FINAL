@@ -1,11 +1,11 @@
-// services/gdpr.js - GDPR Compliance Service
+// services/gdpr.ts - GDPR Compliance Service
 // Data privacy and GDPR compliance features
 
 import { GdprRequest, DataResidency, User, Device, Ping, Alert, TheftReport } from "../db/index.js";
 import crypto from "crypto";
 
 // ── GDPR Request Management ───────────────────────────────────────────────────────
-export async function createGdprRequest(data) {
+export async function createGdprRequest(data: any) {
   const {
     userId,
     requestType,
@@ -26,7 +26,7 @@ export async function createGdprRequest(data) {
   return request;
 }
 
-export async function getGdprRequest(requestId) {
+export async function getGdprRequest(requestId: string) {
   const request = await GdprRequest.findById(requestId)
     .populate("user", "name email")
     .populate("processedBy", "name email");
@@ -34,14 +34,14 @@ export async function getGdprRequest(requestId) {
   return request;
 }
 
-export async function getGdprRequestsByUser(userId) {
+export async function getGdprRequestsByUser(userId: string) {
   const requests = await GdprRequest.find({ user: userId })
     .sort({ createdAt: -1 });
 
   return requests;
 }
 
-export async function processGdprRequest(requestId, processedBy) {
+export async function processGdprRequest(requestId: string, processedBy: string) {
   const request = await GdprRequest.findById(requestId);
   if (!request) throw new Error("GDPR request not found");
 
@@ -73,7 +73,7 @@ export async function processGdprRequest(requestId, processedBy) {
   return request;
 }
 
-async function processDataExport(request) {
+async function processDataExport(request: any) {
   const user = await User.findById(request.user);
   if (!user) throw new Error("User not found");
 
@@ -87,7 +87,7 @@ async function processDataExport(request) {
       createdAt: user.createdAt,
     },
     devices: await Device.find({ user: user._id }),
-    pings: await Ping.find({ device: { $in: (await Device.find({ user: user._id })).map(d => d._id) } }),
+    pings: await Ping.find({ device: { $in: (await Device.find({ user: user._id })).map((d: any) => d._id) } }),
     alerts: await Alert.find({ user: user._id }),
     theftReports: await TheftReport.find({ user: user._id }),
   };
@@ -104,7 +104,7 @@ async function processDataExport(request) {
   await request.save();
 }
 
-async function processDataDeletion(request) {
+async function processDataDeletion(request: any) {
   const user = await User.findById(request.user);
   if (!user) throw new Error("User not found");
 
@@ -112,7 +112,7 @@ async function processDataDeletion(request) {
   await Device.deleteMany({ user: user._id });
 
   // Delete user's pings
-  const deviceIds = (await Device.find({ user: user._id })).map(d => d._id);
+  const deviceIds = (await Device.find({ user: user._id })).map((d: any) => d._id);
   await Ping.deleteMany({ device: { $in: deviceIds } });
 
   // Delete user's alerts
@@ -132,19 +132,19 @@ async function processDataDeletion(request) {
   await request.save();
 }
 
-async function processAccessRequest(request) {
+async function processAccessRequest(request: any) {
   // Similar to data export but for review
   await processDataExport(request);
 }
 
-async function processRectification(request) {
+async function processRectification(request: any) {
   // User would need to provide corrected data
   request.status = "completed";
   request.updatedAt = new Date();
   await request.save();
 }
 
-export async function rejectGdprRequest(requestId, reason) {
+export async function rejectGdprRequest(requestId: string, reason: string) {
   const request = await GdprRequest.findById(requestId);
   if (!request) throw new Error("GDPR request not found");
 
@@ -157,7 +157,7 @@ export async function rejectGdprRequest(requestId, reason) {
 }
 
 // ── Data Residency Management ─────────────────────────────────────────────────────
-export async function setDataResidency(data) {
+export async function setDataResidency(data: any) {
   const {
     userId,
     region,
@@ -178,19 +178,19 @@ export async function setDataResidency(data) {
   return residency;
 }
 
-export async function getDataResidency(userId) {
+export async function getDataResidency(userId: string) {
   const residency = await DataResidency.findOne({ user: userId });
   return residency;
 }
 
-export async function updateDataResidency(userId, updates) {
+export async function updateDataResidency(userId: string, updates: any) {
   const residency = await DataResidency.findOne({ user: userId });
   if (!residency) throw new Error("Data residency not found");
 
   const allowedUpdates = ["region", "storageLocations", "gdprCompliant", "ccpaCompliant"];
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      residency[key] = updates[key];
+      (residency as any)[key] = updates[key];
     }
   }
 
@@ -201,8 +201,8 @@ export async function updateDataResidency(userId, updates) {
 }
 
 // ── GDPR Compliance Helpers ───────────────────────────────────────────────────────
-function getGdprArticle(requestType) {
-  const articles = {
+function getGdprArticle(requestType: string): string {
+  const articles: Record<string, string> = {
     data_export: "Article 15 - Right of access",
     data_deletion: "Article 17 - Right to erasure",
     access_request: "Article 15 - Right of access",
@@ -211,7 +211,7 @@ function getGdprArticle(requestType) {
   return articles[requestType] || "Unknown";
 }
 
-export async function checkGdprCompliance(userId) {
+export async function checkGdprCompliance(userId: string) {
   const residency = await DataResidency.findOne({ user: userId });
 
   if (!residency) {
@@ -260,14 +260,14 @@ export async function getGdprStatistics() {
     pendingRequests,
     completedRequests,
     rejectedRequests,
-    requestsByType: requestsByType.map(r => ({ type: r._id, count: r.count })),
+    requestsByType: requestsByType.map((r: any) => ({ type: r._id, count: r.count })),
     euUsers,
     usUsers,
   };
 }
 
 // ── Data Export Download ─────────────────────────────────────────────────────────
-export async function getExportUrl(requestId) {
+export async function getExportUrl(requestId: string) {
   const request = await GdprRequest.findById(requestId);
 
   if (!request) throw new Error("Request not found");
