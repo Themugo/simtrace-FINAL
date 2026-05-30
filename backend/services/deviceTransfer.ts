@@ -1,4 +1,4 @@
-// services/deviceTransfer.js - Device transfer system services
+// services/deviceTransfer.ts - Device transfer system services
 import crypto from "crypto";
 import {
   DeviceTransfer,
@@ -7,7 +7,7 @@ import {
 } from "../db/index.js";
 
 // ── Device Transfer Management ───────────────────────────────────────────────────────
-export async function initiateDeviceTransfer(data) {
+export async function initiateDeviceTransfer(data: any) {
   const transferId = `transfer_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify device ownership
@@ -33,7 +33,7 @@ export async function initiateDeviceTransfer(data) {
   return transfer;
 }
 
-export async function acceptDeviceTransfer(transferId, userId) {
+export async function acceptDeviceTransfer(transferId: string, userId: string) {
   const transfer = await DeviceTransfer.findOne({ transferId });
   if (!transfer) throw new Error("Transfer not found");
 
@@ -57,7 +57,7 @@ export async function acceptDeviceTransfer(transferId, userId) {
   return transfer;
 }
 
-export async function confirmDeviceTransfer(transferId, userId) {
+export async function confirmDeviceTransfer(transferId: string, userId: string) {
   const transfer = await DeviceTransfer.findOne({ transferId });
   if (!transfer) throw new Error("Transfer not found");
 
@@ -81,7 +81,7 @@ export async function confirmDeviceTransfer(transferId, userId) {
   return transfer;
 }
 
-export async function completeDeviceTransfer(transferId) {
+export async function completeDeviceTransfer(transferId: string) {
   const transfer = await DeviceTransfer.findOne({ transferId });
   if (!transfer) throw new Error("Transfer not found");
 
@@ -101,7 +101,7 @@ export async function completeDeviceTransfer(transferId) {
   return transfer;
 }
 
-export async function cancelDeviceTransfer(transferId, userId, reason) {
+export async function cancelDeviceTransfer(transferId: string, userId: string, reason: string) {
   const transfer = await DeviceTransfer.findOne({ transferId });
   if (!transfer) throw new Error("Transfer not found");
 
@@ -121,7 +121,7 @@ export async function cancelDeviceTransfer(transferId, userId, reason) {
   return transfer;
 }
 
-export async function raiseDispute(transferId, userId, reason) {
+export async function raiseDispute(transferId: string, userId: string, reason: string) {
   const transfer = await DeviceTransfer.findOne({ transferId });
   if (!transfer) throw new Error("Transfer not found");
 
@@ -144,7 +144,7 @@ export async function raiseDispute(transferId, userId, reason) {
   return transfer;
 }
 
-export async function resolveDispute(transferId, resolution, resolvedBy) {
+export async function resolveDispute(transferId: string, resolution: string, resolvedBy: string) {
   const transfer = await DeviceTransfer.findOne({ transferId });
   if (!transfer) throw new Error("Transfer not found");
 
@@ -157,25 +157,25 @@ export async function resolveDispute(transferId, resolution, resolvedBy) {
   return transfer;
 }
 
-export async function getDeviceTransfer(transferId) {
+export async function getDeviceTransfer(transferId: string) {
   const transfer = await DeviceTransfer.findOne({ transferId });
   if (!transfer) throw new Error("Transfer not found");
   return transfer;
 }
 
-export async function getDeviceTransfersByDevice(deviceId) {
+export async function getDeviceTransfersByDevice(deviceId: string) {
   const transfers = await DeviceTransfer.find({ deviceId }).sort({ transferDate: -1 });
   return transfers;
 }
 
-export async function getDeviceTransfersByUser(userId) {
+export async function getDeviceTransfersByUser(userId: string) {
   const transfers = await DeviceTransfer.find({
     $or: [{ fromUserId: userId }, { toUserId: userId }],
   }).sort({ transferDate: -1 });
   return transfers;
 }
 
-export async function getPendingTransfers(userId) {
+export async function getPendingTransfers(userId: string) {
   const transfers = await DeviceTransfer.find({
     $or: [{ fromUserId: userId }, { toUserId: userId }],
     status: "pending",

@@ -1,4 +1,4 @@
-// services/deviceLock.js - Device lock and remote wipe services
+// services/deviceLock.ts - Device lock and remote wipe services
 import crypto from "crypto";
 import {
   DeviceLock,
@@ -7,7 +7,7 @@ import {
 } from "../db/index.js";
 
 // ── Device Lock Management ───────────────────────────────────────────────────────────
-export async function lockDevice(data) {
+export async function lockDevice(data: any) {
   const lockId = `lock_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify device ownership
@@ -42,7 +42,7 @@ export async function lockDevice(data) {
   return lock;
 }
 
-export async function unlockDevice(lockId, userId) {
+export async function unlockDevice(lockId: string, userId: string) {
   const lock = await DeviceLock.findOne({ lockId });
   if (!lock) throw new Error("Lock not found");
 
@@ -73,7 +73,7 @@ export async function unlockDevice(lockId, userId) {
   return lock;
 }
 
-export async function recordUnlockAttempt(lockId, location) {
+export async function recordUnlockAttempt(lockId: string, location: any) {
   const lock = await DeviceLock.findOne({ lockId });
   if (!lock) throw new Error("Lock not found");
 
@@ -85,7 +85,7 @@ export async function recordUnlockAttempt(lockId, location) {
   return lock;
 }
 
-export async function remoteWipeDevice(lockId, userId) {
+export async function remoteWipeDevice(lockId: string, userId: string) {
   const lock = await DeviceLock.findOne({ lockId });
   if (!lock) throw new Error("Lock not found");
 
@@ -106,23 +106,23 @@ export async function remoteWipeDevice(lockId, userId) {
   return lock;
 }
 
-export async function getDeviceLock(lockId) {
+export async function getDeviceLock(lockId: string) {
   const lock = await DeviceLock.findOne({ lockId });
   if (!lock) throw new Error("Lock not found");
   return lock;
 }
 
-export async function getDeviceLocksByDevice(deviceId) {
+export async function getDeviceLocksByDevice(deviceId: string) {
   const locks = await DeviceLock.find({ deviceId }).sort({ lockDate: -1 });
   return locks;
 }
 
-export async function getDeviceLocksByUser(userId) {
+export async function getDeviceLocksByUser(userId: string) {
   const locks = await DeviceLock.find({ userId }).sort({ lockDate: -1 });
   return locks;
 }
 
-export async function getActiveLocksByDevice(deviceId) {
+export async function getActiveLocksByDevice(deviceId: string) {
   const lock = await DeviceLock.findOne({
     deviceId,
     status: "active",
@@ -130,7 +130,7 @@ export async function getActiveLocksByDevice(deviceId) {
   return lock;
 }
 
-export async function checkDeviceLockStatus(deviceId) {
+export async function checkDeviceLockStatus(deviceId: string) {
   const lock = await DeviceLock.findOne({
     deviceId,
     status: "active",
