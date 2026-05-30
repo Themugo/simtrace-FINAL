@@ -1,11 +1,11 @@
-// services/insurance.js - Insurance Tech Integration
+// services/insurance.ts - Insurance Tech Integration
 // Device insurance policy and claims management
 
 import { InsurancePolicy, InsuranceClaim, Device, User } from "../db/index.js";
 import { getIO } from "./socket.js";
 
 // ── Policy Management ─────────────────────────────────────────────────────────────
-export async function createInsurancePolicy(data) {
+export async function createInsurancePolicy(data: any) {
   const {
     userId,
     provider,
@@ -61,7 +61,7 @@ export async function createInsurancePolicy(data) {
   return policy;
 }
 
-export async function getInsurancePolicy(policyId) {
+export async function getInsurancePolicy(policyId: string) {
   const policy = await InsurancePolicy.findById(policyId)
     .populate("user", "name email")
     .populate("devices")
@@ -70,7 +70,7 @@ export async function getInsurancePolicy(policyId) {
   return policy;
 }
 
-export async function getPoliciesByUser(userId) {
+export async function getPoliciesByUser(userId: string) {
   const policies = await InsurancePolicy.find({ user: userId })
     .populate("devices")
     .sort({ createdAt: -1 });
@@ -78,7 +78,7 @@ export async function getPoliciesByUser(userId) {
   return policies;
 }
 
-export async function updatePolicyStatus(policyId, status) {
+export async function updatePolicyStatus(policyId: string, status: string) {
   const policy = await InsurancePolicy.findById(policyId);
   if (!policy) throw new Error("Policy not found");
 
@@ -90,7 +90,7 @@ export async function updatePolicyStatus(policyId, status) {
 }
 
 // ── Claim Management ─────────────────────────────────────────────────────────────
-export async function createInsuranceClaim(data) {
+export async function createInsuranceClaim(data: any) {
   const {
     policyId,
     userId,
@@ -157,7 +157,7 @@ export async function createInsuranceClaim(data) {
   return claim;
 }
 
-export async function getInsuranceClaim(claimId) {
+export async function getInsuranceClaim(claimId: string) {
   const claim = await InsuranceClaim.findById(claimId)
     .populate("policy")
     .populate("user", "name email")
@@ -167,7 +167,7 @@ export async function getInsuranceClaim(claimId) {
   return claim;
 }
 
-export async function getClaimsByUser(userId) {
+export async function getClaimsByUser(userId: string) {
   const claims = await InsuranceClaim.find({ user: userId })
     .populate("policy", "policyNumber provider")
     .populate("device", "imei make model")
@@ -176,7 +176,7 @@ export async function getClaimsByUser(userId) {
   return claims;
 }
 
-export async function updateClaimStatus(claimId, status, assessorId, assessmentNotes, approvedAmount) {
+export async function updateClaimStatus(claimId: string, status: string, assessorId: string, assessmentNotes?: string, approvedAmount?: number) {
   const claim = await InsuranceClaim.findById(claimId);
   if (!claim) throw new Error("Claim not found");
 
@@ -206,7 +206,7 @@ export async function updateClaimStatus(claimId, status, assessorId, assessmentN
   return claim;
 }
 
-export async function addClaimEvidence(claimId, evidence) {
+export async function addClaimEvidence(claimId: string, evidence: any) {
   const claim = await InsuranceClaim.findById(claimId);
   if (!claim) throw new Error("Claim not found");
 
@@ -221,7 +221,7 @@ export async function addClaimEvidence(claimId, evidence) {
   return claim;
 }
 
-export async function markDeviceRecovered(claimId) {
+export async function markDeviceRecovered(claimId: string) {
   const claim = await InsuranceClaim.findById(claimId);
   if (!claim) throw new Error("Claim not found");
 
@@ -294,7 +294,7 @@ export async function getInsuranceStatistics() {
   };
 }
 
-export async function getProviderStatistics(providerId) {
+export async function getProviderStatistics(providerId: string) {
   const [
     totalPolicies,
     activePolicies,
@@ -363,7 +363,7 @@ export async function checkPolicyExpiry() {
   };
 }
 
-export async function renewPolicy(policyId, newEndDate) {
+export async function renewPolicy(policyId: string, newEndDate: Date) {
   const policy = await InsurancePolicy.findById(policyId);
   if (!policy) throw new Error("Policy not found");
 
