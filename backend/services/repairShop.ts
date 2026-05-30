@@ -1,4 +1,4 @@
-// services/repairShop.js - Repair shop layer services
+// services/repairShop.ts - Repair shop layer services
 import crypto from "crypto";
 import {
   RepairShop,
@@ -9,7 +9,7 @@ import {
 } from "../db/index.js";
 
 // ── Repair Shop Management ─────────────────────────────────────────────────────────
-export async function createRepairShop(data) {
+export async function createRepairShop(data: any) {
   const shopId = `shop_${crypto.randomBytes(16).toString("hex")}`;
 
   const shop = await RepairShop.create({
@@ -22,18 +22,18 @@ export async function createRepairShop(data) {
   return shop;
 }
 
-export async function getRepairShop(shopId) {
+export async function getRepairShop(shopId: string) {
   const shop = await RepairShop.findOne({ shopId, status: "active" });
   if (!shop) throw new Error("Repair shop not found");
   return shop;
 }
 
-export async function getRepairShopByEmail(officialEmail) {
+export async function getRepairShopByEmail(officialEmail: string) {
   const shop = await RepairShop.findOne({ officialEmail, status: "active" });
   return shop;
 }
 
-export async function updateRepairShop(shopId, updates, updatedBy) {
+export async function updateRepairShop(shopId: string, updates: any, updatedBy: string) {
   const shop = await RepairShop.findOneAndUpdate(
     { shopId },
     {
@@ -47,7 +47,7 @@ export async function updateRepairShop(shopId, updates, updatedBy) {
   return shop;
 }
 
-export async function suspendRepairShop(shopId, suspendedBy) {
+export async function suspendRepairShop(shopId: string, suspendedBy: string) {
   const shop = await RepairShop.findOneAndUpdate(
     { shopId },
     {
@@ -61,7 +61,7 @@ export async function suspendRepairShop(shopId, suspendedBy) {
   return shop;
 }
 
-export async function verifyRepairShop(shopId, verifiedBy) {
+export async function verifyRepairShop(shopId: string, verifiedBy: string) {
   const shop = await RepairShop.findOneAndUpdate(
     { shopId },
     {
@@ -75,17 +75,17 @@ export async function verifyRepairShop(shopId, verifiedBy) {
   return shop;
 }
 
-export async function getRepairShopsByCountry(countryCode) {
+export async function getRepairShopsByCountry(countryCode: string) {
   const shops = await RepairShop.find({ countryCode, status: "active" });
   return shops;
 }
 
-export async function getRepairShopsByRegion(countryCode, region) {
+export async function getRepairShopsByRegion(countryCode: string, region: string) {
   const shops = await RepairShop.find({ countryCode, region, status: "active" });
   return shops;
 }
 
-export async function getRepairShopsBySpecialization(specialization) {
+export async function getRepairShopsBySpecialization(specialization: string) {
   const shops = await RepairShop.find({
     specializations: specialization,
     status: "active",
@@ -94,7 +94,7 @@ export async function getRepairShopsBySpecialization(specialization) {
 }
 
 // ── Repair Record Management ────────────────────────────────────────────────────────
-export async function createRepairRecord(data) {
+export async function createRepairRecord(data: any) {
   const repairId = `repair_${crypto.randomBytes(16).toString("hex")}`;
 
   // Calculate commission
@@ -102,10 +102,10 @@ export async function createRepairRecord(data) {
   if (!shop) throw new Error("Repair shop not found");
 
   let commissionAmount = 0;
-  if (shop.commission.type === "percentage") {
-    commissionAmount = (data.repairCost * shop.commission.value) / 100;
+  if ((shop as any).commission.type === "percentage") {
+    commissionAmount = (data.repairCost * (shop as any).commission.value) / 100;
   } else {
-    commissionAmount = shop.commission.value;
+    commissionAmount = (shop as any).commission.value;
   }
 
   const repair = await RepairRecord.create({
@@ -128,23 +128,23 @@ export async function createRepairRecord(data) {
   return repair;
 }
 
-export async function getRepairRecord(repairId) {
+export async function getRepairRecord(repairId: string) {
   const repair = await RepairRecord.findOne({ repairId });
   if (!repair) throw new Error("Repair record not found");
   return repair;
 }
 
-export async function getRepairRecordsByShop(shopId) {
+export async function getRepairRecordsByShop(shopId: string) {
   const repairs = await RepairRecord.find({ shopId }).sort({ repairDate: -1 });
   return repairs;
 }
 
-export async function getRepairRecordsByDevice(deviceId) {
+export async function getRepairRecordsByDevice(deviceId: string) {
   const repairs = await RepairRecord.find({ deviceId }).sort({ repairDate: -1 });
   return repairs;
 }
 
-export async function updateRepairRecord(repairId, updates, updatedBy) {
+export async function updateRepairRecord(repairId: string, updates: any, updatedBy: string) {
   const repair = await RepairRecord.findOneAndUpdate(
     { repairId },
     {
@@ -157,8 +157,8 @@ export async function updateRepairRecord(repairId, updates, updatedBy) {
   if (!repair) throw new Error("Repair record not found");
 
   // If completed, update successful repairs count
-  if (updates.status === "completed" && repair.status !== "completed") {
-    await RepairShop.findByIdAndUpdate(repair.shopId, {
+  if (updates.status === "completed" && (repair as any).status !== "completed") {
+    await RepairShop.findByIdAndUpdate((repair as any).shopId, {
       $inc: { successfulRepairs: 1 },
     });
   }
@@ -166,48 +166,48 @@ export async function updateRepairRecord(repairId, updates, updatedBy) {
   return repair;
 }
 
-export async function completeRepairRecord(repairId, completionData, completedBy) {
+export async function completeRepairRecord(repairId: string, completionData: any, completedBy: string) {
   const repair = await RepairRecord.findOne({ repairId });
   if (!repair) throw new Error("Repair record not found");
 
-  repair.completionDate = new Date();
-  repair.status = "completed";
-  repair.findings = completionData.findings;
-  repair.deviceStatusAfter = completionData.deviceStatusAfter;
-  repair.contributedToRecovery = completionData.contributedToRecovery || false;
-  repair.recoveryNotes = completionData.recoveryNotes;
-  repair.updatedBy = completedBy;
+  (repair as any).completionDate = new Date();
+  (repair as any).status = "completed";
+  (repair as any).findings = completionData.findings;
+  (repair as any).deviceStatusAfter = completionData.deviceStatusAfter;
+  (repair as any).contributedToRecovery = completionData.contributedToRecovery || false;
+  (repair as any).recoveryNotes = completionData.recoveryNotes;
+  (repair as any).updatedBy = completedBy;
   repair.updatedAt = new Date();
   await repair.save();
 
   // Update shop stats
-  await RepairShop.findByIdAndUpdate(repair.shopId, {
+  await RepairShop.findByIdAndUpdate((repair as any).shopId, {
     $inc: { successfulRepairs: 1 },
   });
 
   // If contributed to recovery, notify relevant parties
-  if (repair.contributedToRecovery) {
+  if ((repair as any).contributedToRecovery) {
     // TODO: Notify recovery network
   }
 
   return repair;
 }
 
-export async function cancelRepairRecord(repairId, cancelledBy) {
+export async function cancelRepairRecord(repairId: string, cancelledBy: string) {
   const repair = await RepairRecord.findOne({ repairId });
   if (!repair) throw new Error("Repair record not found");
 
   // Remove commission from shop
-  await RepairShop.findByIdAndUpdate(repair.shopId, {
+  await RepairShop.findByIdAndUpdate((repair as any).shopId, {
     $inc: {
       totalRepairs: -1,
-      totalCommission: -repair.commissionAmount,
+      totalCommission: -(repair as any).commissionAmount,
     },
-    $pull: { devicesRepaired: repair.deviceId },
+    $pull: { devicesRepaired: (repair as any).deviceId },
   });
 
-  repair.status = "cancelled";
-  repair.updatedBy = cancelledBy;
+  (repair as any).status = "cancelled";
+  (repair as any).updatedBy = cancelledBy;
   repair.updatedAt = new Date();
   await repair.save();
 
@@ -215,11 +215,11 @@ export async function cancelRepairRecord(repairId, cancelledBy) {
 }
 
 // ── Permission Checks ──────────────────────────────────────────────────────────────
-export async function checkRepairShopPermission(shopId, permission) {
+export async function checkRepairShopPermission(shopId: string, permission: string) {
   const shop = await RepairShop.findOne({ shopId, status: "active" });
   if (!shop) return { allowed: false, reason: "Repair shop not found or inactive" };
 
-  if (!shop.permissions[permission]) {
+  if (!(shop as any).permissions[permission]) {
     return { allowed: false, reason: `Permission '${permission}' not granted` };
   }
 
@@ -227,13 +227,13 @@ export async function checkRepairShopPermission(shopId, permission) {
 }
 
 // ── Recovery Contribution ───────────────────────────────────────────────────────────
-export async function reportRecoveryContribution(repairId, recoveryData, reportedBy) {
+export async function reportRecoveryContribution(repairId: string, recoveryData: any, reportedBy: string) {
   const repair = await RepairRecord.findOne({ repairId });
   if (!repair) throw new Error("Repair record not found");
 
-  repair.contributedToRecovery = true;
-  repair.recoveryNotes = recoveryData.notes;
-  repair.updatedBy = reportedBy;
+  (repair as any).contributedToRecovery = true;
+  (repair as any).recoveryNotes = recoveryData.notes;
+  (repair as any).updatedBy = reportedBy;
   repair.updatedAt = new Date();
   await repair.save();
 
@@ -243,7 +243,7 @@ export async function reportRecoveryContribution(repairId, recoveryData, reporte
   return repair;
 }
 
-export async function getRecoveryContributionsByShop(shopId) {
+export async function getRecoveryContributionsByShop(shopId: string) {
   const repairs = await RepairRecord.find({
     shopId,
     contributedToRecovery: true,
@@ -252,25 +252,25 @@ export async function getRecoveryContributionsByShop(shopId) {
 }
 
 // ── Statistics ───────────────────────────────────────────────────────────────────────
-export async function getRepairShopStatistics(shopId) {
+export async function getRepairShopStatistics(shopId: string) {
   const shop = await RepairShop.findById(shopId);
   if (!shop) throw new Error("Repair shop not found");
 
   const repairs = await RepairRecord.find({ shopId });
-  const completedRepairs = repairs.filter(r => r.status === "completed");
-  const recoveryContributions = repairs.filter(r => r.contributedToRecovery);
+  const completedRepairs = repairs.filter((r: any) => r.status === "completed");
+  const recoveryContributions = repairs.filter((r: any) => r.contributedToRecovery);
 
   return {
-    totalRepairs: shop.totalRepairs,
-    successfulRepairs: shop.successfulRepairs,
-    totalCommission: shop.totalCommission,
-    devicesRepaired: shop.devicesRepaired.length,
+    totalRepairs: (shop as any).totalRepairs,
+    successfulRepairs: (shop as any).successfulRepairs,
+    totalCommission: (shop as any).totalCommission,
+    devicesRepaired: (shop as any).devicesRepaired.length,
     completedRepairs: completedRepairs.length,
     recoveryContributions: recoveryContributions.length,
-    commissionTier: shop.commission.tier,
-    specializations: shop.specializations,
-    verified: shop.verified,
-    status: shop.status,
+    commissionTier: (shop as any).commission.tier,
+    specializations: (shop as any).specializations,
+    verified: (shop as any).verified,
+    status: (shop as any).status,
   };
 }
 
