@@ -1,15 +1,16 @@
 import { body, param, query, validationResult } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
 
 /**
  * Validation middleware factory
  * Creates middleware that validates request data using express-validator
  */
-export const validate = (req, res, next) => {
+export const validate = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
       error: 'Validation failed',
-      details: errors.array().map(err => ({
+      details: errors.array().map((err: any) => ({
         field: err.path,
         message: err.msg,
         value: err.value
@@ -138,7 +139,7 @@ export const validationRules = {
  * Sanitization middleware
  * Removes potentially dangerous characters from request inputs
  */
-export const sanitizeInput = (req, res, next) => {
+export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
   // Sanitize body
   if (req.body) {
     Object.keys(req.body).forEach(key => {
@@ -164,7 +165,7 @@ export const sanitizeInput = (req, res, next) => {
  * Rate limit validation
  * Checks if the request exceeds rate limits
  */
-export const checkRateLimit = (req, res, next) => {
+export const checkRateLimit = (req: Request, res: Response, next: NextFunction) => {
   // This is handled by express-rate-limit middleware
   // This middleware can be used for custom rate limiting logic
   next();
