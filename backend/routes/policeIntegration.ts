@@ -1,5 +1,5 @@
-// routes/policeIntegration.js - Law Enforcement Integration API endpoints
-import { Router } from "express";
+// routes/policeIntegration.ts - Law Enforcement Integration API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -40,8 +40,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Police Station Management ─────────────────────────────────────────────────────
-router.post("/stations", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/stations", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       stationCode: z.string(),
@@ -67,14 +75,14 @@ router.post("/stations", authenticate, requireAdmin, async (req, res, next) => {
     const station = await createPoliceStation(data);
     res.status(201).json(station);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/stations", authenticate, async (req, res, next) => {
+router.get("/stations", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const filters = {};
+    const filters: any = {};
     if (req.query.county) filters.county = req.query.county;
     if (req.query.status) filters.status = req.query.status;
     if (req.query.stationType) filters.stationType = req.query.stationType;
@@ -84,7 +92,7 @@ router.get("/stations", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/stations/:id", authenticate, async (req, res, next) => {
+router.get("/stations/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const station = await getPoliceStation(id);
@@ -92,7 +100,7 @@ router.get("/stations/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.patch("/stations/:id", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/stations/:id", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const station = await updatePoliceStation(id, req.body);
@@ -100,7 +108,7 @@ router.patch("/stations/:id", authenticate, requireAdmin, async (req, res, next)
   } catch (err) { next(err); }
 });
 
-router.get("/stations/nearby", authenticate, async (req, res, next) => {
+router.get("/stations/nearby", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { lat, lng, radius } = req.query;
     if (!lat || !lng) {
@@ -108,16 +116,16 @@ router.get("/stations/nearby", authenticate, async (req, res, next) => {
     }
 
     const stations = await getNearbyStations(
-      parseFloat(lat),
-      parseFloat(lng),
-      radius ? parseFloat(radius) : 50
+      parseFloat(lat as string),
+      parseFloat(lng as string),
+      radius ? parseFloat(radius as string) : 50
     );
     res.json({ stations, count: stations.length });
   } catch (err) { next(err); }
 });
 
 // ── Police Report System ─────────────────────────────────────────────────────────
-router.post("/reports", authenticate, async (req, res, next) => {
+router.post("/reports", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -139,19 +147,19 @@ router.post("/reports", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const report = await createPoliceReport({
       ...data,
-      userId: req.user.id,
+      userId: req.user!.id,
       reportDate: new Date(data.reportDate),
       incidentDate: new Date(data.incidentDate),
     });
 
     res.status(201).json(report);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/reports/:id/confirm", authenticate, async (req, res, next) => {
+router.post("/reports/:id/confirm", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       confirmationNotes: z.string().optional(),
@@ -159,15 +167,15 @@ router.post("/reports/:id/confirm", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { confirmationNotes } = schema.parse(req.body);
-    const report = await confirmPoliceReport(id, req.user.id, confirmationNotes);
+    const report = await confirmPoliceReport(id, req.user!.id, confirmationNotes);
     res.json(report);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/reports/:id", authenticate, async (req, res, next) => {
+router.get("/reports/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const report = await getPoliceReport(id);
@@ -175,7 +183,7 @@ router.get("/reports/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/reports/station/:stationId", authenticate, async (req, res, next) => {
+router.get("/reports/station/:stationId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { stationId } = req.params;
     const reports = await getPoliceReportsByStation(stationId);
@@ -183,7 +191,7 @@ router.get("/reports/station/:stationId", authenticate, async (req, res, next) =
   } catch (err) { next(err); }
 });
 
-router.get("/reports/device/:deviceId", authenticate, async (req, res, next) => {
+router.get("/reports/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const reports = await getPoliceReportsByDevice(deviceId);
@@ -191,7 +199,7 @@ router.get("/reports/device/:deviceId", authenticate, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.post("/reports/:id/evidence", authenticate, async (req, res, next) => {
+router.post("/reports/:id/evidence", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       type: z.string(),
@@ -204,13 +212,13 @@ router.post("/reports/:id/evidence", authenticate, async (req, res, next) => {
     const report = await addEvidenceToReport(id, evidenceData);
     res.json(report);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Nationwide Alert System ───────────────────────────────────────────────────────
-router.post("/alerts", authenticate, async (req, res, next) => {
+router.post("/alerts", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -231,12 +239,12 @@ router.post("/alerts", authenticate, async (req, res, next) => {
     const alert = await createNationwideAlert(data);
     res.status(201).json(alert);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/alerts/:id", authenticate, async (req, res, next) => {
+router.get("/alerts/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const alert = await getNationwideAlert(id);
@@ -244,87 +252,71 @@ router.get("/alerts/:id", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/alerts/active", authenticate, async (req, res, next) => {
+router.get("/alerts", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const alerts = await getActiveNationwideAlerts();
     res.json({ alerts, count: alerts.length });
   } catch (err) { next(err); }
 });
 
-router.post("/alerts/:id/sighting", authenticate, async (req, res, next) => {
+router.post("/alerts/:id/sighting", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
-      station: z.string(),
       location: z.object({
         lat: z.number(),
         lng: z.number(),
+        address: z.string().optional(),
       }),
-      notes: z.string().optional(),
+      description: z.string().optional(),
+      photo: z.string().optional(),
     });
 
     const { id } = req.params;
-    const sightingData = schema.parse(req.body);
-    const alert = await reportSighting(id, {
-      ...sightingData,
-      reportedBy: req.user.id,
-    });
+    const data = schema.parse(req.body);
+    const alert = await reportSighting(id, data, req.user!.id);
     res.json(alert);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/alerts/:id/deactivate", authenticate, async (req, res, next) => {
+router.post("/alerts/:id/deactivate", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const schema = z.object({
-      reason: z.string(),
-    });
-
     const { id } = req.params;
-    const { reason } = schema.parse(req.body);
-    const alert = await deactivateAlert(id, reason);
+    const alert = await deactivateAlert(id);
     res.json(alert);
-  } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+  } catch (err) { next(err); }
 });
 
 // ── Case Transfer System ─────────────────────────────────────────────────────────
-router.post("/transfers", authenticate, async (req, res, next) => {
+router.post("/case-transfers", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policeReportId: z.string(),
-      deviceId: z.string(),
       fromStationId: z.string(),
       toStationId: z.string(),
-      transferReason: z.enum(["jurisdiction", "capacity", "specialization", "request"]),
-      transferNotes: z.string().optional(),
+      transferReason: z.string(),
     });
 
     const data = schema.parse(req.body);
-    const transfer = await requestCaseTransfer({
-      ...data,
-      requestedBy: req.user.id,
-    });
-
+    const transfer = await requestCaseTransfer({ ...data, requestedBy: req.user!.id });
     res.status(201).json(transfer);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/transfers/:id/accept", authenticate, async (req, res, next) => {
+router.post("/case-transfers/:id/accept", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const transfer = await acceptCaseTransfer(id, req.user.id);
+    const transfer = await acceptCaseTransfer(id, req.user!.id);
     res.json(transfer);
   } catch (err) { next(err); }
 });
 
-router.post("/transfers/:id/reject", authenticate, async (req, res, next) => {
+router.post("/case-transfers/:id/reject", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       rejectionReason: z.string(),
@@ -332,24 +324,24 @@ router.post("/transfers/:id/reject", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { rejectionReason } = schema.parse(req.body);
-    const transfer = await rejectCaseTransfer(id, req.user.id, rejectionReason);
+    const transfer = await rejectCaseTransfer(id, req.user!.id, rejectionReason);
     res.json(transfer);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/transfers/:id/complete", authenticate, async (req, res, next) => {
+router.post("/case-transfers/:id/complete", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const transfer = await completeCaseTransfer(id);
+    const transfer = await completeCaseTransfer(id, req.user!.id);
     res.json(transfer);
   } catch (err) { next(err); }
 });
 
 // ── Recovery Workflow ─────────────────────────────────────────────────────────────
-router.post("/recovery", authenticate, async (req, res, next) => {
+router.post("/recovery", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -361,12 +353,12 @@ router.post("/recovery", authenticate, async (req, res, next) => {
     const workflow = await createRecoveryWorkflow(data);
     res.status(201).json(workflow);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/recovery/:id/stage", authenticate, async (req, res, next) => {
+router.patch("/recovery/:id/stage", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       stage: z.enum(["reported", "investigating", "tracking", "located", "recovered", "returned", "closed"]),
@@ -375,15 +367,15 @@ router.patch("/recovery/:id/stage", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { stage, notes } = schema.parse(req.body);
-    const workflow = await updateRecoveryStage(id, stage, notes, req.user.id);
+    const workflow = await updateRecoveryStage(id, stage, notes, req.user!.id);
     res.json(workflow);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/recovery/:id/investigators", authenticate, async (req, res, next) => {
+router.post("/recovery/:id/investigators", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       investigatorId: z.string(),
@@ -394,12 +386,12 @@ router.post("/recovery/:id/investigators", authenticate, async (req, res, next) 
     const workflow = await addInvestigator(id, investigatorId);
     res.json(workflow);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/recovery/:id/locate", authenticate, async (req, res, next) => {
+router.post("/recovery/:id/locate", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       locationData: z.object({
@@ -412,15 +404,15 @@ router.post("/recovery/:id/locate", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { locationData } = schema.parse(req.body);
-    const workflow = await locateDevice(id, locationData, req.user.id);
+    const workflow = await locateDevice(id, locationData, req.user!.id);
     res.json(workflow);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/recovery/:id/recover", authenticate, async (req, res, next) => {
+router.post("/recovery/:id/recover", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       recoveryData: z.object({
@@ -435,15 +427,15 @@ router.post("/recovery/:id/recover", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { recoveryData } = schema.parse(req.body);
-    const workflow = await recoverDevice(id, recoveryData, req.user.id);
+    const workflow = await recoverDevice(id, recoveryData, req.user!.id);
     res.json(workflow);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/recovery/:id/return", authenticate, async (req, res, next) => {
+router.post("/recovery/:id/return", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       returnCondition: z.string(),
@@ -451,15 +443,15 @@ router.post("/recovery/:id/return", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { returnCondition } = schema.parse(req.body);
-    const workflow = await returnDeviceToOwner(id, returnCondition, req.user.id);
+    const workflow = await returnDeviceToOwner(id, returnCondition, req.user!.id);
     res.json(workflow);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/recovery/:id/arrests", authenticate, async (req, res, next) => {
+router.post("/recovery/:id/arrests", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       suspectName: z.string(),
@@ -476,13 +468,13 @@ router.post("/recovery/:id/arrests", authenticate, async (req, res, next) => {
     });
     res.json(workflow);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Court Case Integration ───────────────────────────────────────────────────────
-router.post("/court-cases", authenticate, async (req, res, next) => {
+router.post("/court-cases", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policeReportId: z.string(),
@@ -506,12 +498,12 @@ router.post("/court-cases", authenticate, async (req, res, next) => {
     const courtCase = await createCourtCase(data);
     res.status(201).json(courtCase);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.patch("/court-cases/:id", authenticate, async (req, res, next) => {
+router.patch("/court-cases/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const courtCase = await updateCourtCase(id, req.body);
@@ -520,7 +512,7 @@ router.patch("/court-cases/:id", authenticate, async (req, res, next) => {
 });
 
 // ── Interpol Integration ─────────────────────────────────────────────────────────
-router.post("/interpol", authenticate, async (req, res, next) => {
+router.post("/interpol", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policeReportId: z.string(),
@@ -537,12 +529,12 @@ router.post("/interpol", authenticate, async (req, res, next) => {
     const interpolCase = await createInterpolCase(data);
     res.status(201).json(interpolCase);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/interpol/:id/publish", authenticate, async (req, res, next) => {
+router.post("/interpol/:id/publish", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const interpolCase = await publishInterpolNotice(id);
@@ -550,7 +542,7 @@ router.post("/interpol/:id/publish", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/interpol/:id/response", authenticate, async (req, res, next) => {
+router.post("/interpol/:id/response", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       country: z.string(),
@@ -563,13 +555,13 @@ router.post("/interpol/:id/response", authenticate, async (req, res, next) => {
     const interpolCase = await addInterpolResponse(id, responseData);
     res.json(interpolCase);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getPoliceStatistics();
     res.json(stats);

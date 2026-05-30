@@ -1,5 +1,5 @@
-// routes/policeHierarchy.js - Police Hierarchy, RBAC, Data Encryption, and Audit API endpoints
-import { Router } from "express";
+// routes/policeHierarchy.ts - Police Hierarchy, RBAC, Data Encryption, and Audit API endpoints
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import {
@@ -35,8 +35,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Police Hierarchy Management ─────────────────────────────────────────────────────
-router.post("/hierarchy", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/hierarchy", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       country: z.string(),
@@ -62,12 +70,12 @@ router.post("/hierarchy", authenticate, requireAdmin, async (req, res, next) => 
     const unit = await createHierarchyUnit(data);
     res.status(201).json(unit);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/hierarchy/:country", authenticate, async (req, res, next) => {
+router.get("/hierarchy/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
     const units = await getHierarchyByCountry(country);
@@ -75,7 +83,7 @@ router.get("/hierarchy/:country", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/hierarchy/:country/tree", authenticate, async (req, res, next) => {
+router.get("/hierarchy/:country/tree", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
     const tree = await getHierarchyTree(country);
@@ -83,7 +91,7 @@ router.get("/hierarchy/:country/tree", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post("/hierarchy/assign", authenticate, async (req, res, next) => {
+router.post("/hierarchy/assign", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -97,17 +105,17 @@ router.post("/hierarchy/assign", authenticate, async (req, res, next) => {
       data.userId,
       data.roleId,
       data.unitId,
-      req.user.id,
+      req.user!.id,
       data.validUntil
     );
     res.status(201).json(assignment);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.delete("/hierarchy/assignments/:id", authenticate, async (req, res, next) => {
+router.delete("/hierarchy/assignments/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       reason: z.string(),
@@ -115,16 +123,16 @@ router.delete("/hierarchy/assignments/:id", authenticate, async (req, res, next)
 
     const { id } = req.params;
     const { reason } = schema.parse(req.body);
-    const assignment = await revokeUserAssignment(id, req.user.id, reason);
+    const assignment = await revokeUserAssignment(id, req.user!.id, reason);
     res.json(assignment);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── RBAC System ─────────────────────────────────────────────────────────────────────
-router.post("/roles", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/roles", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       country: z.string(),
@@ -139,15 +147,15 @@ router.post("/roles", authenticate, requireAdmin, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const role = await createRole({ ...data, assignedBy: req.user.id });
+    const role = await createRole({ ...data, assignedBy: req.user!.id });
     res.status(201).json(role);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/roles/:country", authenticate, async (req, res, next) => {
+router.get("/roles/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
     const roles = await getRolesByCountry(country);
@@ -155,7 +163,7 @@ router.get("/roles/:country", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.get("/users/:userId/assignments", authenticate, async (req, res, next) => {
+router.get("/users/:userId/assignments", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const assignments = await getUserAssignments(userId);
@@ -163,7 +171,7 @@ router.get("/users/:userId/assignments", authenticate, async (req, res, next) =>
   } catch (err) { next(err); }
 });
 
-router.post("/check-permission", authenticate, async (req, res, next) => {
+router.post("/check-permission", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       resource: z.string(),
@@ -172,18 +180,18 @@ router.post("/check-permission", authenticate, async (req, res, next) => {
     });
 
     const data = schema.parse(req.body);
-    const hasPermission = await checkPermission(req.user.id, data.resource, data.action, data.scope);
+    const hasPermission = await checkPermission(req.user!.id, data.resource, data.action, data.scope);
     res.json({ hasPermission });
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Immutable Audit Logging ─────────────────────────────────────────────────────────
-router.get("/audit-logs", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/audit-logs", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const filters = {};
+    const filters: any = {};
     if (req.query.entityType) filters.entityType = req.query.entityType;
     if (req.query.entityId) filters.entityId = req.query.entityId;
     if (req.query.performedBy) filters.performedBy = req.query.performedBy;
@@ -193,7 +201,7 @@ router.get("/audit-logs", authenticate, requireAdmin, async (req, res, next) => 
   } catch (err) { next(err); }
 });
 
-router.get("/audit-logs/:entityType/:entityId", authenticate, async (req, res, next) => {
+router.get("/audit-logs/:entityType/:entityId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { entityType, entityId } = req.params;
     const logs = await getEntityAuditLogs(entityType, entityId);
@@ -202,7 +210,7 @@ router.get("/audit-logs/:entityType/:entityId", authenticate, async (req, res, n
 });
 
 // ── Data Encryption/Hashing ───────────────────────────────────────────────────────────
-router.post("/encrypt", authenticate, async (req, res, next) => {
+router.post("/encrypt", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       entityType: z.string(),
@@ -217,22 +225,21 @@ router.post("/encrypt", authenticate, async (req, res, next) => {
       data.entityId,
       data.dataType,
       data.data,
-      req.user.id
+      req.user!.id
     );
     res.status(201).json(encrypted);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/decrypt", authenticate, async (req, res, next) => {
+router.post("/decrypt", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       entityType: z.string(),
       entityId: z.string(),
       dataType: z.string(),
-      caseId: z.string(),
     });
 
     const data = schema.parse(req.body);
@@ -240,18 +247,17 @@ router.post("/decrypt", authenticate, async (req, res, next) => {
       data.entityType,
       data.entityId,
       data.dataType,
-      req.user.id,
-      data.caseId
+      req.user!.id
     );
-    res.json({ decrypted });
+    res.json(decrypted);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-// ── Time-Bound Data Access Control ─────────────────────────────────────────────────────
-router.post("/data-access/request", authenticate, async (req, res, next) => {
+// ── Data Access Control ─────────────────────────────────────────────────────────────
+router.post("/data-access", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       entityType: z.string(),
@@ -267,16 +273,16 @@ router.post("/data-access/request", authenticate, async (req, res, next) => {
     const data = schema.parse(req.body);
     const accessControl = await requestDataAccess({
       ...data,
-      requestedBy: req.user.id,
+      requestedBy: req.user!.id,
     });
     res.status(201).json(accessControl);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/data-access/:id/approve", authenticate, async (req, res, next) => {
+router.post("/data-access/:id/approve", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       approvalNotes: z.string().optional(),
@@ -284,15 +290,15 @@ router.post("/data-access/:id/approve", authenticate, async (req, res, next) => 
 
     const { id } = req.params;
     const { approvalNotes } = schema.parse(req.body);
-    const accessControl = await approveDataAccess(id, req.user.id, approvalNotes);
+    const accessControl = await approveDataAccess(id, req.user!.id, approvalNotes);
     res.json(accessControl);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/data-access/:id/revoke", authenticate, async (req, res, next) => {
+router.post("/data-access/:id/revoke", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       reason: z.string(),
@@ -300,16 +306,16 @@ router.post("/data-access/:id/revoke", authenticate, async (req, res, next) => {
 
     const { id } = req.params;
     const { reason } = schema.parse(req.body);
-    const accessControl = await revokeDataAccess(id, req.user.id, reason);
+    const accessControl = await revokeDataAccess(id, req.user!.id, reason);
     res.json(accessControl);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Agency Cooperation Delay Alerts ─────────────────────────────────────────────────
-router.post("/cooperation-alerts", authenticate, async (req, res, next) => {
+router.post("/cooperation-alerts", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       caseId: z.string(),
@@ -324,12 +330,12 @@ router.post("/cooperation-alerts", authenticate, async (req, res, next) => {
     const alert = await createCooperationAlert(data);
     res.status(201).json(alert);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/cooperation-alerts/:id/respond", authenticate, async (req, res, next) => {
+router.post("/cooperation-alerts/:id/respond", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       response: z.string(),
@@ -337,15 +343,15 @@ router.post("/cooperation-alerts/:id/respond", authenticate, async (req, res, ne
 
     const { id } = req.params;
     const { response } = schema.parse(req.body);
-    const alert = await respondToCooperationAlert(id, response, req.user.id);
+    const alert = await respondToCooperationAlert(id, response, req.user!.id);
     res.json(alert);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/cooperation-alerts/check-delayed", authenticate, async (req, res, next) => {
+router.post("/cooperation-alerts/check-delayed", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const delayedAlerts = await checkDelayedAlerts();
     res.json({ delayedAlerts, count: delayedAlerts.length });
@@ -353,7 +359,7 @@ router.post("/cooperation-alerts/check-delayed", authenticate, async (req, res, 
 });
 
 // ── Senior Officer Confirmation Workflow ─────────────────────────────────────────────
-router.post("/senior-confirmations", authenticate, async (req, res, next) => {
+router.post("/senior-confirmations", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       caseId: z.string(),
@@ -372,12 +378,12 @@ router.post("/senior-confirmations", authenticate, async (req, res, next) => {
     const confirmation = await createSeniorConfirmation(data);
     res.status(201).json(confirmation);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/senior-confirmations/:id/confirm", authenticate, async (req, res, next) => {
+router.post("/senior-confirmations/:id/confirm", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       confirmation: z.enum(["approved", "rejected", "escalated"]),
@@ -395,12 +401,12 @@ router.post("/senior-confirmations/:id/confirm", authenticate, async (req, res, 
     );
     res.json(confirmation);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.post("/senior-confirmations/:id/escalate", authenticate, async (req, res, next) => {
+router.post("/senior-confirmations/:id/escalate", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       escalationNotes: z.string(),
@@ -411,13 +417,13 @@ router.post("/senior-confirmations/:id/escalate", authenticate, async (req, res,
     const confirmation = await escalateConfirmation(id, escalationNotes);
     res.json(confirmation);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Missing Person Declaration Rules ─────────────────────────────────────────────────
-router.post("/missing-person-rules", authenticate, requireAdmin, async (req, res, next) => {
+router.post("/missing-person-rules", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       country: z.string(),
@@ -435,12 +441,12 @@ router.post("/missing-person-rules", authenticate, requireAdmin, async (req, res
     const rule = await createMissingPersonRule(data);
     res.status(201).json(rule);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
-router.get("/missing-person-rules/:country", authenticate, async (req, res, next) => {
+router.get("/missing-person-rules/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
     const rule = await getMissingPersonRule(country);
@@ -448,15 +454,15 @@ router.get("/missing-person-rules/:country", authenticate, async (req, res, next
   } catch (err) { next(err); }
 });
 
-router.patch("/missing-person-rules/:country", authenticate, requireAdmin, async (req, res, next) => {
+router.patch("/missing-person-rules/:country", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
-    const rule = await updateMissingPersonRule(country, req.body, req.user.id);
+    const rule = await updateMissingPersonRule(country, req.body, req.user!.id);
     res.json(rule);
   } catch (err) { next(err); }
 });
 
-router.post("/missing-person/check", authenticate, async (req, res, next) => {
+router.post("/missing-person/check", authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       personAge: z.number(),
@@ -468,13 +474,13 @@ router.post("/missing-person/check", authenticate, async (req, res, next) => {
     const result = await canDeclareMissing(data.personAge, data.country, data.specialConditions);
     res.json(result);
   } catch (err) {
-    if (err.name === "ZodError") return res.status(400).json({ error: err.errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
   }
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req, res, next) => {
+router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getHierarchyStatistics();
     res.json(stats);
