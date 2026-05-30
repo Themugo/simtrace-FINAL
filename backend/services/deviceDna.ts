@@ -1,11 +1,11 @@
-// services/deviceDna.js - Global Device DNA System
+// services/deviceDna.ts - Global Device DNA System
 // Hardware-level fingerprinting for anti-cloning and device verification
 
 import crypto from "crypto";
 import { DeviceDna, Device } from "../db/index.js";
 
 // ── DNA Hash Generation ────────────────────────────────────────────────────────
-function generateChipsetSignature(data) {
+function generateChipsetSignature(data: any): string {
   const hash = crypto.createHash("sha256");
   hash.update(JSON.stringify({
     manufacturer: data.manufacturer,
@@ -17,7 +17,7 @@ function generateChipsetSignature(data) {
   return hash.digest("hex");
 }
 
-function generateRadioSignature(data) {
+function generateRadioSignature(data: any): string {
   const hash = crypto.createHash("sha256");
   hash.update(JSON.stringify({
     basebandVersion: data.basebandVersion,
@@ -28,7 +28,7 @@ function generateRadioSignature(data) {
   return hash.digest("hex");
 }
 
-function generateSensorFingerprint(data) {
+function generateSensorFingerprint(data: any): string {
   const hash = crypto.createHash("sha256");
   hash.update(JSON.stringify({
     accelerometer: data.accelerometer,
@@ -38,7 +38,7 @@ function generateSensorFingerprint(data) {
   return hash.digest("hex");
 }
 
-function generateEntropyHash(data) {
+function generateEntropyHash(data: any): string {
   const hash = crypto.createHash("sha256");
   hash.update(JSON.stringify({
     bootTime: data.bootTime,
@@ -50,7 +50,7 @@ function generateEntropyHash(data) {
 }
 
 // ── DNA Collection & Storage ──────────────────────────────────────────────────────
-export async function collectDeviceDna({ imei, chipset, radio, sensors, entropy }) {
+export async function collectDeviceDna({ imei, chipset, radio, sensors, entropy }: any) {
   const device = await Device.findOne({ imei });
   if (!device) throw new Error("Device not registered");
 
@@ -65,10 +65,10 @@ export async function collectDeviceDna({ imei, chipset, radio, sensors, entropy 
   
   if (dna) {
     // Update existing DNA
-    dna.chipset = { ...chipset, signature: chipsetSig };
-    dna.radio = { ...radio, networkSignature: radioSig };
-    dna.sensors = { ...sensors, fingerprint: sensorSig };
-    dna.entropy = { ...entropy, uniqueHash: entropySig };
+    (dna as any).chipset = { ...chipset, signature: chipsetSig };
+    (dna as any).radio = { ...radio, networkSignature: radioSig };
+    (dna as any).sensors = { ...sensors, fingerprint: sensorSig };
+    (dna as any).entropy = { ...entropy, uniqueHash: entropySig };
     dna.updatedAt = new Date();
     
     // Clone detection: check if signatures changed significantly
@@ -94,7 +94,7 @@ export async function collectDeviceDna({ imei, chipset, radio, sensors, entropy 
 }
 
 // ── Clone Detection ───────────────────────────────────────────────────────────────
-export async function detectClones(dnaRecord) {
+export async function detectClones(dnaRecord: any) {
   const { imei, chipset, radio, sensors } = dnaRecord;
   
   // Check for devices with same chipset signature but different IMEI
@@ -129,10 +129,10 @@ export async function detectClones(dnaRecord) {
       radioMatches: radioClones.length,
       sensorMatches: sensorClones.length,
       matchedImeis: [
-        ...chipsetClones.map(d => d.imei),
-        ...radioClones.map(d => d.imei),
-        ...sensorClones.map(d => d.imei),
-      ].filter((v, i, a) => a.indexOf(v) === i), // unique
+        ...chipsetClones.map((d: any) => d.imei),
+        ...radioClones.map((d: any) => d.imei),
+        ...sensorClones.map((d: any) => d.imei),
+      ].filter((v: string, i: number, a: string[]) => a.indexOf(v) === i), // unique
     };
   }
 
@@ -143,7 +143,7 @@ export async function detectClones(dnaRecord) {
 }
 
 // ── DNA Verification ─────────────────────────────────────────────────────────────
-export async function verifyDeviceDna(imei, providedDna) {
+export async function verifyDeviceDna(imei: string, providedDna: any) {
   const dna = await DeviceDna.findOne({ imei });
   if (!dna) throw new Error("DNA record not found for this device");
 
@@ -153,37 +153,37 @@ export async function verifyDeviceDna(imei, providedDna) {
   // Compare chipset
   if (providedDna.chipset) {
     const providedSig = generateChipsetSignature(providedDna.chipset);
-    if (providedSig === dna.chipset.signature) matchScore++;
+    if (providedSig === (dna as any).chipset.signature) matchScore++;
   }
 
   // Compare radio
   if (providedDna.radio) {
     const providedSig = generateRadioSignature(providedDna.radio);
-    if (providedSig === dna.radio.networkSignature) matchScore++;
+    if (providedSig === (dna as any).radio.networkSignature) matchScore++;
   }
 
   // Compare sensors
   if (providedDna.sensors) {
     const providedSig = generateSensorFingerprint(providedDna.sensors);
-    if (providedSig === dna.sensors.fingerprint) matchScore++;
+    if (providedSig === (dna as any).sensors.fingerprint) matchScore++;
   }
 
   // Compare entropy
   if (providedDna.entropy) {
     const providedSig = generateEntropyHash(providedDna.entropy);
-    if (providedSig === dna.entropy.uniqueHash) matchScore++;
+    if (providedSig === (dna as any).entropy.uniqueHash) matchScore++;
   }
 
   const confidence = Math.round((matchScore / maxScore) * 100);
 
   // Update verification status
-  dna.verified = confidence >= 75; // Require 75% match
-  dna.confidence = confidence;
-  dna.verifiedAt = new Date();
+  (dna as any).verified = confidence >= 75; // Require 75% match
+  (dna as any).confidence = confidence;
+  (dna as any).verifiedAt = new Date();
   await dna.save();
 
   return {
-    verified: dna.verified,
+    verified: (dna as any).verified,
     confidence,
     matchScore,
     maxScore,
@@ -197,7 +197,7 @@ export async function verifyDeviceDna(imei, providedDna) {
 }
 
 // ── DNA Query & Analysis ─────────────────────────────────────────────────────────
-export async function getDeviceDna(imei) {
+export async function getDeviceDna(imei: string) {
   const dna = await DeviceDna.findOne({ imei }).populate("device");
   if (!dna) return null;
 
@@ -210,8 +210,8 @@ export async function getDeviceDna(imei) {
   };
 }
 
-export async function searchByDnaFingerprint({ chipsetSig, radioSig, sensorSig }) {
-  const query = {};
+export async function searchByDnaFingerprint({ chipsetSig, radioSig, sensorSig }: any) {
+  const query: any = {};
   
   if (chipsetSig) query["chipset.signature"] = chipsetSig;
   if (radioSig) query["radio.networkSignature"] = radioSig;
@@ -219,7 +219,7 @@ export async function searchByDnaFingerprint({ chipsetSig, radioSig, sensorSig }
 
   const matches = await DeviceDna.find(query).populate("device");
   
-  return matches.map(dna => ({
+  return matches.map((dna: any) => ({
     imei: dna.imei,
     device: dna.device,
     confidence: dna.confidence,
@@ -255,7 +255,7 @@ export async function getDnaStatistics() {
 }
 
 // ── Batch DNA Verification (for partner API) ─────────────────────────────────────
-export async function batchVerifyDna(imeiList) {
+export async function batchVerifyDna(imeiList: string[]) {
   const results = await Promise.all(
     imeiList.map(async (imei) => {
       try {
@@ -267,7 +267,7 @@ export async function batchVerifyDna(imeiList) {
           confidence: dna?.confidence || 0,
           cloneDetected: dna?.cloneDetected || false,
         };
-      } catch (error) {
+      } catch (error: any) {
         return {
           imei,
           found: false,
