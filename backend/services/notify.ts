@@ -1,15 +1,20 @@
-// notify.js — SimTrace notification service
+// notify.ts — SimTrace notification service
 // Supports: SMS via Africa's Talking, email via SendGrid
 
-import pino from "pino";
+import pino, { Logger } from "pino";
 import { User, Device } from "../db/index.js";
 
-const log = pino({ level: "info" }).child({ service: "notify" });
+const log: Logger = pino({ level: "info" }).child({ service: "notify" });
 
 // ─────────────────────────────────────────────────────────────
 // MAIN ALERT FUNCTION
 // ─────────────────────────────────────────────────────────────
-export async function sendAlert({ type, imei, userId, message }) {
+export async function sendAlert({ type, imei, userId, message }: {
+  type: string;
+  imei: string;
+  userId?: string;
+  message: string;
+}): Promise<void> {
   try {
     log.info({ type, imei }, message);
 
@@ -38,7 +43,7 @@ export async function sendAlert({ type, imei, userId, message }) {
 // ─────────────────────────────────────────────────────────────
 // AFRICA'S TALKING SMS
 // ─────────────────────────────────────────────────────────────
-async function sendSMS(phone, text) {
+async function sendSMS(phone: string | undefined, text: string): Promise<void> {
   try {
     if (!process.env.AT_API_KEY || !phone) return;
 
@@ -74,7 +79,7 @@ async function sendSMS(phone, text) {
 // ─────────────────────────────────────────────────────────────
 // SENDGRID EMAIL
 // ─────────────────────────────────────────────────────────────
-async function sendEmail(to, subject, body) {
+async function sendEmail(to: string | undefined, subject: string, body: string): Promise<void> {
   try {
     if (!process.env.SENDGRID_API_KEY || !to) return;
 
@@ -113,7 +118,7 @@ async function sendEmail(to, subject, body) {
 // ─────────────────────────────────────────────────────────────
 // SAFE HTML ESCAPE (prevents regex + injection issues)
 // ─────────────────────────────────────────────────────────────
-function escapeHtml(str = "") {
+function escapeHtml(str: string = ""): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -123,8 +128,8 @@ function escapeHtml(str = "") {
 // ─────────────────────────────────────────────────────────────
 // EMAIL TEMPLATE
 // ─────────────────────────────────────────────────────────────
-function buildAlertEmail(subject, body) {
-  const iconMap = {
+function buildAlertEmail(subject: string, body: string): string {
+  const iconMap: Record<string, string> = {
     theft_report: "🚨",
     sim_swap: "🔄",
     location_jump: "⚡",
@@ -136,7 +141,7 @@ function buildAlertEmail(subject, body) {
     subject.toLowerCase().includes(k.replace("_", " "))
   );
 
-  const icon = iconMap[key] || "🔔";
+  const icon = iconMap[key || ""] || "🔔";
 
   const safeBody = escapeHtml(body || "").replace(/\n/g, "<br>");
 

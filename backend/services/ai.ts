@@ -1,25 +1,30 @@
-// services/ai.js — SimTrace AI Intelligence Layer
+// services/ai.ts — SimTrace AI Intelligence Layer
 // Powered by Claude. Used for: threat narration, alert triage, IMEI risk reports, anomaly explanation.
 
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const MODEL         = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-20250514";
 
-async function callClaude({ system, messages, maxTokens = 1024, json = false }) {
+async function callClaude({ system, messages, maxTokens = 1024, json = false }: {
+  system: string;
+  messages: any[];
+  maxTokens?: number;
+  json?: boolean;
+}): Promise<string | any> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
 
   const body = {
-    model:      MODEL,
+    model: MODEL,
     max_tokens: maxTokens,
     system,
     messages,
   };
 
   const res = await fetch(ANTHROPIC_API, {
-    method:  "POST",
+    method: "POST",
     headers: {
-      "Content-Type":      "application/json",
-      "x-api-key":         apiKey,
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify(body),
@@ -30,8 +35,8 @@ async function callClaude({ system, messages, maxTokens = 1024, json = false }) 
     throw new Error(`Anthropic API error ${res.status}: ${err}`);
   }
 
-  const data  = await res.json();
-  const text  = data.content.map(b => b.text || "").join("");
+  const data = await res.json();
+  const text = data.content.map((b: any) => b.text || "").join("");
 
   if (json) {
     const clean = text.replace(/```json|```/g, "").trim();
@@ -42,18 +47,25 @@ async function callClaude({ system, messages, maxTokens = 1024, json = false }) 
 
 // ── 1. IMEI Risk Report ───────────────────────────────────────────────────────
 // Given device data + ping history, produce a human-readable risk narrative.
-export async function generateImeiReport({ imei, device, riskScore, recentPings, alerts, reports }) {
-  const pingCount   = recentPings?.length ?? 0;
-  const simSwaps    = alerts?.filter(a => a.type === "sim_swap").length ?? 0;
-  const jumpAlerts  = alerts?.filter(a => a.type === "location_jump").length ?? 0;
-  const fraudAlerts = alerts?.filter(a => a.type === "fraud_pattern").length ?? 0;
-  const isStolen    = reports?.some(r => ["open","investigating"].includes(r.status)) ?? false;
+export async function generateImeiReport({ imei, device, riskScore, recentPings, alerts, reports }: {
+  imei: string;
+  device?: any;
+  riskScore: number;
+  recentPings?: any[];
+  alerts?: any[];
+  reports?: any[];
+}) {
+  const pingCount = recentPings?.length ?? 0;
+  const simSwaps = alerts?.filter((a: any) => a.type === "sim_swap").length ?? 0;
+  const jumpAlerts = alerts?.filter((a: any) => a.type === "location_jump").length ?? 0;
+  const fraudAlerts = alerts?.filter((a: any) => a.type === "fraud_pattern").length ?? 0;
+  const isStolen = reports?.some((r: any) => ["open", "investigating"].includes(r.status)) ?? false;
 
   const deviceSummary = device
     ? `${device.make || "Unknown"} ${device.model || "device"}, status: ${device.status}, last seen: ${device.lastSeen ? new Date(device.lastSeen).toISOString() : "never"}`
     : "Not registered in SimTrace";
 
-  const pingSummary = recentPings?.slice(0, 3).map(p =>
+  const pingSummary = recentPings?.slice(0, 3).map((p: any) =>
     `  • ${new Date(p.ts).toLocaleString()}: [${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}] via ${p.networkOp || "unknown carrier"} SIM:${p.simIccid || "?"}`
   ).join("\n") || "  No recent pings";
 
@@ -84,14 +96,14 @@ Write a security summary a device owner or police officer would find useful.`,
 
 // ── 2. Alert Triage ───────────────────────────────────────────────────────────
 // Classify urgency and recommend action for a batch of unread alerts.
-export async function triageAlerts(alerts) {
+export async function triageAlerts(alerts: any[]) {
   if (!alerts?.length) return [];
 
-  const summary = alerts.map(a => ({
-    id:      a._id,
-    type:    a.type,
-    imei:    a.imei,
-    ts:      a.ts,
+  const summary = alerts.map((a: any) => ({
+    id: a._id,
+    type: a.type,
+    imei: a.imei,
+    ts: a.ts,
     payload: a.payload,
   }));
 
@@ -110,13 +122,13 @@ Return ONLY the JSON array. No preamble, no markdown fences.`,
 
 // ── 3. Anomaly Explanation ────────────────────────────────────────────────────
 // Plain-English explanation of a single alert for a device owner.
-export async function explainAlert(alert) {
-  const typeLabels = {
-    blacklist_ping:  "Blacklisted device detected",
-    sim_swap:        "SIM card swap",
-    location_jump:   "Impossible location movement",
-    fraud_pattern:   "Carrier-hop fraud pattern",
-    theft_report:    "Theft report filed",
+export async function explainAlert(alert: any) {
+  const typeLabels: Record<string, string> = {
+    blacklist_ping: "Blacklisted device detected",
+    sim_swap: "SIM card swap",
+    location_jump: "Impossible location movement",
+    fraud_pattern: "Carrier-hop fraud pattern",
+    theft_report: "Theft report filed",
   };
 
   return callClaude({
@@ -137,7 +149,10 @@ What happened and what should the owner do?`,
 
 // ── 4. AI Security Chat ───────────────────────────────────────────────────────
 // Multi-turn assistant for the AI Assistant page. Knows about SimTrace context.
-export async function securityChat({ messages, userContext }) {
+export async function securityChat({ messages, userContext }: {
+  messages: any[];
+  userContext?: { role: string; deviceCount: number; alertCount: number };
+}) {
   const contextStr = userContext
     ? `User role: ${userContext.role}. Devices owned: ${userContext.deviceCount}. Open alerts: ${userContext.alertCount}.`
     : "Unauthenticated user.";
@@ -161,7 +176,12 @@ Never fabricate device data — only discuss what the user tells you.`,
 
 // ── 5. Fraud Pattern Narrative ────────────────────────────────────────────────
 // Used internally after runIntelligence — generate a rich alert description.
-export async function narrateFraudPattern({ imei, type, payload, pingHistory }) {
+export async function narrateFraudPattern({ imei, type, payload, pingHistory }: {
+  imei: string;
+  type: string;
+  payload: any;
+  pingHistory?: any[];
+}) {
   return callClaude({
     system: `You are writing internal security event descriptions for SimTrace analysts. 
 Be factual, precise, 1-2 sentences. Include specific numbers from the data.`,
