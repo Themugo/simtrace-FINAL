@@ -1,4 +1,4 @@
-// services/lawEnforcement.js - Law enforcement agency layer services
+// services/lawEnforcement.ts - Law enforcement agency layer services
 import crypto from "crypto";
 import {
   LawEnforcementAgency,
@@ -11,7 +11,7 @@ import {
 } from "../db/index.js";
 
 // ── Law Enforcement Agency Management ───────────────────────────────────────────────────
-export async function createLawEnforcementAgency(data) {
+export async function createLawEnforcementAgency(data: any) {
   const agencyId = `agency_${crypto.randomBytes(16).toString("hex")}`;
 
   const agency = await LawEnforcementAgency.create({
@@ -24,18 +24,18 @@ export async function createLawEnforcementAgency(data) {
   return agency;
 }
 
-export async function getLawEnforcementAgency(agencyId) {
+export async function getLawEnforcementAgency(agencyId: string) {
   const agency = await LawEnforcementAgency.findOne({ agencyId, status: "active" });
   if (!agency) throw new Error("Law enforcement agency not found");
   return agency;
 }
 
-export async function getLawEnforcementAgencyByEmail(officialEmail) {
+export async function getLawEnforcementAgencyByEmail(officialEmail: string) {
   const agency = await LawEnforcementAgency.findOne({ officialEmail, status: "active" });
   return agency;
 }
 
-export async function updateLawEnforcementAgency(agencyId, updates, updatedBy) {
+export async function updateLawEnforcementAgency(agencyId: string, updates: any, updatedBy: string) {
   const agency = await LawEnforcementAgency.findOneAndUpdate(
     { agencyId },
     {
@@ -49,7 +49,7 @@ export async function updateLawEnforcementAgency(agencyId, updates, updatedBy) {
   return agency;
 }
 
-export async function suspendLawEnforcementAgency(agencyId, suspendedBy) {
+export async function suspendLawEnforcementAgency(agencyId: string, suspendedBy: string) {
   const agency = await LawEnforcementAgency.findOneAndUpdate(
     { agencyId },
     {
@@ -63,7 +63,7 @@ export async function suspendLawEnforcementAgency(agencyId, suspendedBy) {
   return agency;
 }
 
-export async function verifyLawEnforcementAgency(agencyId, verifiedBy) {
+export async function verifyLawEnforcementAgency(agencyId: string, verifiedBy: string) {
   const agency = await LawEnforcementAgency.findOneAndUpdate(
     { agencyId },
     {
@@ -77,29 +77,29 @@ export async function verifyLawEnforcementAgency(agencyId, verifiedBy) {
   return agency;
 }
 
-export async function getLawEnforcementAgenciesByCountry(countryCode) {
+export async function getLawEnforcementAgenciesByCountry(countryCode: string) {
   const agencies = await LawEnforcementAgency.find({ countryCode, status: "active" });
   return agencies;
 }
 
-export async function getLawEnforcementAgenciesByRegion(countryCode, region) {
+export async function getLawEnforcementAgenciesByRegion(countryCode: string, region: string) {
   const agencies = await LawEnforcementAgency.find({ countryCode, region, status: "active" });
   return agencies;
 }
 
-export async function getLawEnforcementAgenciesByType(agencyType) {
+export async function getLawEnforcementAgenciesByType(agencyType: string) {
   const agencies = await LawEnforcementAgency.find({ agencyType, status: "active" });
   return agencies;
 }
 
 // ── API Key Management ─────────────────────────────────────────────────────────────
-export async function generateLawEnforcementApiKey(agencyId, permissions, expiresAt) {
+export async function generateLawEnforcementApiKey(agencyId: string, permissions: any, expiresAt?: Date) {
   const agency = await LawEnforcementAgency.findOne({ agencyId });
   if (!agency) throw new Error("Law enforcement agency not found");
 
   const apiKey = `sk_le_${crypto.randomBytes(32).toString("hex")}`;
 
-  agency.apiKeys.push({
+  (agency as any).apiKeys.push({
     key: apiKey,
     permissions,
     expiresAt,
@@ -112,18 +112,18 @@ export async function generateLawEnforcementApiKey(agencyId, permissions, expire
   return apiKey;
 }
 
-export async function revokeLawEnforcementApiKey(agencyId, apiKey) {
+export async function revokeLawEnforcementApiKey(agencyId: string, apiKey: string) {
   const agency = await LawEnforcementAgency.findOne({ agencyId });
   if (!agency) throw new Error("Law enforcement agency not found");
 
-  agency.apiKeys = agency.apiKeys.filter((k) => k.key !== apiKey);
+  (agency as any).apiKeys = (agency as any).apiKeys.filter((k: any) => k.key !== apiKey);
   agency.updatedAt = new Date();
   await agency.save();
 
   return agency;
 }
 
-export async function validateLawEnforcementApiKey(apiKey) {
+export async function validateLawEnforcementApiKey(apiKey: string) {
   const agency = await LawEnforcementAgency.findOne({
     "apiKeys.key": apiKey,
     status: "active",
@@ -131,7 +131,7 @@ export async function validateLawEnforcementApiKey(apiKey) {
 
   if (!agency) return { valid: false };
 
-  const keyObj = agency.apiKeys.find((k) => k.key === apiKey);
+  const keyObj = (agency as any).apiKeys.find((k: any) => k.key === apiKey);
   if (!keyObj) return { valid: false };
 
   // Check expiration
@@ -151,11 +151,11 @@ export async function validateLawEnforcementApiKey(apiKey) {
 }
 
 // ── Permission Checks ──────────────────────────────────────────────────────────────
-export async function checkLawEnforcementPermission(agencyId, permission) {
+export async function checkLawEnforcementPermission(agencyId: string, permission: string) {
   const agency = await LawEnforcementAgency.findOne({ agencyId, status: "active" });
   if (!agency) return { allowed: false, reason: "Law enforcement agency not found or inactive" };
 
-  if (!agency.permissions[permission]) {
+  if (!(agency as any).permissions[permission]) {
     return { allowed: false, reason: `Permission '${permission}' not granted` };
   }
 
@@ -163,15 +163,15 @@ export async function checkLawEnforcementPermission(agencyId, permission) {
 }
 
 // ── Police Hierarchy Integration ───────────────────────────────────────────────────────
-export async function linkHierarchyUnit(agencyId, hierarchyUnitId, linkedBy) {
+export async function linkHierarchyUnit(agencyId: string, hierarchyUnitId: string, linkedBy: string) {
   const agency = await LawEnforcementAgency.findOne({ agencyId });
   if (!agency) throw new Error("Law enforcement agency not found");
 
   const hierarchyUnit = await PoliceHierarchy.findById(hierarchyUnitId);
   if (!hierarchyUnit) throw new Error("Police hierarchy unit not found");
 
-  if (!agency.hierarchyUnits.includes(hierarchyUnitId)) {
-    agency.hierarchyUnits.push(hierarchyUnitId);
+  if (!(agency as any).hierarchyUnits.includes(hierarchyUnitId)) {
+    (agency as any).hierarchyUnits.push(hierarchyUnitId);
     agency.updatedBy = linkedBy;
     agency.updatedAt = new Date();
     await agency.save();
@@ -180,12 +180,12 @@ export async function linkHierarchyUnit(agencyId, hierarchyUnitId, linkedBy) {
   return agency;
 }
 
-export async function unlinkHierarchyUnit(agencyId, hierarchyUnitId, unlinkedBy) {
+export async function unlinkHierarchyUnit(agencyId: string, hierarchyUnitId: string, unlinkedBy: string) {
   const agency = await LawEnforcementAgency.findOne({ agencyId });
   if (!agency) throw new Error("Law enforcement agency not found");
 
-  agency.hierarchyUnits = agency.hierarchyUnits.filter(
-    (id) => id.toString() !== hierarchyUnitId.toString()
+  (agency as any).hierarchyUnits = (agency as any).hierarchyUnits.filter(
+    (id: string) => id.toString() !== hierarchyUnitId.toString()
   );
   agency.updatedBy = unlinkedBy;
   agency.updatedAt = new Date();
@@ -195,7 +195,7 @@ export async function unlinkHierarchyUnit(agencyId, hierarchyUnitId, unlinkedBy)
 }
 
 // ── Case Management ───────────────────────────────────────────────────────────────────
-export async function getAgencyCases(agencyId) {
+export async function getAgencyCases(agencyId: string) {
   const agency = await LawEnforcementAgency.findById(agencyId);
   if (!agency) throw new Error("Law enforcement agency not found");
 
@@ -211,16 +211,16 @@ export async function getAgencyCases(agencyId) {
 }
 
 // ── Statistics ───────────────────────────────────────────────────────────────────────
-export async function getLawEnforcementStatistics(agencyId) {
+export async function getLawEnforcementStatistics(agencyId: string) {
   const agency = await LawEnforcementAgency.findById(agencyId);
   if (!agency) throw new Error("Law enforcement agency not found");
 
   return {
-    totalCases: agency.totalCases,
-    activeCases: agency.activeCases,
-    resolvedCases: agency.resolvedCases,
-    arrestsMade: agency.arrestsMade,
-    verified: agency.verified,
+    totalCases: (agency as any).totalCases,
+    activeCases: (agency as any).activeCases,
+    resolvedCases: (agency as any).resolvedCases,
+    arrestsMade: (agency as any).arrestsMade,
+    verified: (agency as any).verified,
     status: agency.status,
   };
 }
