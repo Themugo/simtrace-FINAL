@@ -1,13 +1,12 @@
-// services/admin.js - Admin layer services
+// services/admin.ts - Admin layer services
 import crypto from "crypto";
 import {
   Admin,
   SuperAdmin,
-  AdminRolePermission,
 } from "../db/index.js";
 
 // ── Admin Management ─────────────────────────────────────────────────────────────────
-export async function createAdmin(data) {
+export async function createAdmin(data: any) {
   const adminId = `admin_${crypto.randomBytes(16).toString("hex")}`;
 
   const admin = await Admin.create({
@@ -27,18 +26,18 @@ export async function createAdmin(data) {
   return admin;
 }
 
-export async function getAdmin(adminId) {
+export async function getAdmin(adminId: string) {
   const admin = await Admin.findOne({ adminId, status: "active" }).populate("managedBy");
   if (!admin) throw new Error("Admin not found");
   return admin;
 }
 
-export async function getAdminByOfficialEmail(officialEmail) {
+export async function getAdminByOfficialEmail(officialEmail: string) {
   const admin = await Admin.findOne({ officialEmail, status: "active" }).populate("managedBy");
   return admin;
 }
 
-export async function updateAdmin(adminId, updates) {
+export async function updateAdmin(adminId: string, updates: any) {
   const admin = await Admin.findOneAndUpdate(
     { adminId },
     {
@@ -51,7 +50,7 @@ export async function updateAdmin(adminId, updates) {
   return admin;
 }
 
-export async function suspendAdmin(adminId, suspendedBy) {
+export async function suspendAdmin(adminId: string, _suspendedBy: string) {
   const admin = await Admin.findOneAndUpdate(
     { adminId },
     {
@@ -64,7 +63,7 @@ export async function suspendAdmin(adminId, suspendedBy) {
   return admin;
 }
 
-export async function activateAdmin(adminId) {
+export async function activateAdmin(adminId: string) {
   const admin = await Admin.findOneAndUpdate(
     { adminId },
     {
@@ -77,7 +76,7 @@ export async function activateAdmin(adminId) {
   return admin;
 }
 
-export async function verifyAdmin(adminId) {
+export async function verifyAdmin(adminId: string) {
   const admin = await Admin.findOneAndUpdate(
     { adminId },
     {
@@ -90,7 +89,7 @@ export async function verifyAdmin(adminId) {
   return admin;
 }
 
-export async function deleteAdmin(adminId) {
+export async function deleteAdmin(adminId: string) {
   const admin = await Admin.findOneAndDelete({ adminId });
   if (!admin) throw new Error("Admin not found");
 
@@ -98,7 +97,7 @@ export async function deleteAdmin(adminId) {
   const superAdmin = await SuperAdmin.findById(admin.managedBy);
   if (superAdmin) {
     superAdmin.managedAdmins = superAdmin.managedAdmins.filter(
-      (id) => id.toString() !== admin._id.toString()
+      (id: any) => id.toString() !== admin._id.toString()
     );
     await superAdmin.save();
   }
@@ -106,17 +105,17 @@ export async function deleteAdmin(adminId) {
   return admin;
 }
 
-export async function getAdminsBySuperAdmin(superAdminId) {
+export async function getAdminsBySuperAdmin(superAdminId: string) {
   const admins = await Admin.find({ managedBy: superAdminId }).sort({ createdAt: -1 });
   return admins;
 }
 
-export async function getAdminsByRole(role) {
+export async function getAdminsByRole(role: string) {
   const admins = await Admin.find({ role, status: "active" }).sort({ createdAt: -1 });
   return admins;
 }
 
-export async function getAdminsByLayer(layer) {
+export async function getAdminsByLayer(layer: string) {
   const admins = await Admin.find({
     "layerAccess.layer": layer,
     status: "active",
@@ -125,12 +124,12 @@ export async function getAdminsByLayer(layer) {
 }
 
 // ── Layer Access Management ───────────────────────────────────────────────────────────
-export async function addLayerAccess(adminId, layer, permissions) {
+export async function addLayerAccess(adminId: string, layer: string, permissions: string[]) {
   const admin = await Admin.findOne({ adminId });
   if (!admin) throw new Error("Admin not found");
 
   // Check if layer access already exists
-  const existingAccess = admin.layerAccess.find((la) => la.layer === layer);
+  const existingAccess = admin.layerAccess.find((la: any) => la.layer === layer);
   if (existingAccess) {
     existingAccess.permissions = permissions;
   } else {
@@ -146,22 +145,22 @@ export async function addLayerAccess(adminId, layer, permissions) {
   return admin;
 }
 
-export async function removeLayerAccess(adminId, layer) {
+export async function removeLayerAccess(adminId: string, layer: string) {
   const admin = await Admin.findOne({ adminId });
   if (!admin) throw new Error("Admin not found");
 
-  admin.layerAccess = admin.layerAccess.filter((la) => la.layer !== layer);
+  admin.layerAccess = admin.layerAccess.filter((la: any) => la.layer !== layer);
   admin.updatedAt = new Date();
   await admin.save();
 
   return admin;
 }
 
-export async function updateLayerPermissions(adminId, layer, permissions) {
+export async function updateLayerPermissions(adminId: string, layer: string, permissions: string[]) {
   const admin = await Admin.findOne({ adminId });
   if (!admin) throw new Error("Admin not found");
 
-  const layerAccess = admin.layerAccess.find((la) => la.layer === layer);
+  const layerAccess = admin.layerAccess.find((la: any) => la.layer === layer);
   if (!layerAccess) throw new Error("Layer access not found");
 
   layerAccess.permissions = permissions;
@@ -172,7 +171,7 @@ export async function updateLayerPermissions(adminId, layer, permissions) {
 }
 
 // ── Role Management ───────────────────────────────────────────────────────────────────
-export async function updateAdminRole(adminId, role, roleLevel) {
+export async function updateAdminRole(adminId: string, role: string, roleLevel: number) {
   const admin = await Admin.findOneAndUpdate(
     { adminId },
     {
@@ -187,7 +186,7 @@ export async function updateAdminRole(adminId, role, roleLevel) {
 }
 
 // ── Login History ─────────────────────────────────────────────────────────────────────
-export async function recordAdminLogin(adminId, ipAddress, userAgent, success) {
+export async function recordAdminLogin(adminId: string, ipAddress: string, userAgent: string, success: boolean) {
   const admin = await Admin.findOne({ adminId });
   if (!admin) throw new Error("Admin not found");
 
@@ -213,7 +212,7 @@ export async function recordAdminLogin(adminId, ipAddress, userAgent, success) {
   return admin;
 }
 
-export async function getAdminLoginHistory(adminId, limit = 50) {
+export async function getAdminLoginHistory(adminId: string, limit: number = 50) {
   const admin = await Admin.findOne({ adminId });
   if (!admin) throw new Error("Admin not found");
 
@@ -221,7 +220,7 @@ export async function getAdminLoginHistory(adminId, limit = 50) {
 }
 
 // ── Statistics ───────────────────────────────────────────────────────────────────────
-export async function getAdminStatistics(adminId) {
+export async function getAdminStatistics(adminId: string) {
   const admin = await Admin.findById(adminId);
   if (!admin) throw new Error("Admin not found");
 
@@ -264,10 +263,10 @@ export async function getAllAdminStatistics() {
     byRole: adminsByRole.reduce((acc, item) => {
       acc[item._id] = item.count;
       return acc;
-    }, {}),
+    }, {} as Record<string, number>),
     byRoleLevel: adminsByRoleLevel.reduce((acc, item) => {
       acc[item._id] = item.count;
       return acc;
-    }, {}),
+    }, {} as Record<string, number>),
   };
 }
