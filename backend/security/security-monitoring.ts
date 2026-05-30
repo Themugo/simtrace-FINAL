@@ -2,6 +2,7 @@
 // Anomaly detection, suspicious login detection, admin abuse monitoring
 
 import { logSecurityEvent } from '../observability/auditLogger.js';
+import { Request, Response, NextFunction } from 'express';
 
 // Anomaly detection thresholds
 const thresholds = {
@@ -14,6 +15,10 @@ const thresholds = {
 
 // Suspicious activity detection
 export class SecurityMonitor {
+  failedLogins: Map<string, number>;
+  requestCounts: Map<string, number>;
+  dataAccessCounts: Map<string, number>;
+
   constructor() {
     this.failedLogins = new Map();
     this.requestCounts = new Map();
@@ -21,7 +26,7 @@ export class SecurityMonitor {
   }
 
   // Track failed login attempts
-  trackFailedLogin(ip, email) {
+  trackFailedLogin(ip: string, email: string): void {
     const key = `${ip}:${email}`;
     const count = (this.failedLogins.get(key) || 0) + 1;
     this.failedLogins.set(key, count);
@@ -39,7 +44,7 @@ export class SecurityMonitor {
   }
 
   // Track request rates
-  trackRequest(ip, userId) {
+  trackRequest(ip: string, userId?: string): void {
     const key = `${ip}:${userId || 'anonymous'}`;
     const count = (this.requestCounts.get(key) || 0) + 1;
     this.requestCounts.set(key, count);
@@ -57,7 +62,7 @@ export class SecurityMonitor {
   }
 
   // Track data access volume
-  trackDataAccess(userId, recordCount) {
+  trackDataAccess(userId: string, recordCount: number): void {
     const count = (this.dataAccessCounts.get(userId) || 0) + recordCount;
     this.dataAccessCounts.set(userId, count);
 
@@ -73,7 +78,7 @@ export class SecurityMonitor {
   }
 
   // Detect unusual location
-  detectUnusualLocation(userId, currentLocation, previousLocations) {
+  detectUnusualLocation(userId: string, currentLocation: any, previousLocations: any[]): boolean {
     if (!previousLocations || previousLocations.length === 0) {
       return false;
     }
@@ -96,7 +101,7 @@ export class SecurityMonitor {
   }
 
   // Detect unusual time
-  detectUnusualTime(userId, currentTime, usualTimes) {
+  detectUnusualTime(userId: string, currentTime: Date, _usualTimes: any[]): boolean {
     const hour = currentTime.getHours();
     
     // If access is outside usual hours (e.g., 2am-6am for business users)
@@ -112,7 +117,7 @@ export class SecurityMonitor {
   }
 
   // Calculate distance between two coordinates
-  calculateDistance(loc1, loc2) {
+  calculateDistance(loc1: any, loc2: any): number {
     const R = 6371; // Earth's radius in km
     const dLat = this.toRad(loc2.lat - loc1.lat);
     const dLon = this.toRad(loc2.lon - loc1.lon);
@@ -126,12 +131,12 @@ export class SecurityMonitor {
     return R * c;
   }
 
-  toRad(degrees) {
+  toRad(degrees: number): number {
     return degrees * (Math.PI / 180);
   }
 
   // Trigger security alert
-  triggerAlert(eventType, details) {
+  triggerAlert(eventType: string, details: any): void {
     logSecurityEvent(eventType, 'high', details);
     
     // In production, send to security team via:
@@ -142,7 +147,7 @@ export class SecurityMonitor {
   }
 
   // Monitor admin abuse
-  monitorAdminAction(userId, action, resource) {
+  monitorAdminAction(userId: string, action: string, resource: string): void {
     const sensitiveActions = [
       'user_delete',
       'permission_change',
@@ -164,16 +169,19 @@ export class SecurityMonitor {
 export const securityMonitor = new SecurityMonitor();
 
 // Middleware to track requests
-export function securityMonitoringMiddleware(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress;
-  const userId = req.user?.id;
+export function securityMonitoringMiddleware(req: Request, res: Response, next: NextFunction) {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const userId = (req.user as any)?.id;
 
   // Track request rate
   securityMonitor.trackRequest(ip, userId);
 
   // Track failed login attempts
   if (req.path === '/api/auth/login' && res.statusCode === 401) {
-    securityMonitor.trackFailedLogin(ip, req.body?.email);
+    const email = req.body?.email;
+    if (email) {
+      securityMonitor.trackFailedLogin(ip, email);
+    }
   }
 
   next();
