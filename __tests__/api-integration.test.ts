@@ -28,7 +28,7 @@ describe('Deployed Backend API Integration Tests', () => {
 
     it('should return plan with correct structure', async () => {
       const response = await request(DEPLOYED_API_URL).get('/api/billing/plans');
-      const freePlan = response.body.plans.find(p => p.id === 'free');
+      const freePlan = response.body.plans.find((p: any) => p.id === 'free');
       expect(freePlan).toBeDefined();
       expect(freePlan.priceKES).toBe(0);
       expect(freePlan.deviceLimit).toBe(2);
