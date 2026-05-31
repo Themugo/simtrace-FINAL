@@ -4,7 +4,20 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../lib/auth";
 import { api } from "../../lib/api";
 
-const PLANS = [
+interface Plan {
+  id: string;
+  name: string;
+  priceKES: number | null;
+  priceUSD: number | null;
+  deviceLimit: number | null;
+  extraDeviceKES: number;
+  features: string[];
+  cta: string;
+  color: string;
+  popular?: boolean;
+}
+
+const PLANS: Plan[] = [
   {
     id: "free", name: "Free", priceKES: 0, priceUSD: 0, deviceLimit: 2, extraDeviceKES: 150,
     features: ["2 devices included", "5 IMEI checks/day", "3 AI reports/month", "Email alerts", "Community support"],
@@ -21,13 +34,19 @@ const PLANS = [
     cta: "Upgrade to Business", color: "var(--violet)",
   },
   {
-    id: "enterprise", name: "Enterprise", priceKES: null, priceUSD: null, deviceLimit: null,
+    id: "enterprise", name: "Enterprise", priceKES: null, priceUSD: null, deviceLimit: null, extraDeviceKES: 0,
     features: ["Unlimited devices", "Full telecom API", "Bulk IMEI ingestion", "Custom SLA", "Law enforcement portal"],
     cta: "Contact Sales", color: "var(--amber)",
   },
 ];
 
-function PlanCard({ plan, currentPlan, onUpgrade }) {
+interface PlanCardProps {
+  plan: Plan;
+  currentPlan: string;
+  onUpgrade: (plan: Plan) => void;
+}
+
+function PlanCard({ plan, currentPlan, onUpgrade }: PlanCardProps) {
   const isCurrent = currentPlan === plan.id;
   return (
     <div style={{
@@ -46,7 +65,7 @@ function PlanCard({ plan, currentPlan, onUpgrade }) {
         <div style={{ marginBottom: "0.75rem" }}>
           <span style={{ fontSize: "2.4rem", fontWeight: 800, letterSpacing: "-0.03em" }}>KES {plan.priceKES.toLocaleString()}</span>
           <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>/month</span>
-          {plan.priceUSD > 0 && <div style={{ color: "var(--dim)", fontSize: "0.78rem" }}>≈ USD {plan.priceUSD}/mo via Stripe</div>}
+          {plan.priceUSD && plan.priceUSD > 0 && <div style={{ color: "var(--dim)", fontSize: "0.78rem" }}>≈ USD {plan.priceUSD}/mo via Stripe</div>}
         </div>
       ) : (
         <div style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: "0.75rem" }}>Custom pricing</div>
@@ -81,12 +100,17 @@ function PlanCard({ plan, currentPlan, onUpgrade }) {
   );
 }
 
-function MpesaModal({ plan, onClose }) {
+interface MpesaModalProps {
+  plan: Plan;
+  onClose: () => void;
+}
+
+function MpesaModal({ plan, onClose }: MpesaModalProps) {
   const [phone,   setPhone]   = useState("");
   const [step,    setStep]    = useState("choose"); // choose | mpesa | stripe | polling | done | failed
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
-  const [checkoutId, setCheckoutId] = useState(null);
+  const [checkoutId, setCheckoutId] = useState<string | null>(null);
   const [pollCount,  setPollCount]  = useState(0);
 
   // Poll for payment confirmation every 4 seconds
@@ -111,7 +135,7 @@ function MpesaModal({ plan, onClose }) {
       const res = await api.post("/api/billing/upgrade-mpesa", { planId: plan.id, phone: phone.trim() });
       setCheckoutId(res.checkoutRequestId);
       setStep("polling");
-    } catch (err) { setError(err.message); }
+    } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   }
 
@@ -132,7 +156,7 @@ function MpesaModal({ plan, onClose }) {
       }
       // Payment intent created — webhook will activate subscription
       setStep("done");
-    } catch (err) { setError(err.message); }
+    } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   }
 
@@ -261,16 +285,16 @@ function MpesaModal({ plan, onClose }) {
 export default function PricingPage() {
   const { user }      = useAuth();
   const router        = useRouter();
-  const [modal, setModal]       = useState(null);
+  const [modal, setModal]       = useState<Plan | null>(null);
   const [currentPlan, setCurrent] = useState("free");
 
   useEffect(() => {
     if (user) {
-      api.get("/api/billing/subscription").then(s => setCurrent(s.plan || "free")).catch(() => {});
+      api.get("/api/billing/subscription").then((s: any) => setCurrent(s.plan || "free")).catch(() => {});
     }
   }, [user]);
 
-  function handleUpgrade(plan) {
+  function handleUpgrade(plan: Plan) {
     if (!user) { router.push("/register"); return; }
     if (plan.id === "enterprise") { window.open("mailto:sales@simtrace.site?subject=Enterprise enquiry", "_blank"); return; }
     if (plan.id === currentPlan) return;
@@ -300,7 +324,11 @@ export default function PricingPage() {
           Free plan includes 2 devices. Add extra slots without upgrading your plan.
         </p>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-          {[["Free (included)", "2 devices", "var(--muted)"], ["Extra device", "KES 150/mo each", "var(--amber)"], ["Pro plan", "KES 799/mo · 10 devices", "var(--sky)"]].map(([t,v,c]) => (
+          {[
+            ["Free (included)", "2 devices", "var(--muted)"],
+            ["Extra device", "KES 150/mo each", "var(--amber)"],
+            ["Pro plan", "KES 799/mo · 10 devices", "var(--sky)"]
+          ].map(([t,v,c]) => (
             <div key={t} style={{ background: "var(--surface)", borderRadius: 9, padding: "0.65rem 1.1rem", border: "1px solid var(--border)" }}>
               <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginBottom: 2 }}>{t}</div>
               <div style={{ fontWeight: 700, color: c, fontSize: "0.92rem" }}>{v}</div>
