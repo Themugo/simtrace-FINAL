@@ -18,8 +18,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Projection Management ─────────────────────────────────────────────────────────
-router.post("/projections", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/projections", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       period: z.enum(["monthly", "quarterly", "yearly"]),
@@ -39,10 +47,10 @@ router.post("/projections", authenticate, requireAdmin, async (req: Request, res
   }
 });
 
-router.get("/projections/:id", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/projections/:id", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const projection = await getFinancialProjection(id);
+    const projection = await getFinancialProjection(id as string);
 
     if (!projection) {
       return res.status(404).json({ error: "Projection not found" });
@@ -52,7 +60,7 @@ router.get("/projections/:id", authenticate, requireAdmin, async (req: Request, 
   } catch (err) { next(err); }
 });
 
-router.get("/projections", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/projections", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { period } = req.query;
     
@@ -67,24 +75,24 @@ router.get("/projections", authenticate, requireAdmin, async (req: Request, res:
   } catch (err) { next(err); }
 });
 
-router.get("/projections/current/:period", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/projections/current/:period", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { period } = req.params;
-    const projection = await getCurrentProjection(period);
+    const projection = await getCurrentProjection(period as string);
     res.json(projection);
   } catch (err) { next(err); }
 });
 
-router.patch("/projections/:id", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/projections/:id", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const projection = await updateProjectionMetrics(id, req.body);
+    const projection = await updateProjectionMetrics(id as string, req.body);
     res.json(projection);
   } catch (err) { next(err); }
 });
 
 // ── Revenue & Metrics Calculation ───────────────────────────────────────────────
-router.get("/revenue", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/revenue", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       startDate: z.date(),
@@ -101,7 +109,7 @@ router.get("/revenue", authenticate, requireAdmin, async (req: Request, res: Res
   }
 });
 
-router.get("/metrics/users", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/metrics/users", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       startDate: z.date(),
@@ -118,16 +126,16 @@ router.get("/metrics/users", authenticate, requireAdmin, async (req: Request, re
   }
 });
 
-router.get("/costs/:period", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/costs/:period", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { period } = req.params;
-    const costs = await estimateCosts(period);
+    const costs = await estimateCosts(period as string);
     res.json(costs);
   } catch (err) { next(err); }
 });
 
 // ── Auto-Update Projections ─────────────────────────────────────────────────────
-router.post("/projections/update", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/projections/update", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const projections = await updateCurrentProjections();
     res.json(projections);
@@ -135,7 +143,7 @@ router.post("/projections/update", authenticate, requireAdmin, async (req: Reque
 });
 
 // ── Financial Dashboard ───────────────────────────────────────────────────────
-router.get("/dashboard", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/dashboard", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const dashboard = await getFinancialDashboard();
     res.json(dashboard);
@@ -143,7 +151,7 @@ router.get("/dashboard", authenticate, requireAdmin, async (req: Request, res: R
 });
 
 // ── Business Plan Projections ─────────────────────────────────────────────────
-router.post("/projections/business-plan", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/projections/business-plan", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const projections = await generateBusinessPlanProjections();
     res.status(201).json({ projections, count: projections.length });
