@@ -11,14 +11,14 @@ function ReportPageInner() {
   const params  = useSearchParams();
   const [form,    setForm]    = useState({ imei: params.get("imei") || "", description: "", policeRef: "" });
   const [error,   setError]   = useState("");
-  const [success, setSuccess] = useState(null);
+  const [success, setSuccess] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/login");
   }, [user, authLoading]);
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const clean = form.imei.replace(/\D/g,"");
     if (!clean.match(/^\d{15,17}$/)) { setError("Enter a valid IMEI (15–17 digits)"); return; }
@@ -27,7 +27,7 @@ function ReportPageInner() {
     try {
       const res = await api.reportStolen({ imei: clean, description: form.description, policeRef: form.policeRef });
       setSuccess(res);
-    } catch (err) { setError(err.message); }
+    } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   }
 
