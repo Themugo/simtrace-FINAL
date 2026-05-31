@@ -3,16 +3,16 @@
 
 import { Request, Response, NextFunction } from "express";
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
-    email?: string;
+    email: string;
   };
-}
+};
 
 // Stakeholder to role mapping
-const STAKEHOLDER_ROLE_MAP: Record<string, string[]> = {
+export const STAKEHOLDER_ROLE_MAP: Record<string, string[]> = {
   device_owner: ["device_owner", "admin"],
   telecom_operator: ["telecom_operator", "admin"],
   law_enforcement: ["law_enforcement", "admin"],
@@ -52,8 +52,8 @@ const OPERATION_PERMISSIONS: Record<string, Record<string, string[]>> = {
 };
 
 // Check if user can access stakeholder intelligence
-export function canAccessStakeholder(stakeholder: string) {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+export function canAccessStakeholder(stakeholder: string): (req: AuthRequest, res: Response, next: NextFunction) => void | Response {
+  return (req: AuthRequest, res: Response, next: NextFunction): void | Response => {
     const userRole = req.user?.role;
 
     if (!userRole) {
@@ -73,8 +73,8 @@ export function canAccessStakeholder(stakeholder: string) {
 }
 
 // Check if user can perform operation
-export function canPerformOperation(operation: string, permission: string = "read") {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+export function canPerformOperation(operation: string, permission: string = "read"): (req: AuthRequest, res: Response, next: NextFunction) => void | Response {
+  return (req: AuthRequest, res: Response, next: NextFunction): void | Response => {
     const userRole = req.user?.role;
 
     if (!userRole) {

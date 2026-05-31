@@ -11,20 +11,20 @@ import {
   BrokerRequest,
 } from "../engines/index.js";
 import { 
-  canAccessStakeholder, 
   canPerformOperation, 
-  ownsDevice 
+  ownsDevice,
+  STAKEHOLDER_ROLE_MAP
 } from "../middleware/intelligence-rbac.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
-    email?: string;
+    email: string;
   };
-}
+};
 
 // Helper to determine stakeholder from user role
 function getStakeholderFromRole(role: string): Stakeholder {
@@ -83,28 +83,26 @@ router.post("/analyze", authenticate, async (req: AuthRequest, res: Response, ne
 router.get("/stakeholder/:stakeholder/:imei", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { stakeholder, imei } = req.params;
+    const stakeholderStr = Array.isArray(stakeholder) ? stakeholder[0] : stakeholder;
+    const imeiStr = Array.isArray(imei) ? imei[0] : imei;
 
     // Validate stakeholder
     const validStakeholders: Stakeholder[] = ["device_owner", "telecom_operator", "law_enforcement", "internal_admin"];
-    if (!validStakeholders.includes(stakeholder as Stakeholder)) {
+    if (!validStakeholders.includes(stakeholderStr as Stakeholder)) {
       return res.status(400).json({ error: "Invalid stakeholder" });
     }
 
-    // Apply RBAC check for the specific stakeholder
-    const stakeholderCheck = canAccessStakeholder(stakeholder);
-    stakeholderCheck(req, res, (err) => {
-      if (err) return next(err);
-      
-      const operationCheck = canPerformOperation("device_intelligence", "read");
-      operationCheck(req, res, async (err2) => {
-        if (err2) return next(err2);
+    // Check authorization based on stakeholder
+    const userRole = req.user?.role || "device_owner";
+    const allowedRoles = STAKEHOLDER_ROLE_MAP[stakeholderStr];
+    if (!allowedRoles.includes(userRole) && userRole !== "admin") {
+      return res.status(403).json({ error: "Unauthorized to access this stakeholder's intelligence" });
+    }
 
-        const context = createIntelligenceContext(req, imei);
-        intelligenceBroker.getIntelligenceForStakeholder(stakeholder as Stakeholder, imei, context)
-          .then(result => res.json(result))
-          .catch(next);
-      });
-    });
+    const context = createIntelligenceContext(req, imeiStr);
+    const result = await intelligenceBroker.getIntelligenceForStakeholder(stakeholderStr as Stakeholder, imeiStr, context);
+
+    return res.json(result);
   } catch (err) {
     return next(err);
   }
@@ -255,9 +253,10 @@ router.post("/recovery-actions/:imei", authenticate, canPerformOperation("recove
 
     const data = schema.parse(req.body);
     const { imei } = req.params;
+    const imeiStr = Array.isArray(imei) ? imei[0] : imei;
 
     const { recoveryAlertEngine } = await import("../engines/index.js");
-    const result = await recoveryAlertEngine.triggerRecoveryActions(imei, data);
+    const result = await recoveryAlertEngine.triggerRecoveryActions(imeiStr, data);
 
     return res.json(result);
   } catch (err) {
@@ -270,11 +269,12 @@ router.post("/recovery-actions/:imei", authenticate, canPerformOperation("recove
 router.get("/recovery-status/:imei", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
+    const imeiStr = Array.isArray(imei) ? imei[0] : imei;
 
     const { recoveryAlertEngine } = await import("../engines/index.js");
-    const status = await recoveryAlertEngine.getRecoveryStatus(imei);
+    const status = await recoveryAlertEngine.getRecoveryStatus(imeiStr);
 
-    return res.json({ imei, recoveryStatus: status });
+    return res.json({ imei: imeiStr, recoveryStatus: status });
   } catch (err) {
     return next(err);
   }
@@ -286,13 +286,14 @@ router.get("/recovery-status/:imei", authenticate, async (req: AuthRequest, res:
 router.get("/events/:imei", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
+    const imeiStr = Array.isArray(imei) ? imei[0] : imei;
     const since = req.query.since ? new Date(req.query.since as string) : new Date(Date.now() - 3600000); // Default 1 hour
 
     // In production, this would query a database
     // For now, return empty array
-    const events = [];
+    const events: any[] = [];
 
-    return res.json({ imei, events, since });
+    return res.json({ imei: imeiStr, events, since });
   } catch (err) {
     return next(err);
   }

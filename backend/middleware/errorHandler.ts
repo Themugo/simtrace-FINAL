@@ -123,7 +123,7 @@ export const errorHandler = (err: any, req: Request & { id?: string; user?: any 
 /**
  * 404 Not Found handler
  */
-export const notFoundHandler = (req: Request & { id?: string }, res: Response) => {
+export const notFoundHandler = (req: Request & { id?: string }, res: Response, next: NextFunction) => {
   const requestId = req.id || generateRequestId();
   
   res.status(404).json({
