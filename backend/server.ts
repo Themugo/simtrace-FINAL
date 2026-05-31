@@ -28,6 +28,7 @@ import imeiRoutes      from "./routes/imei.js";
 import trackRoutes     from "./routes/track.js";
 import alertRoutes     from "./routes/alerts.js";
 import aiRoutes        from "./routes/ai.js";
+import aiIntegrationRoutes from "./routes/ai-integration.js";
 import billingRoutes   from "./routes/billing.js";
 import adsRoutes       from "./routes/ads.js";
 import partnerRoutes   from "./routes/partner.js";
@@ -173,6 +174,7 @@ app.use("/api/imei",    imeiLimiter,  imeiRoutes);
 app.use("/api/track",   trackLimiter, trackRoutes);
 app.use("/api/alerts",                alertRoutes);
 app.use("/api/ai",      aiLimiter,    aiRoutes);
+app.use("/api/ai-integration", aiLimiter, aiIntegrationRoutes);
 // Apply M-Pesa IP whitelist specifically to callback endpoint
 app.post("/api/billing/mpesa-callback", mpesaIpWhitelist);
 app.use("/api/billing",               billingRoutes);

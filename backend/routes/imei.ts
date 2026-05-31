@@ -7,6 +7,8 @@ import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { computeRiskScore } from "../services/intelligence.js";
 import { sendAlert } from "../services/notify.js";
 import { checkDeviceLimit } from "../services/billing.js";
+import { reconstructLocationPath, addTimelineEvent, stitchTimeline } from "../forensics/module.js";
+import { predictFraud, predictTheft } from "../ml/pipeline.js";
 
 const router = Router();
 
@@ -172,6 +174,75 @@ router.get("/:imei", async (req: Request, res: Response, next: NextFunction) => 
     if (isOwner || isAdmin) {
       response.serialNumber = device?.serialNumber ?? null;
       response.fingerprint  = device?.fingerprint  ?? null;
+    }
+
+    // Integrate ML predictions for authenticated users
+    if (callerId) {
+      try {
+        // Get location history for forensics
+        const pings = await Ping.find({ imei })
+          .sort({ ts: -1 })
+          .limit(50)
+          .select("lat lng ts")
+          .lean();
+
+        if (pings.length > 0) {
+          // Forensics: location reconstruction
+          const locationPoints = pings.map(p => ({
+            lat: p.lat,
+            lng: p.lng,
+            timestamp: new Date(p.ts)
+          }));
+          const locationReconstruction = reconstructLocationPath(device?._id?.toString() || imei, locationPoints);
+          
+          // Add timeline event for this check
+          addTimelineEvent({
+            timestamp: new Date(),
+            type: 'device_detected',
+            deviceId: device?._id?.toString(),
+            userId: callerId,
+            data: { imei, riskScore },
+            source: 'api_check'
+          });
+
+          response.forensics = {
+            locationReconstruction: {
+              pathPoints: locationReconstruction.reconstructedPath.length,
+              gaps: locationReconstruction.gaps.length,
+              confidence: locationReconstruction.reconstructedPath.reduce((sum, p) => sum + p.confidence, 0) / locationReconstruction.reconstructedPath.length
+            }
+          };
+        }
+
+        // ML: fraud prediction
+        const fraudPrediction = predictFraud({
+          riskScore,
+          simChanges: 0, // Would be calculated from actual data
+          deviceAge: device?.createdAt ? Math.floor((Date.now() - new Date(device.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+          locationChanges: pings.length
+        });
+
+        // ML: theft prediction
+        const theftPrediction = predictTheft({
+          riskScore,
+          movementCount: pings.length,
+          simChanges: 0
+        });
+
+        response.mlPredictions = {
+          fraud: {
+            score: fraudPrediction.prediction,
+            confidence: fraudPrediction.confidence
+          },
+          theft: {
+            likelihood: theftPrediction.prediction,
+            confidence: theftPrediction.confidence
+          }
+        };
+      } catch (mlError) {
+        // Don't fail the request if ML/forensics fails
+        console.error('ML/Forensics integration error:', mlError);
+      }
     }
 
     res.json(response);

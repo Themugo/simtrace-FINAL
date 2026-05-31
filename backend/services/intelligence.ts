@@ -2,6 +2,7 @@ import { Ping, Device, Alert } from "../db/index.js";
 import { getIO } from "./socket.js";
 import { sendAlert } from "./notify.js";
 import { narrateFraudPattern } from "./ai.js";
+import { predictFraud, predictTheft } from "../ml/pipeline.js";
 
 // ── Risk scoring ──────────────────────────────────────────────────────────────
 export async function computeRiskScore(imei: string): Promise<number> {
@@ -21,6 +22,7 @@ export async function computeRiskScore(imei: string): Promise<number> {
 
   // SIM swaps in last 24h
   const simSet = new Set(recentPings.map((p: any) => p.simIccid).filter(Boolean));
+  const simChanges = simSet.size > 1 ? simSet.size - 1 : 0;
   if (simSet.size > 1) score += simSet.size * 15;
 
   // Impossible location jumps (>500 km/h between pings)
@@ -35,6 +37,37 @@ export async function computeRiskScore(imei: string): Promise<number> {
   // Carrier-hop anomaly
   const opSet = new Set(recentPings.map((p: any) => p.networkOp).filter(Boolean));
   if (opSet.size > 2) score += 10;
+
+  // Integrate ML predictions for enhanced risk scoring
+  try {
+    const deviceAge = device.createdAt ? Math.floor((Date.now() - new Date(device.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    
+    // ML: fraud prediction
+    const fraudPrediction = predictFraud({
+      riskScore: score,
+      simChanges,
+      deviceAge,
+      locationChanges: recentPings.length
+    });
+
+    // ML: theft prediction
+    const theftPrediction = predictTheft({
+      riskScore: score,
+      movementCount: recentPings.length,
+      simChanges
+    });
+
+    // Adjust score based on ML predictions (weighted influence)
+    // ML predictions are 0-1, convert to 0-100 scale
+    const mlFraudScore = fraudPrediction.prediction * 100 * fraudPrediction.confidence;
+    const mlTheftScore = theftPrediction.prediction * 100 * theftPrediction.confidence;
+    
+    // Blend traditional score with ML predictions (70% traditional, 30% ML)
+    score = (score * 0.7) + ((mlFraudScore + mlTheftScore) / 2 * 0.3);
+  } catch (mlError) {
+    // Don't fail if ML prediction fails - fall back to traditional scoring
+    console.error('ML prediction error in risk scoring:', mlError);
+  }
 
   return Math.min(score, 100);
 }
