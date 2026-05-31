@@ -13,7 +13,18 @@ const STARTERS = [
   "Explain the difference between IMEI blacklisting and graylisting.",
 ];
 
-function Message({ msg }) {
+interface Message {
+  role: string;
+  content: string;
+  loading?: boolean;
+  streaming?: boolean;
+}
+
+interface MessageProps {
+  msg: Message;
+}
+
+function Message({ msg }: MessageProps) {
   const isUser = msg.role === "user";
   return (
     <div style={{ display:"flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom:"0.85rem" }}>
@@ -48,19 +59,19 @@ function Message({ msg }) {
 
 export default function AIAssistantPage() {
   const { user } = useAuth();
-  const [messages,  setMessages]  = useState([]);
+  const [messages,  setMessages]  = useState<Message[]>([]);
   const [input,     setInput]     = useState("");
   const [loading,   setLoading]   = useState(false);
   const [streaming, setStreaming]  = useState(false);
   const [charCount, setCharCount]  = useState(0);
-  const bottomRef = useRef(null);
-  const abortRef  = useRef(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const abortRef  = useRef<AbortController | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior:"smooth" });
   }, [messages]);
 
-  async function send(text) {
+  async function send(text?: string) {
     const userMsg = text || input.trim();
     if (!userMsg || loading) return;
     setInput(""); setCharCount(0);
@@ -96,7 +107,8 @@ export default function AIAssistantPage() {
         throw new Error(err.error || `HTTP ${res.status}`);
       }
 
-      const reader  = res.body.getReader();
+      const reader  = res.body?.getReader();
+      if (!reader) throw new Error("No response body");
       const decoder = new TextDecoder();
       let accumulated = "";
       setStreaming(true);
@@ -129,7 +141,7 @@ export default function AIAssistantPage() {
           } catch { /* skip malformed chunk */ }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err.name === "AbortError") {
         setMessages(m => [...m.slice(0,-1), { role:"assistant", content:"[Response cancelled]" }]);
       } else {
@@ -137,7 +149,7 @@ export default function AIAssistantPage() {
         try {
           const { reply } = await api.aiChat(messages.concat({ role:"user", content:userMsg }).map(m => ({ role:m.role, content:m.content })));
           setMessages(m => [...m.slice(0,-1), { role:"assistant", content:reply }]);
-        } catch (e2) {
+        } catch (e2: any) {
           setMessages(m => [...m.slice(0,-1), { role:"assistant", content:`Sorry, I couldn't connect. ${e2.message}` }]);
         }
       }
@@ -152,7 +164,7 @@ export default function AIAssistantPage() {
     abortRef.current?.abort();
   }
 
-  function handleKey(e) {
+  function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   }
 
