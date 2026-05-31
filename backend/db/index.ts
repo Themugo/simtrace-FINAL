@@ -725,3 +725,89 @@ auditLogSchema.index({ resource: 1, timestamp: -1 });
 auditLogSchema.index({ action: 1, timestamp: -1 });
 auditLogSchema.index({ timestamp: -1 }, { expireAfterSeconds: 365 * 24 * 60 * 60 }); // 1 year retention
 export const AuditLog = mongoose.model<IAuditLog>('AuditLog', auditLogSchema);
+
+// ── Law Enforcement Case ───────────────────────────────────────────────────────
+interface ILawEnforcementCase {
+  caseNumber: string;
+  title: string;
+  description: string;
+  assignedTo: mongoose.Types.ObjectId;
+  agency: string;
+  status: 'open' | 'investigating' | 'evidence_collection' | 'prosecution' | 'closed' | 'archived';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  relatedImeis: string[];
+  relatedDevices: mongoose.Types.ObjectId[];
+  evidence: Array<{
+    id: string;
+    type: string;
+    description: string;
+    uploadedBy: mongoose.Types.ObjectId;
+    uploadedAt: Date;
+    chainOfCustody: Array<{
+      handler: string;
+      action: string;
+      timestamp: Date;
+      notes?: string;
+    }>;
+  }>;
+  notes: Array<{
+    addedBy: mongoose.Types.ObjectId;
+    content: string;
+    timestamp: Date;
+    isInternal: boolean;
+  }>;
+  collaborators: Array<{
+    userId: mongoose.Types.ObjectId;
+    role: string;
+    agency: string;
+    addedAt: Date;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+  closedAt?: Date;
+}
+
+const lawEnforcementCaseSchema = new mongoose.Schema<ILawEnforcementCase>({
+  caseNumber: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  agency: { type: String, required: true },
+  status: { type: String, enum: ['open', 'investigating', 'evidence_collection', 'prosecution', 'closed', 'archived'], default: 'open' },
+  priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], default: 'medium' },
+  relatedImeis: [{ type: String }],
+  relatedDevices: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Device' }],
+  evidence: [{
+    id: { type: String, required: true },
+    type: { type: String, required: true },
+    description: { type: String, required: true },
+    uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    uploadedAt: { type: Date, default: Date.now },
+    chainOfCustody: [{
+      handler: { type: String, required: true },
+      action: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now },
+      notes: String,
+    }],
+  }],
+  notes: [{
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    content: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+    isInternal: { type: Boolean, default: false },
+  }],
+  collaborators: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    role: { type: String, required: true },
+    agency: { type: String, required: true },
+    addedAt: { type: Date, default: Date.now },
+  }],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+  closedAt: Date,
+});
+lawEnforcementCaseSchema.index({ assignedTo: 1, status: 1 });
+lawEnforcementCaseSchema.index({ agency: 1, status: 1 });
+lawEnforcementCaseSchema.index({ caseNumber: 1 });
+lawEnforcementCaseSchema.index({ relatedImeis: 1 });
+export const LawEnforcementCase = mongoose.model<ILawEnforcementCase>('LawEnforcementCase', lawEnforcementCaseSchema);
