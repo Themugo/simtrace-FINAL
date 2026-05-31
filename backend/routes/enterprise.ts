@@ -64,10 +64,10 @@ router.post("/organizations", authenticate, async (req: AuthRequest, res: Respon
   }
 });
 
-router.get("/organizations/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/organizations/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const organization = await getOrganization(id);
+    const organization = await getOrganization(id as string);
 
     if (!organization) {
       return res.status(404).json({ error: "Organization not found" });
@@ -77,10 +77,10 @@ router.get("/organizations/:id", authenticate, async (req: Request, res: Respons
   } catch (err) { next(err); }
 });
 
-router.get("/organizations/slug/:slug", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/organizations/slug/:slug", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { slug } = req.params;
-    const organization = await getOrganizationBySlug(slug);
+    const organization = await getOrganizationBySlug(slug as string);
 
     if (!organization) {
       return res.status(404).json({ error: "Organization not found" });
@@ -90,15 +90,15 @@ router.get("/organizations/slug/:slug", async (req: Request, res: Response, next
   } catch (err) { next(err); }
 });
 
-router.patch("/organizations/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/organizations/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const organization = await updateOrganization(id, req.body);
+    const organization = await updateOrganization(id as string, req.body);
     res.json(organization);
   } catch (err) { next(err); }
 });
 
-router.post("/organizations/:id/upgrade", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/organizations/:id/upgrade", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       newPlan: z.enum(["enterprise_basic", "enterprise_pro", "enterprise_custom"]),
@@ -106,7 +106,7 @@ router.post("/organizations/:id/upgrade", authenticate, async (req: Request, res
 
     const { id } = req.params;
     const { newPlan } = schema.parse(req.body);
-    const organization = await upgradePlan(id, newPlan);
+    const organization = await upgradePlan(id as string, newPlan);
 
     res.json(organization);
   } catch (err) {
@@ -139,15 +139,15 @@ router.post("/organizations/:id/members", authenticate, async (req: AuthRequest,
   }
 });
 
-router.delete("/organizations/:id/members/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/organizations/:id/members/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id, userId } = req.params;
-    const member = await removeOrganizationMember(id, userId);
+    const member = await removeOrganizationMember(id as string, userId as string);
     res.json(member);
   } catch (err) { next(err); }
 });
 
-router.patch("/organizations/:id/members/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/organizations/:id/members/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       role: z.enum(["owner", "admin", "manager", "member"]),
@@ -156,7 +156,7 @@ router.patch("/organizations/:id/members/:userId", authenticate, async (req: Req
 
     const { id, userId } = req.params;
     const { role, permissions } = schema.parse(req.body);
-    const member = await updateMemberRole(id, userId, role, permissions);
+    const member = await updateMemberRole(id as string, userId as string, role, permissions);
 
     res.json(member);
   } catch (err) {
@@ -165,10 +165,10 @@ router.patch("/organizations/:id/members/:userId", authenticate, async (req: Req
   }
 });
 
-router.get("/organizations/:id/members", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/organizations/:id/members", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const members = await getOrganizationMembers(id);
+    const members = await getOrganizationMembers(id as string);
     res.json({ members, count: members.length });
   } catch (err) { next(err); }
 });
@@ -206,10 +206,10 @@ router.post("/fleets", authenticate, async (req: AuthRequest, res: Response, nex
   }
 });
 
-router.get("/fleets/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/fleets/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const fleet = await getDeviceFleet(id);
+    const fleet = await getDeviceFleet(id as string);
 
     if (!fleet) {
       return res.status(404).json({ error: "Fleet not found" });
@@ -219,15 +219,15 @@ router.get("/fleets/:id", authenticate, async (req: Request, res: Response, next
   } catch (err) { next(err); }
 });
 
-router.get("/organizations/:id/fleets", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/organizations/:id/fleets", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const fleets = await getOrganizationFleets(id);
+    const fleets = await getOrganizationFleets(id as string);
     res.json({ fleets, count: fleets.length });
   } catch (err) { next(err); }
 });
 
-router.post("/fleets/:id/devices", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/fleets/:id/devices", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -235,7 +235,7 @@ router.post("/fleets/:id/devices", authenticate, async (req: Request, res: Respo
 
     const { id } = req.params;
     const { deviceId } = schema.parse(req.body);
-    const fleet = await addDeviceToFleet(id, deviceId);
+    const fleet = await addDeviceToFleet(id as string, deviceId);
 
     res.json(fleet);
   } catch (err) {
@@ -244,32 +244,32 @@ router.post("/fleets/:id/devices", authenticate, async (req: Request, res: Respo
   }
 });
 
-router.delete("/fleets/:id/devices/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/fleets/:id/devices/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id, deviceId } = req.params;
-    const fleet = await removeDeviceFromFleet(id, deviceId);
+    const fleet = await removeDeviceFromFleet(id as string, deviceId as string);
     res.json(fleet);
   } catch (err) { next(err); }
 });
 
-router.patch("/fleets/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/fleets/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const fleet = await updateFleetSettings(id, req.body);
+    const fleet = await updateFleetSettings(id as string, req.body);
     res.json(fleet);
   } catch (err) { next(err); }
 });
 
-router.get("/fleets/:id/analytics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/fleets/:id/analytics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const analytics = await getFleetAnalytics(id);
+    const analytics = await getFleetAnalytics(id as string);
     res.json(analytics);
   } catch (err) { next(err); }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getEnterpriseStatistics();
     res.json(stats);
