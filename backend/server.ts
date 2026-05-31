@@ -42,6 +42,7 @@ import notificationPreferencesRoutes from "./routes/notification-preferences.js"
 import telecomAnalyticsRoutes from "./routes/telecom-analytics.js";
 import auditLogsRoutes from "./routes/audit-logs.js";
 import lawEnforcementCasesRoutes from "./routes/law-enforcement-cases.js";
+import intelligenceBrokerRoutes from "./routes/intelligence-broker.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
@@ -194,6 +195,7 @@ app.use("/api/notification-preferences", notificationPreferencesRoutes);
 app.use("/api/telecom-analytics",     telecomAnalyticsRoutes);
 app.use("/api/audit-logs",            auditLogsRoutes);
 app.use("/api/law-enforcement-cases", lawEnforcementCasesRoutes);
+app.use("/api/intelligence-broker",   intelligenceBrokerRoutes);
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = initIO(server, allowedOrigins);

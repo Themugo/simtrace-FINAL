@@ -35,7 +35,7 @@ export async function sendAlert({ type, imei, userId, message }: {
     const prefs = await NotificationPreferences.findOne({ user: ownerId });
     
     // Check if this alert type is enabled
-    const alertTypeKey = type.replace(/_/g, '_') as keyof typeof prefs?.alertTypes;
+    const alertTypeKey = type.replace(/_/g, '_') as keyof NonNullable<typeof prefs>['alertTypes'];
     const alertEnabled = prefs?.alertTypes?.[alertTypeKey] !== false;
 
     if (!alertEnabled) {
