@@ -61,18 +61,18 @@ router.post("/", authenticate, requireAdmin, async (req: AuthRequest, res: Respo
   }
 });
 
-router.get("/:sellerId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:sellerId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { sellerId } = req.params;
-    const seller = await getSellerReseller(sellerId);
+    const seller = await getSellerReseller(sellerId as string);
     res.json(seller);
   } catch (err) { next(err); }
 });
 
-router.get("/email/:officialEmail", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/email/:officialEmail", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { officialEmail } = req.params;
-    const seller = await getSellerResellerByEmail(officialEmail);
+    const seller = await getSellerResellerByEmail(officialEmail as string);
     res.json(seller);
   } catch (err) { next(err); }
 });
@@ -80,7 +80,7 @@ router.get("/email/:officialEmail", authenticate, async (req: Request, res: Resp
 router.patch("/:sellerId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { sellerId } = req.params;
-    const seller = await updateSellerReseller(sellerId, req.body, req.user!.id);
+    const seller = await updateSellerReseller(sellerId as string, req.body, req.user!.id);
     res.json(seller);
   } catch (err) { next(err); }
 });
@@ -88,7 +88,7 @@ router.patch("/:sellerId", authenticate, requireAdmin, async (req: AuthRequest, 
 router.post("/:sellerId/suspend", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { sellerId } = req.params;
-    const seller = await suspendSellerReseller(sellerId, req.user!.id);
+    const seller = await suspendSellerReseller(sellerId as string, req.user!.id);
     res.json(seller);
   } catch (err) { next(err); }
 });
@@ -96,23 +96,23 @@ router.post("/:sellerId/suspend", authenticate, requireAdmin, async (req: AuthRe
 router.post("/:sellerId/verify", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { sellerId } = req.params;
-    const seller = await verifySellerReseller(sellerId, req.user!.id);
+    const seller = await verifySellerReseller(sellerId as string, req.user!.id);
     res.json(seller);
   } catch (err) { next(err); }
 });
 
-router.get("/country/:countryCode", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/country/:countryCode", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { countryCode } = req.params;
-    const sellers = await getSellerResellersByCountry(countryCode);
+    const sellers = await getSellerResellersByCountry(countryCode as string);
     res.json({ sellers, count: sellers.length });
   } catch (err) { next(err); }
 });
 
-router.get("/country/:countryCode/region/:region", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/country/:countryCode/region/:region", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { countryCode, region } = req.params;
-    const sellers = await getSellerResellersByRegion(countryCode, region);
+    const sellers = await getSellerResellersByRegion(countryCode as string, region as string);
     res.json({ sellers, count: sellers.length });
   } catch (err) { next(err); }
 });
@@ -145,34 +145,34 @@ router.post("/registrations", authenticate, async (req: AuthRequest, res: Respon
   }
 });
 
-router.get("/registrations/:registrationId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/registrations/:registrationId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { registrationId } = req.params;
-    const registration = await getDeviceRegistration(registrationId);
+    const registration = await getDeviceRegistration(registrationId as string);
     res.json(registration);
   } catch (err) { next(err); }
 });
 
-router.get("/:sellerId/registrations", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:sellerId/registrations", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { sellerId } = req.params;
-    const registrations = await getDeviceRegistrationsBySeller(sellerId);
+    const registrations = await getDeviceRegistrationsBySeller(sellerId as string);
     res.json({ registrations, count: registrations.length });
   } catch (err) { next(err); }
 });
 
-router.get("/registrations/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/registrations/device/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
-    const registrations = await getDeviceRegistrationsByDevice(deviceId);
+    const registrations = await getDeviceRegistrationsByDevice(deviceId as string);
     res.json({ registrations, count: registrations.length });
   } catch (err) { next(err); }
 });
 
-router.get("/registrations/customer/:customerEmail", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/registrations/customer/:customerEmail", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { customerEmail } = req.params;
-    const registrations = await getDeviceRegistrationsByCustomer(customerEmail);
+    const registrations = await getDeviceRegistrationsByCustomer(customerEmail as string);
     res.json({ registrations, count: registrations.length });
   } catch (err) { next(err); }
 });
@@ -185,7 +185,7 @@ router.post("/registrations/:registrationId/transfer", authenticate, async (req:
 
     const { registrationId } = req.params;
     const data = schema.parse(req.body);
-    const registration = await transferDeviceRegistration(registrationId, data.newSellerId, req.user!.id);
+    const registration = await transferDeviceRegistration(registrationId as string, data.newSellerId, req.user!.id);
     res.json(registration);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -196,13 +196,13 @@ router.post("/registrations/:registrationId/transfer", authenticate, async (req:
 router.post("/registrations/:registrationId/cancel", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { registrationId } = req.params;
-    const registration = await cancelDeviceRegistration(registrationId, req.user!.id);
+    const registration = await cancelDeviceRegistration(registrationId as string, req.user!.id);
     res.json(registration);
   } catch (err) { next(err); }
 });
 
 // ── Permission Checks ──────────────────────────────────────────────────────────────
-router.post("/:sellerId/check-permission", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/:sellerId/check-permission", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       permission: z.string(),
@@ -210,7 +210,7 @@ router.post("/:sellerId/check-permission", authenticate, async (req: Request, re
 
     const { sellerId } = req.params;
     const data = schema.parse(req.body);
-    const result = await checkSellerPermission(sellerId, data.permission);
+    const result = await checkSellerPermission(sellerId as string, data.permission);
     res.json(result);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -219,15 +219,15 @@ router.post("/:sellerId/check-permission", authenticate, async (req: Request, re
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────────
-router.get("/:sellerId/statistics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:sellerId/statistics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { sellerId } = req.params;
-    const stats = await getSellerStatistics(sellerId);
+    const stats = await getSellerStatistics(sellerId as string);
     res.json(stats);
   } catch (err) { next(err); }
 });
 
-router.get("/statistics", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getSellerResellerStatistics();
     res.json(stats);
