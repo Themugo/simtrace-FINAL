@@ -28,8 +28,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Instance Management ───────────────────────────────────────────────────────────
-router.post("/instances", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       name: z.string().min(2).max(100),
@@ -69,10 +77,10 @@ router.post("/instances", authenticate, async (req: Request, res: Response, next
   }
 });
 
-router.get("/instances/:instanceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/instances/:instanceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
-    const instance = await getWhiteLabelInstance(instanceId);
+    const instance = await getWhiteLabelInstance(instanceId as string);
 
     if (!instance) {
       return res.status(404).json({ error: "White label instance not found" });
@@ -82,41 +90,41 @@ router.get("/instances/:instanceId", authenticate, async (req: Request, res: Res
   } catch (err) { next(err); }
 });
 
-router.patch("/instances/:instanceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/instances/:instanceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
-    const instance = await updateWhiteLabelInstance(instanceId, req.body);
+    const instance = await updateWhiteLabelInstance(instanceId as string, req.body);
     res.json(instance);
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/activate", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances/:instanceId/activate", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
-    const instance = await activateInstance(instanceId);
+    const instance = await activateInstance(instanceId as string);
     res.json(instance);
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/suspend", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances/:instanceId/suspend", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const { reason } = req.body;
-    const instance = await suspendInstance(instanceId, reason);
+    const instance = await suspendInstance(instanceId as string, reason);
     res.json(instance);
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/terminate", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances/:instanceId/terminate", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
-    const instance = await terminateInstance(instanceId);
+    const instance = await terminateInstance(instanceId as string);
     res.json(instance);
   } catch (err) { next(err); }
 });
 
 // ── Instance Queries ───────────────────────────────────────────────────────────────
-router.get("/instances", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/instances", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { ownerId, partnerId, status } = req.query;
 
@@ -138,89 +146,89 @@ router.get("/instances", authenticate, async (req: Request, res: Response, next:
 });
 
 // ── API Key Management ─────────────────────────────────────────────────────────────
-router.post("/instances/:instanceId/regenerate-key", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances/:instanceId/regenerate-key", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
-    const result = await regenerateApiKey(instanceId);
+    const result = await regenerateApiKey(instanceId as string);
     res.json(result);
   } catch (err) { next(err); }
 });
 
 // ── Feature Management ─────────────────────────────────────────────────────────────
-router.post("/instances/:instanceId/features/:feature/enable", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances/:instanceId/features/:feature/enable", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId, feature } = req.params;
-    const instance = await enableFeature(instanceId, feature);
+    const instance = await enableFeature(instanceId as string, feature as string);
     res.json(instance);
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/features/:feature/disable", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances/:instanceId/features/:feature/disable", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId, feature } = req.params;
-    const instance = await disableFeature(instanceId, feature);
+    const instance = await disableFeature(instanceId as string, feature as string);
     res.json(instance);
   } catch (err) { next(err); }
 });
 
-router.patch("/instances/:instanceId/rate-limits", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/instances/:instanceId/rate-limits", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const limits = req.body;
-    const instance = await updateRateLimits(instanceId, limits);
+    const instance = await updateRateLimits(instanceId as string, limits);
     res.json(instance);
   } catch (err) { next(err); }
 });
 
 // ── Metrics & Revenue ───────────────────────────────────────────────────────────
-router.patch("/instances/:instanceId/metrics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/instances/:instanceId/metrics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const metrics = req.body;
-    const instance = await updateInstanceMetrics(instanceId, metrics);
+    const instance = await updateInstanceMetrics(instanceId as string, metrics);
     res.json(instance);
   } catch (err) { next(err); }
 });
 
-router.get("/instances/:instanceId/revenue", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/instances/:instanceId/revenue", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const { period } = req.query;
-    const revenue = await calculateInstanceRevenue(instanceId, period as string);
+    const revenue = await calculateInstanceRevenue(instanceId as string, period as string);
     res.json(revenue);
   } catch (err) { next(err); }
 });
 
 // ── Webhook Management ─────────────────────────────────────────────────────────────
-router.patch("/instances/:instanceId/webhook", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/instances/:instanceId/webhook", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
     const { webhookUrl } = req.body;
-    const result = await updateWebhook(instanceId, webhookUrl);
+    const result = await updateWebhook(instanceId as string, webhookUrl);
     res.json(result);
   } catch (err) { next(err); }
 });
 
-router.post("/instances/:instanceId/webhook/test", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances/:instanceId/webhook/test", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { instanceId } = req.params;
-    const result = await testWebhook(instanceId);
+    const result = await testWebhook(instanceId as string);
     res.json(result);
   } catch (err) { next(err); }
 });
 
 // ── Instance Cloning ─────────────────────────────────────────────────────────────
-router.post("/instances/:templateId/clone", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/instances/:templateId/clone", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { templateId } = req.params;
     const { newOwner, newName } = req.body;
-    const instance = await createInstanceFromTemplate(templateId, newOwner, newName);
+    const instance = await createInstanceFromTemplate(templateId as string, newOwner, newName);
     res.status(201).json(instance);
   } catch (err) { next(err); }
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getWhiteLabelStatistics();
     res.json(stats);
