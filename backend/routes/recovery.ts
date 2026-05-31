@@ -31,7 +31,7 @@ interface AuthRequest extends Request {
 }
 
 // ── Agent Management ─────────────────────────────────────────────────────────────
-router.post("/agents", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.post("/agents", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       name: z.string().min(2).max(100),
@@ -59,7 +59,7 @@ router.post("/agents", authenticate, requireRole("admin"), async (req: Request, 
   }
 });
 
-router.get("/agents", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/agents", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { location, capabilities, type, maxLoad } = req.query;
     
@@ -74,10 +74,10 @@ router.get("/agents", authenticate, async (req: Request, res: Response, next: Ne
   } catch (err) { next(err); }
 });
 
-router.patch("/agents/:id/metrics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/agents/:id/metrics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const agent = await updateAgentMetrics(id);
+    const agent = await updateAgentMetrics(id as string);
     res.json(agent);
   } catch (err) { next(err); }
 });
@@ -105,10 +105,10 @@ router.post("/cases", authenticate, async (req: AuthRequest, res: Response, next
   }
 });
 
-router.get("/cases/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/cases/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const recoveryCase = await getRecoveryCase(id);
+    const recoveryCase = await getRecoveryCase(id as string);
 
     if (!recoveryCase) {
       return res.status(404).json({ error: "Recovery case not found" });
@@ -125,22 +125,22 @@ router.get("/cases/my", authenticate, async (req: AuthRequest, res: Response, ne
   } catch (err) { next(err); }
 });
 
-router.get("/cases/agent/:agentId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/cases/agent/:agentId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agentId } = req.params;
-    const cases = await getRecoveryCasesByAgent(agentId);
+    const cases = await getRecoveryCasesByAgent(agentId as string);
     res.json({ cases, count: cases.length });
   } catch (err) { next(err); }
 });
 
-router.get("/cases/active", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.get("/cases/active", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const cases = await getActiveCases();
     res.json({ cases, count: cases.length });
   } catch (err) { next(err); }
 });
 
-router.patch("/cases/:id/status", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/cases/:id/status", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["open", "assigned", "in_progress", "negotiating", "recovered", "failed", "closed", "escalated"]),
@@ -150,7 +150,7 @@ router.patch("/cases/:id/status", authenticate, async (req: Request, res: Respon
 
     const { id } = req.params;
     const { status, notes, agentId } = schema.parse(req.body);
-    const recoveryCase = await updateCaseStatus(id, status, notes, agentId);
+    const recoveryCase = await updateCaseStatus(id as string, status, notes, agentId);
 
     res.json(recoveryCase);
   } catch (err) {
@@ -159,7 +159,7 @@ router.patch("/cases/:id/status", authenticate, async (req: Request, res: Respon
   }
 });
 
-router.post("/cases/:id/communications", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/cases/:id/communications", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       type: z.enum(["call", "sms", "email", "in_person"]),
@@ -170,7 +170,7 @@ router.post("/cases/:id/communications", authenticate, async (req: Request, res:
 
     const { id } = req.params;
     const communication = schema.parse(req.body);
-    const recoveryCase = await addCommunication(id, communication);
+    const recoveryCase = await addCommunication(id as string, communication);
 
     res.json(recoveryCase);
   } catch (err) {
@@ -179,7 +179,7 @@ router.post("/cases/:id/communications", authenticate, async (req: Request, res:
   }
 });
 
-router.patch("/cases/:id/location", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/cases/:id/location", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       lat: z.number(),
@@ -189,7 +189,7 @@ router.patch("/cases/:id/location", authenticate, async (req: Request, res: Resp
 
     const { id } = req.params;
     const location = schema.parse(req.body);
-    const recoveryCase = await updateCaseLocation(id, location);
+    const recoveryCase = await updateCaseLocation(id as string, location);
 
     res.json(recoveryCase);
   } catch (err) {
@@ -198,24 +198,24 @@ router.patch("/cases/:id/location", authenticate, async (req: Request, res: Resp
   }
 });
 
-router.post("/cases/:id/auto-assign", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.post("/cases/:id/auto-assign", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const recoveryCase = await autoAssignAgents(id);
+    const recoveryCase = await autoAssignAgents(id as string);
     res.json(recoveryCase);
   } catch (err) { next(err); }
 });
 
-router.post("/cases/:id/autonomous", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.post("/cases/:id/autonomous", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const recoveryCase = await runAutonomousRecovery(id);
+    const recoveryCase = await runAutonomousRecovery(id as string);
     res.json(recoveryCase);
   } catch (err) { next(err); }
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getRecoveryStatistics();
     res.json(stats);
