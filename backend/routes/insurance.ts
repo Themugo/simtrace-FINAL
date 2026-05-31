@@ -58,10 +58,10 @@ router.post("/policies", authenticate, async (req: AuthRequest, res: Response, n
   }
 });
 
-router.get("/policies/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/policies/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const policy = await getInsurancePolicy(id);
+    const policy = await getInsurancePolicy(id as string);
 
     if (!policy) {
       return res.status(404).json({ error: "Policy not found" });
@@ -78,7 +78,7 @@ router.get("/policies", authenticate, async (req: AuthRequest, res: Response, ne
   } catch (err) { next(err); }
 });
 
-router.patch("/policies/:id/status", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/policies/:id/status", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["active", "expired", "cancelled", "pending"]),
@@ -86,7 +86,7 @@ router.patch("/policies/:id/status", authenticate, requireAdmin, async (req: Req
 
     const { id } = req.params;
     const { status } = schema.parse(req.body);
-    const policy = await updatePolicyStatus(id, status);
+    const policy = await updatePolicyStatus(id as string, status);
 
     res.json(policy);
   } catch (err) {
@@ -95,7 +95,7 @@ router.patch("/policies/:id/status", authenticate, requireAdmin, async (req: Req
   }
 });
 
-router.post("/policies/:id/renew", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/policies/:id/renew", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       newEndDate: z.date(),
@@ -103,7 +103,7 @@ router.post("/policies/:id/renew", authenticate, async (req: Request, res: Respo
 
     const { id } = req.params;
     const { newEndDate } = schema.parse(req.body);
-    const policy = await renewPolicy(id, newEndDate);
+    const policy = await renewPolicy(id as string, newEndDate);
 
     res.json(policy);
   } catch (err) {
@@ -150,10 +150,10 @@ router.post("/claims", authenticate, async (req: AuthRequest, res: Response, nex
   }
 });
 
-router.get("/claims/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/claims/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const claim = await getInsuranceClaim(id);
+    const claim = await getInsuranceClaim(id as string);
 
     if (!claim) {
       return res.status(404).json({ error: "Claim not found" });
@@ -189,7 +189,7 @@ router.patch("/claims/:id/status", authenticate, requireAdmin, async (req: AuthR
   }
 });
 
-router.post("/claims/:id/evidence", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/claims/:id/evidence", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       type: z.string(),
@@ -199,7 +199,7 @@ router.post("/claims/:id/evidence", authenticate, async (req: Request, res: Resp
 
     const { id } = req.params;
     const evidence = schema.parse(req.body);
-    const claim = await addClaimEvidence(id, evidence);
+    const claim = await addClaimEvidence(id as string, evidence);
 
     res.json(claim);
   } catch (err) {
@@ -208,32 +208,32 @@ router.post("/claims/:id/evidence", authenticate, async (req: Request, res: Resp
   }
 });
 
-router.post("/claims/:id/recovered", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/claims/:id/recovered", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const claim = await markDeviceRecovered(id);
+    const claim = await markDeviceRecovered(id as string);
     res.json(claim);
   } catch (err) { next(err); }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getInsuranceStatistics();
     res.json(stats);
   } catch (err) { next(err); }
 });
 
-router.get("/stats/provider/:providerId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats/provider/:providerId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { providerId } = req.params;
-    const stats = await getProviderStatistics(providerId);
+    const stats = await getProviderStatistics(providerId as string);
     res.json(stats);
   } catch (err) { next(err); }
 });
 
 // ── Policy Expiry Check ─────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/check-expiry", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await checkPolicyExpiry();
     res.json(result);
