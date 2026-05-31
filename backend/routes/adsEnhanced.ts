@@ -97,15 +97,15 @@ router.post("/campaigns", authenticate, async (req: AuthRequest, res: Response, 
   }
 });
 
-router.post("/campaigns/:id/submit", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/campaigns/:id/submit", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const campaign = await submitCampaignForReview(id);
+    const campaign = await submitCampaignForReview(id as string);
     res.json(campaign);
   } catch (err) { next(err); }
 });
 
-router.post("/campaigns/:id/review", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/campaigns/:id/review", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       approved: z.boolean(),
@@ -114,7 +114,7 @@ router.post("/campaigns/:id/review", authenticate, requireAdmin, async (req: Req
 
     const { id } = req.params;
     const { approved, rejectionReason } = schema.parse(req.body);
-    const campaign = await reviewCampaign(id, approved, rejectionReason);
+    const campaign = await reviewCampaign(id as string, approved, rejectionReason);
     res.json(campaign);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -122,7 +122,7 @@ router.post("/campaigns/:id/review", authenticate, requireAdmin, async (req: Req
   }
 });
 
-router.patch("/campaigns/:id/status", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/campaigns/:id/status", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["draft", "pending", "active", "paused", "completed", "exhausted"]),
@@ -130,7 +130,7 @@ router.patch("/campaigns/:id/status", authenticate, async (req: Request, res: Re
 
     const { id } = req.params;
     const { status } = schema.parse(req.body);
-    const campaign = await updateCampaignStatus(id, status);
+    const campaign = await updateCampaignStatus(id as string, status);
     res.json(campaign);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -139,10 +139,10 @@ router.patch("/campaigns/:id/status", authenticate, async (req: Request, res: Re
 });
 
 // ── Campaign Queries ───────────────────────────────────────────────────────────────
-router.get("/campaigns/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/campaigns/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const campaign = await getCampaign(id);
+    const campaign = await getCampaign(id as string);
 
     if (!campaign) {
       return res.status(404).json({ error: "Campaign not found" });
@@ -152,7 +152,7 @@ router.get("/campaigns/:id", authenticate, async (req: Request, res: Response, n
   } catch (err) { next(err); }
 });
 
-router.get("/campaigns", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/campaigns", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { advertiserId, status, placement } = req.query;
 
@@ -204,7 +204,7 @@ router.post("/deliver/:campaignId", async (req: Request, res: Response, next: Ne
   try {
     const { campaignId } = req.params;
     const context = req.body;
-    const ad = await deliverAd(campaignId, context);
+    const ad = await deliverAd(campaignId as string, context);
     res.json(ad);
   } catch (err) { next(err); }
 });
@@ -248,33 +248,33 @@ router.post("/track", async (req: Request, res: Response, next: NextFunction) =>
 });
 
 // ── Campaign Optimization ─────────────────────────────────────────────────────────
-router.post("/campaigns/:id/optimize", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/campaigns/:id/optimize", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const campaign = await optimizeCampaign(id);
+    const campaign = await optimizeCampaign(id as string);
     res.json(campaign);
   } catch (err) { next(err); }
 });
 
-router.post("/campaigns/:id/auto-optimize", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/campaigns/:id/auto-optimize", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const campaign = await enableAutoOptimization(id);
+    const campaign = await enableAutoOptimization(id as string);
     res.json(campaign);
   } catch (err) { next(err); }
 });
 
 // ── Analytics & Revenue ───────────────────────────────────────────────────────────
-router.get("/campaigns/:id/analytics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/campaigns/:id/analytics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { period } = req.query;
-    const analytics = await getCampaignAnalytics(id, period as string);
+    const analytics = await getCampaignAnalytics(id as string, period as string);
     res.json(analytics);
   } catch (err) { next(err); }
 });
 
-router.get("/revenue", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/revenue", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { period } = req.query;
     const revenue = await getPlatformRevenue(period as string);
@@ -282,7 +282,7 @@ router.get("/revenue", authenticate, requireAdmin, async (req: Request, res: Res
   } catch (err) { next(err); }
 });
 
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getAdBoardStatistics();
     res.json(stats);
