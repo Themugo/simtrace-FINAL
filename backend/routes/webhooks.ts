@@ -22,6 +22,7 @@ const router = Router();
 interface AuthRequest extends Request {
   user?: {
     id: string;
+    email: string;
     role: string;
   };
 }
@@ -48,10 +49,10 @@ router.post("/subscriptions", authenticate, async (req: AuthRequest, res: Respon
   }
 });
 
-router.get("/subscriptions/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/subscriptions/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const subscription = await getWebhookSubscription(id);
+    const subscription = await getWebhookSubscription(id as string);
 
     if (!subscription) {
       return res.status(404).json({ error: "Webhook subscription not found" });
@@ -68,57 +69,57 @@ router.get("/subscriptions", authenticate, async (req: AuthRequest, res: Respons
   } catch (err) { next(err); }
 });
 
-router.patch("/subscriptions/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/subscriptions/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const subscription = await updateWebhookSubscription(id, req.body);
+    const subscription = await updateWebhookSubscription(id as string, req.body);
     res.json(subscription);
   } catch (err) { next(err); }
 });
 
-router.delete("/subscriptions/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/subscriptions/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const subscription = await deleteWebhookSubscription(id);
+    const subscription = await deleteWebhookSubscription(id as string);
     res.json(subscription);
   } catch (err) { next(err); }
 });
 
-router.post("/subscriptions/:id/regenerate-secret", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/subscriptions/:id/regenerate-secret", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const subscription = await regenerateWebhookSecret(id);
+    const subscription = await regenerateWebhookSecret(id as string);
     res.json(subscription);
   } catch (err) { next(err); }
 });
 
-router.post("/subscriptions/:id/test", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/subscriptions/:id/test", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const delivery = await testWebhook(id);
+    const delivery = await testWebhook(id as string);
     res.json(delivery);
   } catch (err) { next(err); }
 });
 
 // ── Webhook Delivery Logs ───────────────────────────────────────────────────────
-router.get("/subscriptions/:id/logs", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/subscriptions/:id/logs", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const logs = await getWebhookDeliveryLogs(id);
+    const logs = await getWebhookDeliveryLogs(id as string);
     res.json({ logs, count: logs.length });
   } catch (err) { next(err); }
 });
 
-router.post("/logs/:id/retry", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/logs/:id/retry", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const delivery = await retryFailedWebhook(id);
+    const delivery = await retryFailedWebhook(id as string);
     res.json(delivery);
   } catch (err) { next(err); }
 });
 
 // ── Manual Webhook Trigger ───────────────────────────────────────────────────────
-router.post("/trigger", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/trigger", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       event: z.string(),
@@ -136,7 +137,7 @@ router.post("/trigger", authenticate, requireAdmin, async (req: Request, res: Re
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getWebhookStatistics();
     res.json(stats);
