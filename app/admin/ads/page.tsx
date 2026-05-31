@@ -4,7 +4,13 @@ import { useRouter } from "next/navigation";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 
-function Sparkline({ data = [], color = "var(--sky)", height = 36 }) {
+interface SparklineProps {
+  data?: number[];
+  color?: string;
+  height?: number;
+}
+
+function Sparkline({ data = [], color = "var(--sky)", height = 36 }: SparklineProps) {
   if (!data.length) return null;
   const max  = Math.max(...data, 1);
   const pts  = data.map((v, i) => {
@@ -20,18 +26,57 @@ function Sparkline({ data = [], color = "var(--sky)", height = 36 }) {
   );
 }
 
-const STATUS_COLOR = {
+const STATUS_COLOR: Record<string, string> = {
   active:"var(--emerald)", pending:"var(--amber)", rejected:"var(--rose)",
   suspended:"var(--rose)", paused:"var(--muted)", exhausted:"var(--dim)",
 };
+
+interface Ad {
+  _id: string;
+  title: string;
+  body: string;
+  status: string;
+  placement?: string;
+  cpcKES?: number;
+  impressions?: number;
+  clicks?: number;
+  spentKES?: number;
+  budgetKES?: number;
+}
+
+interface Partner {
+  _id: string;
+  orgName: string;
+  status: string;
+  tier: string;
+  orgType: string;
+  apiCallsMonth?: number;
+  apiCallsLimit?: number;
+}
+
+interface RevenueData {
+  monthlyRevKES?: number;
+  weeklyRevKES?: number;
+  monthlyRevUSD?: number;
+  adRevKES?: number;
+  totalPayments?: number;
+  subscriptions?: Array<{ _id: string; count: number }>;
+  recentPayments?: Array<{
+    user?: { name?: string };
+    description?: string;
+    type?: string;
+    amountKES?: number;
+    paidAt?: string;
+  }>;
+}
 
 export default function AdminAdsPage() {
   const { user, loading:authLoading } = useAuth();
   const router = useRouter();
   const [tab,      setTab]      = useState("revenue");
-  const [revenue,  setRevenue]  = useState(null);
-  const [ads,      setAds]      = useState([]);
-  const [partners, setPartners] = useState([]);
+  const [revenue,  setRevenue]  = useState<RevenueData | null>(null);
+  const [ads,      setAds]      = useState<Ad[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
   const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
@@ -54,15 +99,15 @@ export default function AdminAdsPage() {
     finally { setLoading(false); }
   }
 
-  async function setAdStatus(id, status) {
+  async function setAdStatus(id: string, status: string) {
     await api.patch(`/api/ads/${id}/status`, { status });
     setAds(a => a.map(x => x._id === id ? { ...x, status } : x));
   }
-  async function setPartnerStatus(id, status) {
+  async function setPartnerStatus(id: string, status: string) {
     await api.patch(`/api/partner/admin/${id}/status`, { status });
     setPartners(p => p.map(x => x._id === id ? { ...x, status } : x));
   }
-  async function setPartnerTier(id, tier) {
+  async function setPartnerTier(id: string, tier: string) {
     await api.patch(`/api/partner/admin/${id}/tier`, { tier });
     setPartners(p => p.map(x => x._id === id ? { ...x, tier } : x));
   }
