@@ -1,7 +1,7 @@
-/** @type {import('next').NextConfig} */
+import type { NextConfig } from "next";
 const { withSentryConfig } = require("@sentry/nextjs");
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   transpilePackages: ["leaflet", "react-leaflet"],
   images: {
     remotePatterns: [
