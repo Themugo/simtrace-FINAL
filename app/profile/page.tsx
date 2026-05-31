@@ -5,7 +5,7 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useToast } from "../../components/ToastProvider";
 
-const PLAN_COLOR = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
+const PLAN_COLOR: Record<string, string> = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
 
 const TABS = [
   { id:"account",      icon:"👤", label:"Account"      },
@@ -14,14 +14,36 @@ const TABS = [
   { id:"security",     icon:"🔒", label:"Security"     },
 ];
 
+interface Subscription {
+  plan: string;
+  status: string;
+  currentPeriodEnd?: string;
+  slotsUsed?: number;
+  totalAllowed?: number;
+  extraDevices?: number;
+  slotsRemaining?: number;
+}
+
+interface Invoice {
+  _id?: string;
+  description?: string;
+  type?: string;
+  method?: string;
+  paidAt?: string;
+  mpesaReceipt?: string;
+  amountKES?: number;
+  amountUSD?: number;
+  status: string;
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const toast  = useToast();
 
   const [tab,      setTab]     = useState("account");
-  const [sub,      setSub]     = useState(null);
-  const [invoices, setInvoices]= useState([]);
+  const [sub,      setSub]     = useState<Subscription | null>(null);
+  const [invoices, setInvoices]= useState<Invoice[]>([]);
   const [phone,    setPhone]   = useState("");
   const [name,     setName]    = useState("");
   const [saving,   setSaving]  = useState(false);
@@ -38,17 +60,17 @@ export default function ProfilePage() {
     }
   }, [user, authLoading]);
 
-  async function saveProfile(e) {
+  async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
       await api.patch("/api/auth/update-profile", { phone, name });
       toast?.add("Profile updated successfully", "success");
-    } catch (err) { toast?.add(err.message, "danger"); }
+    } catch (err: any) { toast?.add(err.message, "danger"); }
     finally { setSaving(false); }
   }
 
-  async function changePassword(e) {
+  async function changePassword(e: React.FormEvent) {
     e.preventDefault();
     if (pwForm.next !== pwForm.confirm) { toast?.add("Passwords don't match", "danger"); return; }
     if (pwForm.next.length < 8)        { toast?.add("Password must be at least 8 characters", "danger"); return; }
@@ -57,7 +79,7 @@ export default function ProfilePage() {
       await api.post("/api/auth/change-password", { currentPassword: pwForm.current, newPassword: pwForm.next });
       toast?.add("Password updated successfully", "success");
       setPwForm({ current:"", next:"", confirm:"" });
-    } catch (err) { toast?.add(err.message, "danger"); }
+    } catch (err: any) { toast?.add(err.message, "danger"); }
     finally { setPwSaving(false); }
   }
 
@@ -194,8 +216,8 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div style={{ textAlign:"right", flexShrink:0 }}>
-                {inv.amountKES > 0 && <div style={{ fontWeight:700, color:"var(--emerald)" }}>KES {inv.amountKES.toLocaleString()}</div>}
-                {inv.amountUSD > 0 && <div style={{ fontSize:"0.78rem", color:"var(--sky)" }}>USD {inv.amountUSD}</div>}
+                {inv.amountKES && inv.amountKES > 0 && <div style={{ fontWeight:700, color:"var(--emerald)" }}>KES {inv.amountKES.toLocaleString()}</div>}
+                {inv.amountUSD && inv.amountUSD > 0 && <div style={{ fontSize:"0.78rem", color:"var(--sky)" }}>USD {inv.amountUSD}</div>}
               </div>
               <span className={`badge ${inv.status === "completed" ? "badge-ok" : "badge-warn"}`} style={{ flexShrink:0 }}>
                 {inv.status}
