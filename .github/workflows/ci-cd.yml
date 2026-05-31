@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: ./package-lock.json
       - run: npm ci
       # Type-check disabled - using tsx for runtime TypeScript execution
       # - run: npm run type-check
@@ -75,13 +75,13 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: ./package-lock.json
       - run: npm ci && npx audit-ci --moderate || true
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: ./backend/package-lock.json
       - working-directory: ./backend
         run: npm ci && npx audit-ci --moderate || true
 
@@ -94,7 +94,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: ./package-lock.json
       - run: npm ci
       - run: npm run build
       - uses: actions/upload-artifact@v4
