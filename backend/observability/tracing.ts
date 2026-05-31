@@ -17,17 +17,28 @@ const sdk = new NodeSDK({
 });
 
 // Start the SDK
-sdk.start();
-
-console.log('[Tracing] OpenTelemetry initialized');
+try {
+  sdk.start();
+  console.log('[Tracing] OpenTelemetry initialized');
+} catch (error) {
+  console.error('[Tracing] Failed to initialize OpenTelemetry:', error);
+}
 
 // Export tracer for manual instrumentation
-export const tracer = sdk.tracerProvider.getTracer('simtrace-backend');
+// Note: tracerProvider may not be immediately available after start()
+export const tracer = (sdk as any).tracerProvider?.getTracer('simtrace-backend') || {
+  startSpan: (name: string, options?: any) => ({
+    setAttribute: () => {},
+    setStatus: () => {},
+    recordException: () => {},
+    end: () => {},
+  }),
+};
 
 // Helper function to create spans
 export async function withTracing<T>(name: string, fn: () => Promise<T>, attributes: any = {}): Promise<T> {
   const span = tracer.startSpan(name, { attributes });
-  
+
   try {
     const result = await fn();
     span.setStatus({ code: 1 }); // OK
