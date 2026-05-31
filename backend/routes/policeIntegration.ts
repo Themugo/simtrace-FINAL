@@ -95,7 +95,7 @@ router.get("/stations", authenticate, async (req: AuthRequest, res: Response, ne
 router.get("/stations/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const station = await getPoliceStation(id);
+    const station = await getPoliceStation(id as string);
     res.json(station);
   } catch (err) { next(err); }
 });
@@ -103,7 +103,7 @@ router.get("/stations/:id", authenticate, async (req: AuthRequest, res: Response
 router.patch("/stations/:id", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const station = await updatePoliceStation(id, req.body);
+    const station = await updatePoliceStation(id as string, req.body);
     res.json(station);
   } catch (err) { next(err); }
 });
@@ -167,7 +167,7 @@ router.post("/reports/:id/confirm", authenticate, async (req: AuthRequest, res: 
 
     const { id } = req.params;
     const { confirmationNotes } = schema.parse(req.body);
-    const report = await confirmPoliceReport(id, req.user!.id, confirmationNotes);
+    const report = await confirmPoliceReport(id as string, req.user!.id, confirmationNotes);
     res.json(report);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -178,7 +178,7 @@ router.post("/reports/:id/confirm", authenticate, async (req: AuthRequest, res: 
 router.get("/reports/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const report = await getPoliceReport(id);
+    const report = await getPoliceReport(id as string);
     res.json(report);
   } catch (err) { next(err); }
 });
@@ -186,7 +186,7 @@ router.get("/reports/:id", authenticate, async (req: AuthRequest, res: Response,
 router.get("/reports/station/:stationId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { stationId } = req.params;
-    const reports = await getPoliceReportsByStation(stationId);
+    const reports = await getPoliceReportsByStation(stationId as string);
     res.json({ reports, count: reports.length });
   } catch (err) { next(err); }
 });
@@ -194,7 +194,7 @@ router.get("/reports/station/:stationId", authenticate, async (req: AuthRequest,
 router.get("/reports/device/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
-    const reports = await getPoliceReportsByDevice(deviceId);
+    const reports = await getPoliceReportsByDevice(deviceId as string);
     res.json({ reports, count: reports.length });
   } catch (err) { next(err); }
 });
@@ -209,7 +209,7 @@ router.post("/reports/:id/evidence", authenticate, async (req: AuthRequest, res:
 
     const { id } = req.params;
     const evidenceData = schema.parse(req.body);
-    const report = await addEvidenceToReport(id, evidenceData);
+    const report = await addEvidenceToReport(id as string, evidenceData);
     res.json(report);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -247,7 +247,7 @@ router.post("/alerts", authenticate, async (req: AuthRequest, res: Response, nex
 router.get("/alerts/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const alert = await getNationwideAlert(id);
+    const alert = await getNationwideAlert(id as string);
     res.json(alert);
   } catch (err) { next(err); }
 });
@@ -273,7 +273,7 @@ router.post("/alerts/:id/sighting", authenticate, async (req: AuthRequest, res: 
 
     const { id } = req.params;
     const data = schema.parse(req.body);
-    const alert = await reportSighting(id, data, req.user!.id);
+    const alert = await reportSighting(id as string, data, req.user!.id);
     res.json(alert);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -284,7 +284,7 @@ router.post("/alerts/:id/sighting", authenticate, async (req: AuthRequest, res: 
 router.post("/alerts/:id/deactivate", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const alert = await deactivateAlert(id);
+    const alert = await deactivateAlert(id as string);
     res.json(alert);
   } catch (err) { next(err); }
 });
@@ -311,7 +311,7 @@ router.post("/case-transfers", authenticate, async (req: AuthRequest, res: Respo
 router.post("/case-transfers/:id/accept", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const transfer = await acceptCaseTransfer(id, req.user!.id);
+    const transfer = await acceptCaseTransfer(id as string, req.user!.id);
     res.json(transfer);
   } catch (err) { next(err); }
 });
@@ -324,7 +324,7 @@ router.post("/case-transfers/:id/reject", authenticate, async (req: AuthRequest,
 
     const { id } = req.params;
     const { rejectionReason } = schema.parse(req.body);
-    const transfer = await rejectCaseTransfer(id, req.user!.id, rejectionReason);
+    const transfer = await rejectCaseTransfer(id as string, req.user!.id, rejectionReason);
     res.json(transfer);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -335,7 +335,7 @@ router.post("/case-transfers/:id/reject", authenticate, async (req: AuthRequest,
 router.post("/case-transfers/:id/complete", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const transfer = await completeCaseTransfer(id, req.user!.id);
+    const transfer = await completeCaseTransfer(id as string, req.user!.id);
     res.json(transfer);
   } catch (err) { next(err); }
 });
@@ -367,7 +367,7 @@ router.patch("/recovery/:id/stage", authenticate, async (req: AuthRequest, res: 
 
     const { id } = req.params;
     const { stage, notes } = schema.parse(req.body);
-    const workflow = await updateRecoveryStage(id, stage, notes, req.user!.id);
+    const workflow = await updateRecoveryStage(id as string, stage, notes, req.user!.id);
     res.json(workflow);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -383,7 +383,7 @@ router.post("/recovery/:id/investigators", authenticate, async (req: AuthRequest
 
     const { id } = req.params;
     const { investigatorId } = schema.parse(req.body);
-    const workflow = await addInvestigator(id, investigatorId);
+    const workflow = await addInvestigator(id as string, investigatorId);
     res.json(workflow);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -404,7 +404,7 @@ router.post("/recovery/:id/locate", authenticate, async (req: AuthRequest, res: 
 
     const { id } = req.params;
     const { locationData } = schema.parse(req.body);
-    const workflow = await locateDevice(id, locationData, req.user!.id);
+    const workflow = await locateDevice(id as string, locationData, req.user!.id);
     res.json(workflow);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -427,7 +427,7 @@ router.post("/recovery/:id/recover", authenticate, async (req: AuthRequest, res:
 
     const { id } = req.params;
     const { recoveryData } = schema.parse(req.body);
-    const workflow = await recoverDevice(id, recoveryData, req.user!.id);
+    const workflow = await recoverDevice(id as string, recoveryData, req.user!.id);
     res.json(workflow);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -443,7 +443,7 @@ router.post("/recovery/:id/return", authenticate, async (req: AuthRequest, res: 
 
     const { id } = req.params;
     const { returnCondition } = schema.parse(req.body);
-    const workflow = await returnDeviceToOwner(id, returnCondition, req.user!.id);
+    const workflow = await returnDeviceToOwner(id as string, returnCondition, req.user!.id);
     res.json(workflow);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -462,7 +462,7 @@ router.post("/recovery/:id/arrests", authenticate, async (req: AuthRequest, res:
 
     const { id } = req.params;
     const arrestData = schema.parse(req.body);
-    const workflow = await addArrest(id, {
+    const workflow = await addArrest(id as string, {
       ...arrestData,
       arrestDate: new Date(arrestData.arrestDate),
     });
@@ -506,7 +506,7 @@ router.post("/court-cases", authenticate, async (req: AuthRequest, res: Response
 router.patch("/court-cases/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const courtCase = await updateCourtCase(id, req.body);
+    const courtCase = await updateCourtCase(id as string, req.body);
     res.json(courtCase);
   } catch (err) { next(err); }
 });
@@ -537,7 +537,7 @@ router.post("/interpol", authenticate, async (req: AuthRequest, res: Response, n
 router.post("/interpol/:id/publish", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const interpolCase = await publishInterpolNotice(id);
+    const interpolCase = await publishInterpolNotice(id as string);
     res.json(interpolCase);
   } catch (err) { next(err); }
 });
@@ -552,7 +552,7 @@ router.post("/interpol/:id/response", authenticate, async (req: AuthRequest, res
 
     const { id } = req.params;
     const responseData = schema.parse(req.body);
-    const interpolCase = await addInterpolResponse(id, responseData);
+    const interpolCase = await addInterpolResponse(id as string, responseData);
     res.json(interpolCase);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
