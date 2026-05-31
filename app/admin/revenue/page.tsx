@@ -5,7 +5,14 @@ import Link from "next/link";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 
-function Sparkline({ data = [], color = "var(--sky)", height = 48, fill = true }) {
+interface SparklineProps {
+  data?: number[];
+  color?: string;
+  height?: number;
+  fill?: boolean;
+}
+
+function Sparkline({ data = [], color = "var(--sky)", height = 48, fill = true }: SparklineProps) {
   if (!data.length) return null;
   const max = Math.max(...data, 1);
   const pts = data.map((v, i) => {
@@ -21,12 +28,29 @@ function Sparkline({ data = [], color = "var(--sky)", height = 48, fill = true }
   );
 }
 
-const PLAN_COLOR = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
+const PLAN_COLOR: Record<string, string> = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
+
+interface RevenueData {
+  monthlyRevKES?: number;
+  monthlyRevUSD?: number;
+  adRevKES?: number;
+  weeklyRevKES?: number;
+  totalPayments?: number;
+  subscriptions?: Array<{ _id: string; count: number }>;
+  recentPayments?: Array<{
+    user?: { name?: string };
+    description?: string;
+    type?: string;
+    method?: string;
+    paidAt?: string;
+    amountKES?: number;
+  }>;
+}
 
 export default function AdminRevenuePage() {
   const { user, loading: authLoading } = useAuth();
   const router  = useRouter();
-  const [rev,   setRev]   = useState(null);
+  const [rev,   setRev]   = useState<RevenueData | null>(null);
   const [loading,setLoad] = useState(true);
 
   useEffect(() => {
@@ -45,7 +69,6 @@ export default function AdminRevenuePage() {
   const weekRev     = rev.weeklyRevKES || 0;
   const subRevKES   = totalRevKES - adRev;
 
-  // Simulated weekly trend (in production, this comes from the API)
   const weeklyTrend  = [weekRev*0.4, weekRev*0.6, weekRev*0.75, weekRev*0.9, weekRev*1.1, weekRev*0.95, weekRev];
 
   return (
@@ -110,7 +133,7 @@ export default function AdminRevenuePage() {
           {[
             ["Subscriptions", subRevKES, "var(--sky)"],
             ["Ad Revenue",    adRev,     "var(--amber)"],
-            ["Stripe/USD",    totalRevUSD * 130, "var(--violet)"], // approx KES
+            ["Stripe/USD",    totalRevUSD * 130, "var(--violet)"],
           ].filter(([,v]) => v > 0).map(([label, val, color]) => {
             const total = subRevKES + adRev + totalRevUSD * 130;
             const pct   = total ? Math.round((val / total) * 100) : 0;
