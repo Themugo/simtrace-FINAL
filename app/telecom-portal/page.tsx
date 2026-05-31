@@ -4,14 +4,53 @@ import { useAuth } from "../../lib/auth";
 import { useRouter } from "next/navigation";
 import { api } from "../../lib/api";
 
-const ORG_TYPES = [
+interface OrgType {
+  id: string;
+  label: string;
+  icon: string;
+  desc: string;
+}
+
+interface TierBenefits {
+  calls: string;
+  imeiChecks: string;
+  webhooks: string;
+  sla: string;
+  price: string;
+}
+
+interface Partner {
+  _id: string;
+  partner?: {
+    orgName: string;
+    orgType: string;
+    tier: string;
+    status: string;
+    webhookUrl?: string;
+    apiCallsMonth?: number;
+    apiCallsLimit?: number;
+  };
+  stats?: {
+    totalBlacklisted?: number;
+  };
+  apiKey?: string;
+}
+
+interface FormState {
+  orgName: string;
+  orgType: string;
+  country: string;
+  webhookUrl: string;
+}
+
+const ORG_TYPES: OrgType[] = [
   { id: "telecom",          label: "Telecom Operator",     icon: "📡", desc: "Safaricom, Airtel, Telkom, Faiba and similar operators" },
   { id: "law_enforcement",  label: "Law Enforcement",       icon: "🏛️", desc: "Police, DCI, regulatory agencies" },
   { id: "marketplace",      label: "Online Marketplace",    icon: "🛒", desc: "Jiji, Jumia, OLX and device resellers" },
   { id: "insurance",        label: "Insurance Company",     icon: "🛡️", desc: "Device insurance providers" },
 ];
 
-const TIER_BENEFITS = {
+const TIER_BENEFITS: Record<string, TierBenefits> = {
   basic:    { calls: "1,000/month", imeiChecks: "Single IMEI", webhooks: "No", sla: "Best effort", price: "Free" },
   standard: { calls: "10,000/month", imeiChecks: "Bulk up to 100", webhooks: "Yes", sla: "24h", price: "KES 4,999/mo" },
   premium:  { calls: "Unlimited",    imeiChecks: "Bulk up to 500", webhooks: "Yes + priority", sla: "4h", price: "Custom" },
@@ -20,16 +59,16 @@ const TIER_BENEFITS = {
 export default function TelecomPortalPage() {
   const { user, loading: authLoading } = useAuth();
   const router  = useRouter();
-  const [partner, setPartner] = useState(null);
-  const [form,    setForm]    = useState({ orgName: "", orgType: "telecom", country: "KE", webhookUrl: "" });
-  const [step,    setStep]    = useState("check");  // check | apply | active
+  const [partner, setPartner] = useState<Partner | null>(null);
+  const [form,    setForm]    = useState<FormState>({ orgName: "", orgType: "telecom", country: "KE", webhookUrl: "" });
+  const [step,    setStep]    = useState("check");
   const [error,   setError]   = useState("");
   const [saving,  setSaving]  = useState(false);
   const [apiKey,  setApiKey]  = useState("");
   const [testImei,    setTestImei]    = useState("");
-  const [testResult,  setTestResult]  = useState(null);
+  const [testResult,  setTestResult]  = useState<any>(null);
   const [rotating,    setRotating]    = useState(false);
-  const [webhookTest, setWebhookTest] = useState(null);
+  const [webhookTest, setWebhookTest] = useState<any>(null);
   const [testingHook, setTestingHook] = useState(false);
   const [copiedKey,   setCopiedKey]   = useState(false);
 
@@ -48,14 +87,14 @@ export default function TelecomPortalPage() {
     }
   }
 
-  async function apply(e) {
+  async function apply(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true); setError("");
     try {
       const res = await api.post("/api/partner/register", form);
       setApiKey(res.apiKey);
       setStep("applied");
-    } catch (err) { setError(err.message); }
+    } catch (err: any) { setError(err.message); }
     finally { setSaving(false); }
   }
 
@@ -63,19 +102,20 @@ export default function TelecomPortalPage() {
     if (!partner || !confirm("Rotating your API key will invalidate the current one. All integrations must be updated. Continue?")) return;
     setRotating(true);
     try {
-      const res = await api.patch(`/api/partner/${partner._id}/webhook`, { webhookUrl: partner.webhookUrl || "https://example.com" });
-      // Also regenerate the API key
+      const res = await api.patch(`/api/partner/${partner._id}/webhook`, { webhookUrl: partner.partner?.webhookUrl || "https://example.com" });
       const keyRes = await api.post(`/api/partner/${partner._id}/regenerate-key`, {});
       setPartner(p => ({ ...p, apiKey: keyRes.apiKey }));
       alert("API key rotated. Copy the new key now — it won't be shown again after you leave this page.");
-    } catch (err) { alert(err.message); }
+    } catch (err: any) { alert(err.message); }
     finally { setRotating(false); }
   }
 
   function copyKey() {
-    navigator.clipboard.writeText(partner.apiKey);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+    if (partner?.apiKey) {
+      navigator.clipboard.writeText(partner.apiKey);
+      setCopiedKey(true);
+      setTimeout(() => setCopiedKey(false), 2000);
+    }
   }
 
   async function testBulkCheck() {
@@ -83,7 +123,7 @@ export default function TelecomPortalPage() {
     try {
       const res = await api.post("/api/partner/imei/bulk", { imeis: [testImei] });
       setTestResult(res.results?.[0]);
-    } catch (err) { setTestResult({ error: err.message }); }
+    } catch (err: any) { setTestResult({ error: err.message }); }
   }
 
   if (authLoading) return <p className="text-muted">Loading…</p>;
@@ -218,9 +258,9 @@ export default function TelecomPortalPage() {
                   onClick={async () => {
                     setTestingHook(true); setWebhookTest(null);
                     try {
-                      const res = await api.testWebhook(partner.partner._id);
+                      const res = await api.testWebhook(partner.partner!._id);
                       setWebhookTest(res);
-                    } catch (err) { setWebhookTest({ success: false, message: err.message }); }
+                    } catch (err: any) { setWebhookTest({ success: false, message: err.message }); }
                     finally { setTestingHook(false); }
                   }}
                   disabled={testingHook}
