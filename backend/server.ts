@@ -36,6 +36,8 @@ import adminRoutes     from "./routes/admin.js";
 import communityRoutes from "./routes/community.js";
 import lockRoutes      from "./routes/lock.js";
 import healthRoutes    from "./routes/health.js";
+import marketplaceRoutes from "./routes/marketplace.js";
+import externalMarketplaceRoutes from "./routes/external-marketplace.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
@@ -182,6 +184,8 @@ app.use("/api/ads",                   adsRoutes);
 app.use("/api/partner",               partnerRoutes);
 app.use("/api/admin",                 adminRoutes);
 app.use("/api/community",             communityRoutes);
+app.use("/api/marketplace",           marketplaceRoutes);
+app.use("/api/external-marketplace",  externalMarketplaceRoutes);
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = initIO(server, allowedOrigins);

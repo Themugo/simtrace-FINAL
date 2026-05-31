@@ -326,52 +326,107 @@ class EnterpriseMarketplace {
 
   // Initialize with sample data
   initializeSampleData(): void {
-    // Create sample extensions
+    // Create production-ready extensions
+    
+    // Slack Integration
     this.createExtension({
       name: 'Slack Integration',
-      description: 'Send notifications to Slack channels',
+      description: 'Send real-time alerts and notifications to Slack channels',
+      version: '1.2.0',
+      type: 'integration',
+      category: 'Communication',
+      author: 'SimTrace',
+      icon: 'slack',
+      screenshots: [],
+      pricing: { type: 'free' },
+      features: ['Channel notifications', 'Direct messages', 'File sharing', 'Custom webhooks', 'Alert filtering'],
+      requirements: { apiVersion: 'v1', permissions: ['notifications.send', 'devices.read'] },
+      status: 'published',
+    });
+
+    // Microsoft Teams Integration
+    this.createExtension({
+      name: 'Microsoft Teams Integration',
+      description: 'Integrate SimTrace alerts with Microsoft Teams for enterprise collaboration',
       version: '1.0.0',
       type: 'integration',
       category: 'Communication',
       author: 'SimTrace',
+      icon: 'teams',
       screenshots: [],
-      pricing: { type: 'free' },
-      features: ['Channel notifications', 'Direct messages', 'File sharing'],
+      pricing: { type: 'paid', price: 15, currency: 'USD', trialDays: 30 },
+      features: ['Teams channel notifications', 'Adaptive cards', 'Meeting integration', 'Alert routing'],
+      requirements: { apiVersion: 'v1', permissions: ['notifications.send', 'devices.read'] },
+      status: 'published',
+    });
+
+    // Custom Dashboard Builder
+    this.createExtension({
+      name: 'Custom Dashboard Builder',
+      description: 'Build and deploy custom analytics dashboards with drag-and-drop widgets',
+      version: '2.1.0',
+      type: 'dashboard',
+      category: 'Analytics',
+      author: 'SimTrace',
+      icon: 'dashboard',
+      screenshots: [],
+      pricing: { type: 'freemium', price: 29, currency: 'USD', trialDays: 14 },
+      features: ['Drag-and-drop builder', 'Real-time metrics', 'Custom widgets', 'Export reports', 'Dashboard sharing'],
+      requirements: { apiVersion: 'v1', permissions: ['analytics.read', 'analytics.write'] },
+      status: 'published',
+    });
+
+    // Auto-Recovery Workflow
+    this.createExtension({
+      name: 'Auto-Recovery Workflow',
+      description: 'Automated recovery workflow for stolen devices with telecom integration',
+      version: '1.1.0',
+      type: 'workflow',
+      category: 'Automation',
+      author: 'SimTrace',
+      icon: 'workflow',
+      screenshots: [],
+      pricing: { type: 'paid', price: 49, currency: 'USD', trialDays: 30 },
+      features: ['Automatic recovery initiation', 'Telecom integration', 'Status updates', 'Multi-step workflows', 'Conditional logic'],
+      requirements: { apiVersion: 'v1', permissions: ['recovery.manage', 'telecom.access', 'devices.write'] },
+      status: 'published',
+    });
+
+    // SMS Gateway Integration
+    this.createExtension({
+      name: 'SMS Gateway Integration',
+      description: 'Send SMS alerts via custom SMS gateway providers',
+      version: '1.0.0',
+      type: 'integration',
+      category: 'Communication',
+      author: 'SimTrace',
+      icon: 'sms',
+      screenshots: [],
+      pricing: { type: 'paid', price: 19, currency: 'USD', trialDays: 14 },
+      features: ['Custom SMS provider', 'Bulk SMS', 'Message templates', 'Delivery tracking'],
       requirements: { apiVersion: 'v1', permissions: ['notifications.send'] },
       status: 'published',
     });
 
+    // Advanced Analytics Dashboard
     this.createExtension({
       name: 'Advanced Analytics Dashboard',
-      description: 'Custom analytics dashboard with advanced metrics',
+      description: 'Pre-built analytics dashboard with advanced metrics and insights',
       version: '2.0.0',
       type: 'dashboard',
       category: 'Analytics',
       author: 'SimTrace',
+      icon: 'analytics',
       screenshots: [],
       pricing: { type: 'paid', price: 29, currency: 'USD', trialDays: 14 },
-      features: ['Real-time metrics', 'Custom widgets', 'Export reports'],
+      features: ['Real-time metrics', 'Custom widgets', 'Export reports', 'Trend analysis'],
       requirements: { apiVersion: 'v1', permissions: ['analytics.read'] },
       status: 'published',
     });
 
-    this.createExtension({
-      name: 'Auto-Recovery Workflow',
-      description: 'Automated recovery workflow for stolen devices',
-      version: '1.0.0',
-      type: 'workflow',
-      category: 'Automation',
-      author: 'SimTrace',
-      screenshots: [],
-      pricing: { type: 'freemium', price: 49, currency: 'USD', trialDays: 30 },
-      features: ['Automatic recovery initiation', 'Telecom integration', 'Status updates'],
-      requirements: { apiVersion: 'v1', permissions: ['recovery.manage', 'telecom.access'] },
-      status: 'published',
-    });
-
-    // Create sample workflow
-    this.createWorkflow({
-      extensionId: 'ext_3',
+    // Create sample workflow for auto-recovery
+    const recoveryWorkflow = this.createWorkflow({
+      extensionId: 'ext_4',
       name: 'Device Recovery Automation',
       description: 'Automatically initiate recovery when device is marked as stolen',
       triggers: [
@@ -381,19 +436,38 @@ class EnterpriseMarketplace {
         { id: 'step_1', name: 'Notify Team', type: 'notification', config: { channel: 'slack' }, order: 1 },
         { id: 'step_2', name: 'Contact Telecom', type: 'action', config: { action: 'block_sim' }, order: 2 },
         { id: 'step_3', name: 'Update Case', type: 'action', config: { action: 'update_status' }, order: 3 },
+        { id: 'step_4', name: 'Send SMS Alert', type: 'notification', config: { type: 'sms' }, order: 4 },
       ],
       status: 'active',
     });
 
-    // Create sample dashboard
+    // Create sample dashboard for recovery analytics
     this.createDashboard({
-      extensionId: 'ext_2',
+      extensionId: 'ext_6',
       name: 'Recovery Analytics',
       description: 'Analytics dashboard for recovery operations',
       layout: { type: 'grid', columns: 3 },
       widgets: [
         { id: 'widget_1', type: 'metric', title: 'Total Recoveries', config: {}, position: { x: 0, y: 0, w: 1, h: 1 } },
         { id: 'widget_2', type: 'chart', title: 'Recovery Rate', config: { type: 'line' }, position: { x: 1, y: 0, w: 2, h: 1 } },
+        { id: 'widget_3', type: 'chart', title: 'Recovery by Region', config: { type: 'bar' }, position: { x: 0, y: 1, w: 3, h: 1 } },
+      ],
+      isPublic: true,
+    });
+
+    // Create custom dashboard template
+    this.createDashboard({
+      extensionId: 'ext_3',
+      name: 'Device Risk Overview',
+      description: 'Custom dashboard template for device risk monitoring',
+      layout: { type: 'grid', columns: 4 },
+      widgets: [
+        { id: 'widget_1', type: 'metric', title: 'High Risk Devices', config: { color: 'red' }, position: { x: 0, y: 0, w: 1, h: 1 } },
+        { id: 'widget_2', type: 'metric', title: 'Medium Risk Devices', config: { color: 'yellow' }, position: { x: 1, y: 0, w: 1, h: 1 } },
+        { id: 'widget_3', type: 'metric', title: 'Low Risk Devices', config: { color: 'green' }, position: { x: 2, y: 0, w: 1, h: 1 } },
+        { id: 'widget_4', type: 'chart', title: 'Risk Trend', config: { type: 'line' }, position: { x: 3, y: 0, w: 1, h: 1 } },
+        { id: 'widget_5', type: 'map', title: 'Device Locations', config: {}, position: { x: 0, y: 1, w: 2, h: 2 } },
+        { id: 'widget_6', type: 'table', title: 'Recent Alerts', config: {}, position: { x: 2, y: 1, w: 2, h: 2 } },
       ],
       isPublic: true,
     });
