@@ -5,10 +5,16 @@ import Link from "next/link";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 
-const STATUS_COLOR = { active: "var(--emerald)", stolen: "var(--rose)", recovered: "var(--sky)", blacklisted: "var(--amber)" };
-const STATUS_ICON  = { active: "✅", stolen: "🚨", blacklisted: "⛔", recovered: "✔️" };
+const STATUS_COLOR: Record<string, string> = { active: "var(--emerald)", stolen: "var(--rose)", recovered: "var(--sky)", blacklisted: "var(--amber)" };
+const STATUS_ICON: Record<string, string> = { active: "✅", stolen: "🚨", blacklisted: "⛔", recovered: "✔️" };
 
-function DeviceKeyModal({ deviceKey, imei, onClose }) {
+interface DeviceKeyModalProps {
+  deviceKey: string;
+  imei: string;
+  onClose: () => void;
+}
+
+function DeviceKeyModal({ deviceKey, imei, onClose }: DeviceKeyModalProps) {
   const [copied, setCopied] = useState(false);
   function copy() {
     navigator.clipboard.writeText(deviceKey);
@@ -40,17 +46,35 @@ function DeviceKeyModal({ deviceKey, imei, onClose }) {
   );
 }
 
+interface Device {
+  _id: string;
+  imei: string;
+  make?: string;
+  model?: string;
+  serialNumber?: string;
+  status: string;
+  lastSeen?: string;
+}
+
+interface DeviceLimit {
+  slotsUsed: number;
+  totalAllowed: number;
+  slotsRemaining: number;
+  canAdd: boolean;
+  plan: string;
+}
+
 export default function DevicesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [devices,    setDevices]    = useState([]);
+  const [devices,    setDevices]    = useState<Device[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [showForm,   setShowForm]   = useState(false);
-  const [limit,      setLimit]      = useState(null);
+  const [limit,      setLimit]      = useState<DeviceLimit | null>(null);
   const [form,       setForm]       = useState({ imei: "", make: "", model: "", serialNumber: "" });
   const [formErr,    setFormErr]    = useState("");
   const [saving,     setSaving]     = useState(false);
-  const [newDevKey,  setNewDevKey]  = useState(null);
+  const [newDevKey,  setNewDevKey]  = useState<{ key: string; imei: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) { router.push("/login"); return; }
@@ -68,7 +92,7 @@ export default function DevicesPage() {
     catch { /* silent */ }
   }
 
-  async function registerDevice(e) {
+  async function registerDevice(e: React.FormEvent) {
     e.preventDefault();
     setFormErr(""); setSaving(true);
     try {
@@ -78,7 +102,7 @@ export default function DevicesPage() {
       setForm({ imei: "", make: "", model: "", serialNumber: "" });
       await fetchDevices();
       await fetchLimit();
-    } catch (err) {
+    } catch (err: any) {
       if (err.status === 402) {
         setFormErr(`Device limit reached. ${err.message}`);
       } else {
@@ -88,10 +112,10 @@ export default function DevicesPage() {
     finally { setSaving(false); }
   }
 
-  async function deleteDevice(id) {
+  async function deleteDevice(id: string) {
     if (!confirm("Remove this device from your account?")) return;
     try { await api.deleteDevice(id); setDevices(d => d.filter(x => x._id !== id)); await fetchLimit(); }
-    catch (err) { alert(err.message); }
+    catch (err: any) { alert(err.message); }
   }
 
   if (loading || authLoading) return <p className="text-muted" style={{ paddingTop: "2rem" }}>Loading…</p>;
