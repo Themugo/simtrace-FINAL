@@ -9,8 +9,16 @@ import SimTraceLogo from "../../components/SimTraceLogo";
 
 const LiveMap = dynamic(() => import("../../components/LiveMap"), { ssr: false });
 
+interface KpiCardProps {
+  label: string;
+  value: number;
+  sub?: string;
+  color: string;
+  icon: string;
+}
+
 // ── KPI Card ──────────────────────────────────────────────────────────────────
-function KpiCard({ label, value, sub, color, icon }) {
+function KpiCard({ label, value, sub, color, icon }: KpiCardProps) {
   return (
     <div className="stat-card" style={{ "--accent": color }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
@@ -25,12 +33,29 @@ function KpiCard({ label, value, sub, color, icon }) {
   );
 }
 
-// ── Alert Feed ────────────────────────────────────────────────────────────────
-const A_COLOR = { blacklist_ping:"var(--rose)", sim_swap:"var(--amber)", location_jump:"var(--amber)", fraud_pattern:"var(--rose)", theft_report:"var(--rose)" };
-const A_ICON  = { blacklist_ping:"🚨", sim_swap:"🔄", location_jump:"⚡", fraud_pattern:"🕵️", theft_report:"📋" };
-const A_LABEL = { blacklist_ping:"Blacklist Ping", sim_swap:"SIM Swap", location_jump:"Location Jump", fraud_pattern:"Fraud Pattern", theft_report:"Theft Report" };
+interface Alert {
+  _id: string;
+  type: string;
+  imei: string;
+  narrative?: string;
+  ts: string;
+  read: boolean;
+  aiUrgency?: string;
+}
 
-function AlertFeed({ alerts, onMarkRead, onTriage, triageLoading }) {
+interface AlertFeedProps {
+  alerts: Alert[];
+  onMarkRead: () => void;
+  onTriage: () => void;
+  triageLoading: boolean;
+}
+
+// ── Alert Feed ────────────────────────────────────────────────────────────────
+const A_COLOR: Record<string, string> = { blacklist_ping:"var(--rose)", sim_swap:"var(--amber)", location_jump:"var(--amber)", fraud_pattern:"var(--rose)", theft_report:"var(--rose)" };
+const A_ICON: Record<string, string> = { blacklist_ping:"🚨", sim_swap:"🔄", location_jump:"⚡", fraud_pattern:"🕵️", theft_report:"📋" };
+const A_LABEL: Record<string, string> = { blacklist_ping:"Blacklist Ping", sim_swap:"SIM Swap", location_jump:"Location Jump", fraud_pattern:"Fraud Pattern", theft_report:"Theft Report" };
+
+function AlertFeed({ alerts, onMarkRead, onTriage, triageLoading }: AlertFeedProps) {
   const unread = alerts.filter(a => !a.read).length;
   return (
     <div className="card" style={{ display:"flex", flexDirection:"column", height:"100%", padding:0, overflow:"hidden" }}>
@@ -90,8 +115,19 @@ function AlertFeed({ alerts, onMarkRead, onTriage, triageLoading }) {
   );
 }
 
+interface DeviceStats {
+  total?: number;
+  stolen?: number;
+  recovered?: number;
+  blacklisted?: number;
+}
+
+interface DeviceStatusBarProps {
+  stats: DeviceStats;
+}
+
 // ── Device Status Bar ─────────────────────────────────────────────────────────
-function DeviceStatusBar({ stats }) {
+function DeviceStatusBar({ stats }: DeviceStatusBarProps) {
   if (!stats) return null;
   const total  = stats.total || 1;
   const active = total - (stats.stolen || 0) - (stats.recovered || 0) - (stats.blacklisted || 0);
@@ -122,10 +158,23 @@ function DeviceStatusBar({ stats }) {
   );
 }
 
+interface RevenueData {
+  monthlyRevKES?: number;
+  monthlyRevUSD?: number;
+  adRevKES?: number;
+  weeklyRevKES?: number;
+  subscriptions?: Array<{ _id: string; count: number }>;
+  recentPayments?: Array<{ user?: { name: string }; description?: string; type: string; amountKES?: number }>;
+}
+
+interface RevenueSnapshotProps {
+  revenue: RevenueData;
+}
+
 // ── Revenue Snapshot ──────────────────────────────────────────────────────────
-function RevenueSnapshot({ revenue }) {
+function RevenueSnapshot({ revenue }: RevenueSnapshotProps) {
   if (!revenue) return null;
-  const planColors = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
+  const planColors: Record<string, string> = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
   return (
     <div className="card">
       <div style={{ fontSize:"0.72rem", color:"var(--muted)", marginBottom:"0.85rem", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>Revenue · 30 days</div>
@@ -136,11 +185,11 @@ function RevenueSnapshot({ revenue }) {
           [revenue.adRevKES,      "KES", "Ads",    "var(--amber)"],
           [revenue.weeklyRevKES,  "KES", "Week",   "var(--violet)"],
         ].filter(([v]) => v).map(([v, currency, label, color]) => (
-          <div key={label}>
+          <div key={label as string}>
             <div style={{ fontSize:"1.4rem", fontWeight:800, color, letterSpacing:"-0.02em" }}>
               {currency} {(v || 0).toLocaleString()}
             </div>
-            <div style={{ fontSize:"0.7rem", color:"var(--muted)" }}>{label}</div>
+            <div style={{ fontSize:"0.7rem", color:"var(--muted)" }}>{label as string}</div>
           </div>
         ))}
       </div>
@@ -154,7 +203,7 @@ function RevenueSnapshot({ revenue }) {
         ))}
       </div>
       {/* Recent payments */}
-      {revenue.recentPayments?.length > 0 && (
+      {revenue.recentPayments?.length && revenue.recentPayments.length > 0 && (
         <div style={{ borderTop:"1px solid var(--border)", paddingTop:"0.65rem" }}>
           <div style={{ fontSize:"0.68rem", color:"var(--muted)", fontWeight:600, letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:"0.4rem" }}>Recent</div>
           {revenue.recentPayments.slice(0,4).map((p,i) => (
@@ -175,12 +224,12 @@ function RevenueSnapshot({ revenue }) {
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [stats,         setStats]         = useState(null);
-  const [alerts,        setAlerts]        = useState([]);
-  const [revenue,       setRevenue]       = useState(null);
+  const [stats,         setStats]         = useState<DeviceStats | null>(null);
+  const [alerts,        setAlerts]        = useState<Alert[]>([]);
+  const [revenue,       setRevenue]       = useState<RevenueData | null>(null);
   const [triageLoading, setTriageLoading] = useState(false);
   const [tab,           setTab]           = useState("overview");
-  const [lastRefresh,   setLastRefresh]   = useState(null);
+  const [lastRefresh,   setLastRefresh]   = useState<Date | null>(null);
   const token = typeof window !== "undefined" ? localStorage.getItem("simtrace_token") : null;
 
   const load = useCallback(async () => {
@@ -273,11 +322,11 @@ export default function DashboardPage() {
 
       {/* ── KPI Row — always visible ── */}
       <div className="grid-4" style={{ marginBottom:"1.5rem" }}>
-        <KpiCard label="Total Devices"  value={stats?.total}                          icon="📱" color="var(--sky)"     sub="registered" />
-        <KpiCard label="Stolen"         value={stats?.stolen}                         icon="🚨" color="var(--rose)"    sub="active cases" />
-        <KpiCard label="Recovered"      value={stats?.recovered}                      icon="✅" color="var(--emerald)" sub="success" />
-        <KpiCard label="Pings Today"    value={stats?.recentPings}                    icon="📡" color="var(--sky-dim)" sub="location events" />
-        <KpiCard label="Open Reports"   value={stats?.openReports}                    icon="📋" color="var(--amber)"   sub="awaiting action" />
+        <KpiCard label="Total Devices"  value={stats?.total || 0}                          icon="📱" color="var(--sky)"     sub="registered" />
+        <KpiCard label="Stolen"         value={stats?.stolen || 0}                         icon="🚨" color="var(--rose)"    sub="active cases" />
+        <KpiCard label="Recovered"      value={stats?.recovered || 0}                      icon="✅" color="var(--emerald)" sub="success" />
+        <KpiCard label="Pings Today"    value={stats?.recentPings || 0}                    icon="📡" color="var(--sky-dim)" sub="location events" />
+        <KpiCard label="Open Reports"   value={stats?.openReports || 0}                    icon="📋" color="var(--amber)"   sub="awaiting action" />
         <KpiCard label="Unread Alerts"  value={alerts.filter(a=>!a.read).length}      icon="🔔" color="var(--violet)"  />
       </div>
 
