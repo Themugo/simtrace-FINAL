@@ -22,8 +22,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Block Management ─────────────────────────────────────────────────────────────
-router.post("/blocks", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/blocks", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -47,10 +55,10 @@ router.post("/blocks", authenticate, requireAdmin, async (req: Request, res: Res
   }
 });
 
-router.get("/blocks/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/blocks/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const block = await getRegulatoryBlock(id);
+    const block = await getRegulatoryBlock(id as string);
 
     if (!block) {
       return res.status(404).json({ error: "Block not found" });
@@ -60,15 +68,15 @@ router.get("/blocks/:id", authenticate, async (req: Request, res: Response, next
   } catch (err) { next(err); }
 });
 
-router.get("/blocks/imei/:imei", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/blocks/imei/:imei", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
-    const blocks = await getBlocksByImei(imei);
+    const blocks = await getBlocksByImei(imei as string);
     res.json({ blocks, count: blocks.length });
   } catch (err) { next(err); }
 });
 
-router.get("/blocks", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/blocks", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { authority, country } = req.query;
     
@@ -83,7 +91,7 @@ router.get("/blocks", authenticate, requireAdmin, async (req: Request, res: Resp
   } catch (err) { next(err); }
 });
 
-router.patch("/blocks/:id/status", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/blocks/:id/status", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       status: z.enum(["active", "expired", "lifted", "appealed"]),
@@ -91,7 +99,7 @@ router.patch("/blocks/:id/status", authenticate, requireAdmin, async (req: Reque
 
     const { id } = req.params;
     const { status } = schema.parse(req.body);
-    const block = await updateBlockStatus(id, status);
+    const block = await updateBlockStatus(id as string, status);
 
     res.json(block);
   } catch (err) {
@@ -101,24 +109,24 @@ router.patch("/blocks/:id/status", authenticate, requireAdmin, async (req: Reque
 });
 
 // ── Sync with Authorities ───────────────────────────────────────────────────────
-router.post("/sync/ceir/:imei", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/sync/ceir/:imei", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
-    const result = await syncWithCeir(imei);
+    const result = await syncWithCeir(imei as string);
     res.json(result);
   } catch (err) { next(err); }
 });
 
-router.post("/sync/national/:country/:imei", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/sync/national/:country/:imei", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { country, imei } = req.params;
-    const result = await syncWithNationalRegulator(country, imei);
+    const result = await syncWithNationalRegulator(country as string, imei as string);
     res.json(result);
   } catch (err) { next(err); }
 });
 
 // ── Appeal Management ───────────────────────────────────────────────────────────
-router.post("/blocks/:id/appeal", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/blocks/:id/appeal", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       appealNotes: z.string(),
@@ -126,7 +134,7 @@ router.post("/blocks/:id/appeal", authenticate, async (req: Request, res: Respon
 
     const { id } = req.params;
     const { appealNotes } = schema.parse(req.body);
-    const block = await submitAppeal(id, appealNotes);
+    const block = await submitAppeal(id as string, appealNotes);
 
     res.json(block);
   } catch (err) {
@@ -135,7 +143,7 @@ router.post("/blocks/:id/appeal", authenticate, async (req: Request, res: Respon
   }
 });
 
-router.patch("/blocks/:id/appeal", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/blocks/:id/appeal", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       appealStatus: z.enum(["submitted", "under_review", "approved", "rejected"]),
@@ -143,7 +151,7 @@ router.patch("/blocks/:id/appeal", authenticate, requireAdmin, async (req: Reque
 
     const { id } = req.params;
     const { appealStatus } = schema.parse(req.body);
-    const block = await updateAppealStatus(id, appealStatus);
+    const block = await updateAppealStatus(id as string, appealStatus);
 
     res.json(block);
   } catch (err) {
@@ -153,15 +161,15 @@ router.patch("/blocks/:id/appeal", authenticate, requireAdmin, async (req: Reque
 });
 
 // ── CEIR Integration ─────────────────────────────────────────────────────────────
-router.get("/ceir/:imei", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/ceir/:imei", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
-    const status = await checkCeirStatus(imei);
+    const status = await checkCeirStatus(imei as string);
     res.json(status);
   } catch (err) { next(err); }
 });
 
-router.post("/ceir/blacklist", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/ceir/blacklist", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15).max(17),
@@ -179,16 +187,16 @@ router.post("/ceir/blacklist", authenticate, requireAdmin, async (req: Request, 
   }
 });
 
-router.post("/ceir/remove/:imei", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/ceir/remove/:imei", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { imei } = req.params;
-    const result = await removeFromCeirBlacklist(imei);
+    const result = await removeFromCeirBlacklist(imei as string);
     res.json(result);
   } catch (err) { next(err); }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getRegulatoryStatistics();
     res.json(stats);
@@ -196,7 +204,7 @@ router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Respo
 });
 
 // ── Block Expiry Check ─────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/check-expiry", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const expiredCount = await checkBlockExpiry();
     res.json({ message: "Expiry check completed", expiredCount });
