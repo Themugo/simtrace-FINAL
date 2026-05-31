@@ -6,7 +6,11 @@ import { useAuth } from "../../lib/auth";
 import { useToast } from "../../components/ToastProvider";
 
 // ── Risk Meter ────────────────────────────────────────────────────────────────
-function RiskMeter({ score }) {
+interface RiskMeterProps {
+  score: number;
+}
+
+function RiskMeter({ score }: RiskMeterProps) {
   const color = score >= 70 ? "var(--rose)" : score >= 35 ? "var(--amber)" : "var(--emerald)";
   const label = score >= 70 ? "HIGH RISK"   : score >= 35 ? "MEDIUM RISK"  : "LOW RISK";
   const r = 32; const circ = 2 * Math.PI * r;
@@ -26,13 +30,22 @@ function RiskMeter({ score }) {
 }
 
 // ── Bulk Checker ──────────────────────────────────────────────────────────────
+interface BulkResult {
+  imei: string;
+  status: string;
+  make?: string;
+  model?: string;
+  riskScore?: number;
+  stolen?: boolean;
+}
+
 function BulkChecker() {
   const [csv,      setCsv]      = useState("");
-  const [results,  setResults]  = useState([]);
+  const [results,  setResults]  = useState<BulkResult[]>([]);
   const [loading,  setLoading]  = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const STATUS_COLOR = {
+  const STATUS_COLOR: Record<string, string> = {
     stolen:"var(--rose)", blacklisted:"var(--amber)",
     active:"var(--emerald)", unknown:"var(--muted)", recovered:"var(--sky)"
   };
@@ -41,7 +54,7 @@ function BulkChecker() {
     const imeis = csv.split(/[\n,\s]+/).map(s => s.replace(/\D/g,"")).filter(s => s.length >= 15 && s.length <= 17);
     if (!imeis.length) return;
     setResults([]); setLoading(true); setProgress(0);
-    const out = [];
+    const out: BulkResult[] = [];
     for (let i = 0; i < Math.min(imeis.length, 100); i++) {
       try {
         const r = await api.imeiLookup(imeis[i]);
@@ -115,9 +128,9 @@ function BulkChecker() {
                 [clean,  "Clean",       "var(--emerald)"],
                 [results.length, "Total","var(--text2)" ],
               ].map(([n,l,c]) => (
-                <div key={l} style={{ padding:"0.75rem", textAlign:"center", borderRight:"1px solid var(--border)" }}>
+                <div key={l as string} style={{ padding:"0.75rem", textAlign:"center", borderRight:"1px solid var(--border)" }}>
                   <div style={{ fontSize:"1.4rem", fontWeight:800, color:c }}>{n}</div>
-                  <div style={{ fontSize:"0.72rem", color:"var(--muted)" }}>{l}</div>
+                  <div style={{ fontSize:"0.72rem", color:"var(--muted)" }}>{l as string}</div>
                 </div>
               ))}
             </div>
@@ -148,6 +161,18 @@ function BulkChecker() {
 }
 
 // ── Main IMEI page ────────────────────────────────────────────────────────────
+interface ImeiResult {
+  imei?: string;
+  make?: string;
+  model?: string;
+  lastSeen?: string;
+  riskScore?: number;
+  status?: string;
+  stolen?: boolean;
+  found?: boolean;
+  reportRef?: string;
+}
+
 function ImeiPageInner() {
   const params               = useSearchParams();
   const router               = useRouter();
@@ -155,38 +180,38 @@ function ImeiPageInner() {
   const toast                = useToast();
   const [tab,      setTab]   = useState("single");
   const [imei,     setImei]  = useState(params.get("q") || "");
-  const [result,   setResult]= useState(null);
+  const [result,   setResult]= useState<ImeiResult | null>(null);
   const [error,    setError] = useState("");
   const [loading,  setLoading]= useState(false);
-  const [aiReport, setAiReport]= useState(null);
+  const [aiReport, setAiReport]= useState<string | null>(null);
   const [aiLoading,setAiLoad]= useState(false);
 
   useEffect(() => {
     if (params.get("q")) doCheck(params.get("q"));
   }, []);
 
-  async function doCheck(val) {
+  async function doCheck(val?: string | null) {
     const clean = (val || imei).replace(/\D/g,"");
     if (!clean.match(/^\d{15,17}$/)) { setError("Enter a valid IMEI — 15 to 17 digits"); return; }
     setError(""); setLoading(true); setResult(null); setAiReport(null);
     try {
       const r = await api.imeiLookup(clean);
       setResult(r);
-    } catch (err) { setError(err.message); }
+    } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   }
 
   async function getAIReport() {
     setAiLoad(true);
     try {
-      const { report } = await api.imeiReport(result.imei || imei.replace(/\D/g,""));
+      const { report } = await api.imeiReport(result?.imei || imei.replace(/\D/g,""));
       setAiReport(report);
-    } catch (err) { toast?.add(err.message, "danger"); }
+    } catch (err: any) { toast?.add(err.message, "danger"); }
     finally { setAiLoad(false); }
   }
 
-  const riskColor = result ? (result.riskScore >= 70 ? "var(--rose)" : result.riskScore >= 35 ? "var(--amber)" : "var(--emerald)") : "var(--muted)";
-  const statusColor = { active:"var(--emerald)", stolen:"var(--rose)", blacklisted:"var(--amber)", recovered:"var(--sky)", unknown:"var(--muted)" };
+  const riskColor = result ? (result.riskScore && result.riskScore >= 70 ? "var(--rose)" : result.riskScore && result.riskScore >= 35 ? "var(--amber)" : "var(--emerald)") : "var(--muted)";
+  const statusColor: Record<string, string> = { active:"var(--emerald)", stolen:"var(--rose)", blacklisted:"var(--amber)", recovered:"var(--sky)", unknown:"var(--muted)" };
 
   return (
     <div>
@@ -249,7 +274,7 @@ function ImeiPageInner() {
                 <RiskMeter score={result.riskScore || 0} />
                 <div style={{ marginTop:"1rem", paddingTop:"1rem", borderTop:"1px solid var(--border)" }}>
                   <div style={{ fontSize:"0.68rem", color:"var(--muted)", marginBottom:4, textTransform:"uppercase", letterSpacing:"0.06em" }}>Status</div>
-                  <span style={{ display:"inline-block", background:`${statusColor[result.status]||"var(--muted)"}18`, color:statusColor[result.status]||"var(--muted)", padding:"3px 12px", borderRadius:20, fontSize:"0.78rem", fontWeight:700, textTransform:"uppercase" }}>
+                  <span style={{ display:"inline-block", background:`${statusColor[result.status||"unknown"]||"var(--muted)"}18`, color:statusColor[result.status||"unknown"]||"var(--muted)", padding:"3px 12px", borderRadius:20, fontSize:"0.78rem", fontWeight:700, textTransform:"uppercase" }}>
                     {result.status || "unknown"}
                   </span>
                 </div>
