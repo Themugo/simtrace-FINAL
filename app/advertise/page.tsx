@@ -6,7 +6,16 @@ import Link from "next/link";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/ToastProvider";
 
-const PLACEMENTS = [
+interface Placement {
+  id: string;
+  icon: string;
+  label: string;
+  desc: string;
+  reach: string;
+  cpc: string;
+}
+
+const PLACEMENTS: Placement[] = [
   { id:"dashboard_banner", icon:"🗺️", label:"Dashboard Banner",    desc:"Top of the admin command centre — maximum exposure", reach:"~5,000 daily", cpc:"KES 10" },
   { id:"imei_sidebar",     icon:"🔍", label:"IMEI Check Sidebar",  desc:"Shown beside every IMEI result — intent-driven audience", reach:"~12,000 daily", cpc:"KES 5" },
   { id:"devices_footer",   icon:"📱", label:"Devices Page Footer", desc:"Shown to device owners managing their inventory", reach:"~3,000 daily", cpc:"KES 8" },
@@ -22,19 +31,29 @@ const AUDIENCE_STATS = [
 
 const STEPS = ["Placement", "Creative", "Budget", "Review"];
 
+interface AdForm {
+  title: string;
+  body: string;
+  ctaText: string;
+  ctaUrl: string;
+  placement: string;
+  budgetKES: number;
+  cpcKES: number;
+}
+
 export default function AdvertisePage() {
   const { user }   = useAuth();
   const router     = useRouter();
   const toast      = useToast();
   const [step,    setStep]    = useState(0);
-  const [form,    setForm]    = useState({
+  const [form,    setForm]    = useState<AdForm>({
     title:"", body:"", ctaText:"Learn More", ctaUrl:"",
     placement:"imei_sidebar", budgetKES:5000, cpcKES:5,
   });
   const [loading, setLoading] = useState(false);
-  const [done,    setDone]    = useState(null);
+  const [done,    setDone]    = useState<any>(null);
 
-  const f  = k => ({ value: form[k], onChange: e => setForm(p => ({ ...p, [k]: e.target.value })) });
+  const f  = (k: keyof AdForm) => ({ value: form[k], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(p => ({ ...p, [k]: e.target.value })) });
   const pl = PLACEMENTS.find(p => p.id === form.placement);
   const estClicks = Math.floor(form.budgetKES / (form.cpcKES || 1));
 
@@ -46,7 +65,7 @@ export default function AdvertisePage() {
       });
       setDone(res);
       toast?.add("Campaign submitted for review! We'll activate it within 24 hours.", "success", 8000);
-    } catch (err) {
+    } catch (err: any) {
       toast?.add(err.message, "danger");
     } finally { setLoading(false); }
   }
