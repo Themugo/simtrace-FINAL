@@ -54,7 +54,7 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response, next: Nex
 router.post("/:transferId/accept", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { transferId } = req.params;
-    const transfer = await acceptDeviceTransfer(transferId, req.user!.id);
+    const transfer = await acceptDeviceTransfer(transferId as string, req.user!.id);
     res.json(transfer);
   } catch (err) { next(err); }
 });
@@ -62,7 +62,7 @@ router.post("/:transferId/accept", authenticate, async (req: AuthRequest, res: R
 router.post("/:transferId/confirm", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { transferId } = req.params;
-    const transfer = await confirmDeviceTransfer(transferId, req.user!.id);
+    const transfer = await confirmDeviceTransfer(transferId as string, req.user!.id);
     res.json(transfer);
   } catch (err) { next(err); }
 });
@@ -75,7 +75,7 @@ router.post("/:transferId/cancel", authenticate, async (req: AuthRequest, res: R
 
     const { transferId } = req.params;
     const data = schema.parse(req.body);
-    const transfer = await cancelDeviceTransfer(transferId, req.user!.id, data.reason);
+    const transfer = await cancelDeviceTransfer(transferId as string, req.user!.id, data.reason);
     res.json(transfer);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -91,7 +91,7 @@ router.post("/:transferId/dispute", authenticate, async (req: AuthRequest, res: 
 
     const { transferId } = req.params;
     const data = schema.parse(req.body);
-    const transfer = await raiseDispute(transferId, req.user!.id, data.reason);
+    const transfer = await raiseDispute(transferId as string, req.user!.id, data.reason);
     res.json(transfer);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -107,7 +107,7 @@ router.post("/:transferId/resolve", authenticate, async (req: AuthRequest, res: 
 
     const { transferId } = req.params;
     const data = schema.parse(req.body);
-    const transfer = await resolveDispute(transferId, data.resolution, req.user!.id);
+    const transfer = await resolveDispute(transferId as string, data.resolution, req.user!.id);
     res.json(transfer);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -115,39 +115,39 @@ router.post("/:transferId/resolve", authenticate, async (req: AuthRequest, res: 
   }
 });
 
-router.get("/:transferId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:transferId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { transferId } = req.params;
-    const transfer = await getDeviceTransfer(transferId);
+    const transfer = await getDeviceTransfer(transferId as string);
     res.json(transfer);
   } catch (err) { next(err); }
 });
 
-router.get("/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/device/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
-    const transfers = await getDeviceTransfersByDevice(deviceId);
+    const transfers = await getDeviceTransfersByDevice(deviceId as string);
     res.json({ transfers, count: transfers.length });
   } catch (err) { next(err); }
 });
 
-router.get("/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const transfers = await getDeviceTransfersByUser(userId);
+    const transfers = await getDeviceTransfersByUser(userId as string);
     res.json({ transfers, count: transfers.length });
   } catch (err) { next(err); }
 });
 
-router.get("/pending/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/pending/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const transfers = await getPendingTransfers(userId);
+    const transfers = await getPendingTransfers(userId as string);
     res.json({ transfers, count: transfers.length });
   } catch (err) { next(err); }
 });
 
-router.get("/disputed", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/disputed", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const transfers = await getDisputedTransfers();
     res.json({ transfers, count: transfers.length });
