@@ -9,8 +9,64 @@ import {
   executeAppWorkflow,
   createAppDashboard,
   getMarketplaceStatistics,
-  enterpriseMarketplace
+  enterpriseMarketplace,
 } from "../marketplace/marketplace.js";
+
+// Type definitions for marketplace entities
+interface AppExtension {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  type: 'plugin' | 'integration' | 'workflow' | 'dashboard';
+  category: string;
+  author: string;
+  icon?: string;
+  screenshots: string[];
+  pricing: {
+    type: 'free' | 'paid' | 'freemium';
+    price?: number;
+    currency?: string;
+    trialDays?: number;
+  };
+  features: string[];
+  requirements: {
+    apiVersion: string;
+    permissions: string[];
+  };
+  status: 'draft' | 'published' | 'deprecated' | 'removed';
+  downloads: number;
+  rating: number;
+  reviews: number;
+  publishedAt?: Date;
+  updatedAt: Date;
+}
+
+interface AppDashboard {
+  id: string;
+  extensionId: string;
+  name: string;
+  description: string;
+  layout: {
+    type: 'grid' | 'tabs' | 'custom';
+    columns: number;
+  };
+  widgets: Array<{
+    id: string;
+    type: 'chart' | 'metric' | 'table' | 'map' | 'list';
+    title: string;
+    config: Record<string, any>;
+    position: {
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+    };
+  }>;
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const router = Router();
 
@@ -23,7 +79,7 @@ interface AuthRequest extends Request {
 }
 
 // GET /api/marketplace/extensions — list all published extensions
-router.get("/extensions", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/extensions", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { type, category, search } = req.query;
 
@@ -44,9 +100,9 @@ router.get("/extensions", async (req: Request, res: Response, next: NextFunction
 });
 
 // GET /api/marketplace/extensions/:id — get extension details
-router.get("/extensions/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/extensions/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const extension = enterpriseMarketplace.getExtension(req.params.id);
+    const extension = enterpriseMarketplace.getExtension(req.params.id as string);
     if (!extension) {
       return res.status(404).json({ error: "Extension not found" });
     }
@@ -84,7 +140,7 @@ router.post("/extensions", authenticate, requireAdmin, async (req: AuthRequest, 
     const extension = createAppExtension({
       ...data,
       publishedAt: data.status === 'published' ? new Date() : undefined,
-    });
+    } as Omit<AppExtension, 'id' | 'downloads' | 'rating' | 'reviews' | 'updatedAt'>);
 
     res.status(201).json(extension);
   } catch (err) {
@@ -158,9 +214,9 @@ router.post("/reviews", authenticate, async (req: AuthRequest, res: Response, ne
 });
 
 // GET /api/marketplace/reviews/:extensionId — get reviews for extension
-router.get("/reviews/:extensionId", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/reviews/:extensionId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const reviews = enterpriseMarketplace.getReviewsByExtension(req.params.extensionId);
+    const reviews = enterpriseMarketplace.getReviewsByExtension(req.params.extensionId as string);
     res.json({ reviews });
   } catch (err) { next(err); }
 });
@@ -231,7 +287,7 @@ router.post("/dashboards", authenticate, async (req: AuthRequest, res: Response,
     });
     const data = schema.parse(req.body);
 
-    const dashboard = createAppDashboard(data);
+    const dashboard = createAppDashboard(data as Omit<AppDashboard, 'id' | 'createdAt' | 'updatedAt'>);
     res.status(201).json(dashboard);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -240,7 +296,7 @@ router.post("/dashboards", authenticate, async (req: AuthRequest, res: Response,
 });
 
 // GET /api/marketplace/dashboards — get public dashboards
-router.get("/dashboards", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/dashboards", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const dashboards = enterpriseMarketplace.getPublicDashboards();
     res.json({ dashboards });
