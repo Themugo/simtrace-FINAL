@@ -4,16 +4,30 @@ import { useRouter } from "next/navigation";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 
+interface Partner {
+  status: string;
+  apiCallsMonth?: number;
+  apiCallsLimit?: number;
+  tier?: string;
+  apiKey?: string;
+}
+
+interface BulkResult {
+  imei: string;
+  status: string;
+  risk: string;
+}
+
 export default function LawEnforcementPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [partner, setPartner] = useState(null);
+  const [partner, setPartner] = useState<Partner | null>(null);
   const [tab,     setTab]     = useState("check");
   const [bulkInput, setBulkInput] = useState("");
-  const [bulkResults, setBulkResults] = useState([]);
+  const [bulkResults, setBulkResults] = useState<BulkResult[]>([]);
   const [checkLoading, setCheckLoading] = useState(false);
-  const [reports, setReports] = useState([]);
+  const [reports, setReports] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) { router.push("/login"); return; }
@@ -22,7 +36,7 @@ export default function LawEnforcementPage() {
     }
   }, [user, authLoading]);
 
-  async function runBulkCheck(e) {
+  async function runBulkCheck(e: React.FormEvent) {
     e.preventDefault();
     const imeis = bulkInput.split(/[\n,\s]+/).map(s => s.replace(/\D/g,"")).filter(s => s.length >= 15);
     if (!imeis.length) return;
@@ -30,12 +44,12 @@ export default function LawEnforcementPage() {
     try {
       const res = await api.post("/api/partner/imei/bulk", { imeis: imeis.slice(0, 500) });
       setBulkResults(res.results || []);
-    } catch (err) { alert(err.message); }
+    } catch (err: any) { alert(err.message); }
     finally { setCheckLoading(false); }
   }
 
-  const RISK_COLOR = { HIGH: "var(--rose)", LOW: "var(--emerald)", MEDIUM: "var(--amber)" };
-  const STATUS_COLOR = { stolen: "var(--rose)", blacklisted: "var(--amber)", active: "var(--emerald)", recovered: "var(--sky)", unknown: "var(--muted)" };
+  const RISK_COLOR: Record<string, string> = { HIGH: "var(--rose)", LOW: "var(--emerald)", MEDIUM: "var(--amber)" };
+  const STATUS_COLOR: Record<string, string> = { stolen: "var(--rose)", blacklisted: "var(--amber)", active: "var(--emerald)", recovered: "var(--sky)", unknown: "var(--muted)" };
 
   if (authLoading) return <p className="text-muted">Loading…</p>;
 
@@ -84,7 +98,7 @@ export default function LawEnforcementPage() {
               ["API Calls (Month)", partner.apiCallsMonth?.toLocaleString() || 0, "var(--sky)"],
               ["Monthly Limit",     partner.apiCallsLimit?.toLocaleString() || 0, "var(--muted)"],
               ["Tier",              partner.tier?.toUpperCase(),                   "var(--amber)"],
-              ["Quota Used",        `${Math.round((partner.apiCallsMonth / partner.apiCallsLimit) * 100)}%`, "var(--emerald)"],
+              ["Quota Used",        `${Math.round(((partner.apiCallsMonth || 0) / (partner.apiCallsLimit || 1)) * 100)}%`, "var(--emerald)"],
             ].map(([label, value, color]) => (
               <div key={label} className="card" style={{ borderLeft: `3px solid ${color}` }}>
                 <div style={{ fontSize: "0.72rem", color: "var(--dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
@@ -176,7 +190,7 @@ export default function LawEnforcementPage() {
                 <label className="label">API Key</label>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   <input value={partner.apiKey || "—"} readOnly style={{ fontFamily: "monospace", fontSize: "0.82rem" }} />
-                  <button onClick={() => navigator.clipboard.writeText(partner.apiKey)}
+                  <button onClick={() => navigator.clipboard.writeText(partner.apiKey || "")}
                     style={{ background: "var(--border)", border: "1px solid #334155", color: "var(--text2)", padding: "0 14px", borderRadius: 8, whiteSpace: "nowrap", fontSize: "0.82rem" }}>
                     Copy
                   </button>
