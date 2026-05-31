@@ -26,7 +26,7 @@ export class FraudDetectionEngine implements IFraudDetectionEngine {
     log.info({ imei: input.imei }, "Fraud detection started");
 
     try {
-      const device = await Device.findOne({ imei: input.imei });
+      const device = await Device.findOne({ imei: input.imei }).lean();
       if (!device) {
         return {
           imei: input.imei,
@@ -49,15 +49,22 @@ export class FraudDetectionEngine implements IFraudDetectionEngine {
       }
 
       // Run intelligence checks (SIM swap, location jump, fraud pattern)
-      const recentPing = await Ping.findOne({ imei: input.imei }).sort({ ts: -1 });
+      // Optimize: Use projection and lean
+      const recentPing = await Ping.findOne({ imei: input.imei })
+        .select({ imei: 1, ts: 1, lat: 1, lng: 1, sim: 1, ip: 1 })
+        .sort({ ts: -1 })
+        .lean();
       if (recentPing) {
         // This will trigger the existing intelligence runner
         await runIntelligence({ ping: recentPing, device });
         
         // Check for recent alerts
+        // Optimize: Use projection and lean
         const recentAlerts = await Alert.find({ imei: input.imei })
+          .select({ imei: 1, ts: 1, type: 1, severity: 1 })
           .sort({ ts: -1 })
-          .limit(10);
+          .limit(10)
+          .lean();
 
         for (const alert of recentAlerts) {
           indicators.push({
@@ -137,13 +144,18 @@ export class FraudDetectionEngine implements IFraudDetectionEngine {
   }
 
   async checkThreatIntel(imei: string, _indicators: string[]): Promise<FraudDetectionOutput['threatIntel']> {
-    const device = await Device.findOne({ imei });
+    const device = await Device.findOne({ imei }).lean();
     if (!device) return [];
 
     const threatIntel: FraudDetectionOutput['threatIntel'] = [];
 
     // Check recent pings for malicious IPs
-    const recentPings = await Ping.find({ imei }).sort({ ts: -1 }).limit(50);
+    // Optimize: Use projection, limit, and lean
+    const recentPings = await Ping.find({ imei })
+      .select({ imei: 1, ts: 1, ip: 1 })
+      .sort({ ts: -1 })
+      .limit(50)
+      .lean();
     for (const ping of recentPings) {
       const result = isMaliciousIP((ping as any).ip);
       if (result.isMalicious && result.threat) {

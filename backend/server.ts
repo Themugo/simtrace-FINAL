@@ -153,6 +153,9 @@ const trackLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, message: { error
 // AI: 30 req/min (independent of per-user monthly quota)
 const aiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: { error: "AI rate limit exceeded" } });
 
+// Intelligence Broker: 50 req/min per IP (prevents abuse of intelligence endpoints)
+const intelligenceBrokerLimiter = rateLimit({ windowMs: 60 * 1000, max: 50, message: { error: "Intelligence broker rate limit exceeded" } });
+
 // ── M-Pesa callback IP whitelist ─────────────────────────────────────────────
 // Safaricom publishes their callback IPs — only accept callbacks from them
 const MPESA_CALLBACK_IPS = new Set([
@@ -195,7 +198,7 @@ app.use("/api/notification-preferences", notificationPreferencesRoutes);
 app.use("/api/telecom-analytics",     telecomAnalyticsRoutes);
 app.use("/api/audit-logs",            auditLogsRoutes);
 app.use("/api/law-enforcement-cases", lawEnforcementCasesRoutes);
-app.use("/api/intelligence-broker",   intelligenceBrokerRoutes);
+app.use("/api/intelligence-broker",   intelligenceBrokerLimiter, intelligenceBrokerRoutes);
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = initIO(server, allowedOrigins);

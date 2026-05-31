@@ -11,6 +11,7 @@ import {
   IntelligenceContext 
 } from "./interfaces.js";
 import { sendAlert as legacySendAlert } from "../services/notify.js";
+import { intelligenceCache } from "../services/intelligence-cache.js";
 
 const log: Logger = pino({ level: "info" }).child({ engine: "recovery_alert" });
 
@@ -90,7 +91,8 @@ export class RecoveryAlertEngine implements IRecoveryAlertEngine {
   async triggerRecoveryActions(imei: string, actions: Partial<RecoveryActions>): Promise<RecoveryActions> {
     log.info({ imei, actions }, "Triggering recovery actions");
 
-    const device = await Device.findOne({ imei });
+    // Optimize: Use lean for better performance
+    const device = await Device.findOne({ imei }).lean();
     if (!device) {
       throw new Error('Device not found');
     }
@@ -144,11 +146,15 @@ export class RecoveryAlertEngine implements IRecoveryAlertEngine {
     // Update recovery status
     this.recoveryStatus.set(imei, 'in_progress');
 
+    // Invalidate cache for this device since state has changed
+    intelligenceCache.invalidateDevice(imei);
+
     return triggeredActions;
   }
 
   async getRecoveryStatus(imei: string): Promise<RecoveryAlertOutput['recoveryStatus']> {
-    const device = await Device.findOne({ imei });
+    // Optimize: Use lean and select only needed fields
+    const device = await Device.findOne({ imei }).select({ imei: 1, status: 1 }).lean();
     
     if (!device) {
       return 'not_started';

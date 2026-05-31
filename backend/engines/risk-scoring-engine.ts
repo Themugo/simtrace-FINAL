@@ -50,12 +50,17 @@ export class RiskScoringEngine implements IRiskScoringEngine {
   }
 
   async getRiskFactors(imei: string): Promise<RiskFactor[]> {
-    const device = await Device.findOne({ imei });
+    const device = await Device.findOne({ imei }).lean();
     if (!device) return [];
 
     const factors: RiskFactor[] = [];
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentPings = await Ping.find({ imei, ts: { $gte: since } }).sort({ ts: -1 });
+    // Optimize: Use projection to only get needed fields, add limit
+    const recentPings = await Ping.find({ imei, ts: { $gte: since } })
+      .select({ imei: 1, ts: 1, lat: 1, lng: 1, sim: 1 })
+      .sort({ ts: -1 })
+      .limit(100)
+      .lean();
 
     // Device status factor
     if (device.status === "stolen") {
@@ -129,9 +134,12 @@ export class RiskScoringEngine implements IRiskScoringEngine {
 
   async getRiskHistory(imei: string, days: number = 30): Promise<RiskScoringOutput['history']> {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    // Optimize: Use projection and lean for better performance
     const events = await TrackingEvent.find({ imei, timestamp: { $gte: since } })
+      .select({ imei: 1, timestamp: 1, riskScore: 1, threatLevel: 1 })
       .sort({ timestamp: -1 })
-      .limit(100);
+      .limit(100)
+      .lean();
 
     return events
       .filter((e: any) => e.riskScore !== undefined)

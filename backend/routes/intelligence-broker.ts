@@ -10,6 +10,11 @@ import {
   IntelligenceContext,
   BrokerRequest,
 } from "../engines/index.js";
+import { 
+  canAccessStakeholder, 
+  canPerformOperation, 
+  ownsDevice 
+} from "../middleware/intelligence-rbac.js";
 
 const router = Router();
 
@@ -85,16 +90,21 @@ router.get("/stakeholder/:stakeholder/:imei", authenticate, async (req: AuthRequ
       return res.status(400).json({ error: "Invalid stakeholder" });
     }
 
-    // Check authorization
-    const userStakeholder = getStakeholderFromRole(req.user?.role || "device_owner");
-    if (stakeholder !== userStakeholder && req.user?.role !== "admin") {
-      return res.status(403).json({ error: "Unauthorized to access this stakeholder's intelligence" });
-    }
+    // Apply RBAC check for the specific stakeholder
+    const stakeholderCheck = canAccessStakeholder(stakeholder);
+    stakeholderCheck(req, res, (err) => {
+      if (err) return next(err);
+      
+      const operationCheck = canPerformOperation("device_intelligence", "read");
+      operationCheck(req, res, async (err2) => {
+        if (err2) return next(err2);
 
-    const context = createIntelligenceContext(req, imei);
-    const result = await intelligenceBroker.getIntelligenceForStakeholder(stakeholder as Stakeholder, imei, context);
-
-    return res.json(result);
+        const context = createIntelligenceContext(req, imei);
+        intelligenceBroker.getIntelligenceForStakeholder(stakeholder as Stakeholder, imei, context)
+          .then(result => res.json(result))
+          .catch(next);
+      });
+    });
   } catch (err) {
     return next(err);
   }
@@ -103,7 +113,7 @@ router.get("/stakeholder/:stakeholder/:imei", authenticate, async (req: AuthRequ
 // ── Individual Engine Endpoints ─────────────────────────────────────────────────────
 
 // POST /api/intelligence-broker/device-intelligence - Run device intelligence engine
-router.post("/device-intelligence", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/device-intelligence", authenticate, canPerformOperation("device_intelligence", "read"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15),
@@ -134,7 +144,7 @@ router.post("/device-intelligence", authenticate, async (req: AuthRequest, res: 
 });
 
 // POST /api/intelligence-broker/risk-scoring - Run risk scoring engine
-router.post("/risk-scoring", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/risk-scoring", authenticate, canPerformOperation("risk_scoring", "read"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15),
@@ -165,7 +175,7 @@ router.post("/risk-scoring", authenticate, async (req: AuthRequest, res: Respons
 });
 
 // POST /api/intelligence-broker/fraud-detection - Run fraud detection engine
-router.post("/fraud-detection", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/fraud-detection", authenticate, canPerformOperation("fraud_detection", "read"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15),
@@ -196,7 +206,7 @@ router.post("/fraud-detection", authenticate, async (req: AuthRequest, res: Resp
 });
 
 // POST /api/intelligence-broker/recovery-alert - Send recovery alert
-router.post("/recovery-alert", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/recovery-alert", authenticate, canPerformOperation("recovery_alert", "write"), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       imei: z.string().min(15),
@@ -233,7 +243,7 @@ router.post("/recovery-alert", authenticate, async (req: AuthRequest, res: Respo
 // ── Recovery Actions ───────────────────────────────────────────────────────────────
 
 // POST /api/intelligence-broker/recovery-actions/:imei - Trigger recovery actions
-router.post("/recovery-actions/:imei", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/recovery-actions/:imei", authenticate, canPerformOperation("recovery_actions", "write"), ownsDevice, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       remoteLock: z.boolean().optional(),
@@ -245,11 +255,6 @@ router.post("/recovery-actions/:imei", authenticate, async (req: AuthRequest, re
 
     const data = schema.parse(req.body);
     const { imei } = req.params;
-
-    // Only device owners and admins can trigger recovery actions
-    if (req.user?.role !== "device_owner" && req.user?.role !== "admin") {
-      return res.status(403).json({ error: "Unauthorized to trigger recovery actions" });
-    }
 
     const { recoveryAlertEngine } = await import("../engines/index.js");
     const result = await recoveryAlertEngine.triggerRecoveryActions(imei, data);

@@ -23,6 +23,7 @@ import { deviceIntelligenceEngine } from "./device-intelligence-engine.js";
 import { riskScoringEngine } from "./risk-scoring-engine.js";
 import { fraudDetectionEngine } from "./fraud-detection-engine.js";
 import { recoveryAlertEngine } from "./recovery-alert-engine.js";
+import { intelligenceCache } from "../services/intelligence-cache.js";
 
 const log: Logger = pino({ level: "info" }).child({ broker: "intelligence" });
 
@@ -131,6 +132,18 @@ export class IntelligenceBroker implements IIntelligenceBroker {
     riskScoring: RiskScoringOutput;
     fraudDetection: FraudDetectionOutput;
   }> {
+    // Check cache first
+    const cached = intelligenceCache.get<{
+      deviceIntelligence: DeviceIntelligenceOutput;
+      riskScoring: RiskScoringOutput;
+      fraudDetection: FraudDetectionOutput;
+    }>("analyze", imei, { stakeholder: context.stakeholder });
+    
+    if (cached) {
+      log.info({ imei, cached: true }, "Multi-engine device analysis served from cache");
+      return cached;
+    }
+
     log.info({ imei, stakeholder: context.stakeholder }, "Multi-engine device analysis started");
 
     const startTime = Date.now();
@@ -161,7 +174,12 @@ export class IntelligenceBroker implements IIntelligenceBroker {
       const processingTime = Date.now() - startTime;
       log.info({ imei, processingTime }, "Multi-engine device analysis completed");
 
-      return { deviceIntelligence, riskScoring, fraudDetection };
+      const result = { deviceIntelligence, riskScoring, fraudDetection };
+      
+      // Cache the result for 5 minutes
+      intelligenceCache.set("analyze", imei, result, { stakeholder: context.stakeholder }, 300000);
+
+      return result;
     } catch (error) {
       log.error({ imei, error }, "Multi-engine device analysis failed");
       throw error;
