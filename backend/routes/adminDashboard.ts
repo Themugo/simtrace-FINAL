@@ -16,8 +16,16 @@ import {
 
 const router = Router();
 
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 // ── Admin Dashboard Management ───────────────────────────────────────────────────────
-router.post("/", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       adminId: z.string(),
@@ -50,31 +58,31 @@ router.post("/", authenticate, async (req: Request, res: Response, next: NextFun
   }
 });
 
-router.get("/:dashboardId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await getAdminDashboard(dashboardId);
+    const dashboard = await getAdminDashboard(dashboardId as string);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
-router.get("/admin/:adminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/admin/:adminId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const dashboard = await getAdminDashboardByAdmin(adminId);
+    const dashboard = await getAdminDashboardByAdmin(adminId as string);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
-router.patch("/:dashboardId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updateAdminDashboard(dashboardId, req.body);
+    const dashboard = await updateAdminDashboard(dashboardId as string, req.body);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
-router.patch("/:dashboardId/widgets", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/:dashboardId/widgets", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       widgets: z.array(z.object({
@@ -91,7 +99,7 @@ router.patch("/:dashboardId/widgets", authenticate, async (req: Request, res: Re
 
     const { dashboardId } = req.params;
     const data = schema.parse(req.body);
-    const dashboard = await updateAdminDashboardWidgets(dashboardId, data.widgets);
+    const dashboard = await updateAdminDashboardWidgets(dashboardId as string, data.widgets);
     res.json(dashboard);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -99,7 +107,7 @@ router.patch("/:dashboardId/widgets", authenticate, async (req: Request, res: Re
   }
 });
 
-router.patch("/:dashboardId/settings", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/:dashboardId/settings", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       settings: z.object({
@@ -112,7 +120,7 @@ router.patch("/:dashboardId/settings", authenticate, async (req: Request, res: R
 
     const { dashboardId } = req.params;
     const data = schema.parse(req.body);
-    const dashboard = await updateAdminDashboardSettings(dashboardId, data.settings);
+    const dashboard = await updateAdminDashboardSettings(dashboardId as string, data.settings);
     res.json(dashboard);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -120,15 +128,15 @@ router.patch("/:dashboardId/settings", authenticate, async (req: Request, res: R
   }
 });
 
-router.delete("/:dashboardId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await deleteAdminDashboard(dashboardId);
+    const dashboard = await deleteAdminDashboard(dashboardId as string);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
 
-router.get("/", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const dashboards = await getAllAdminDashboards();
     res.json({ dashboards, count: dashboards.length });
@@ -136,10 +144,10 @@ router.get("/", authenticate, async (req: Request, res: Response, next: NextFunc
 });
 
 // ── Dashboard Data ───────────────────────────────────────────────────────────────────
-router.get("/:dashboardId/data", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:dashboardId/data", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const data = await getAdminDashboardData(dashboardId);
+    const data = await getAdminDashboardData(dashboardId as string);
     res.json(data);
   } catch (err) { next(err); }
 });
