@@ -89,7 +89,7 @@ router.post("/official-emails/:emailId/verify", authenticate, async (req: AuthRe
 
     const { emailId } = req.params;
     const data = schema.parse(req.body);
-    const officialEmail = await verifyOfficialEmail(emailId, data.token);
+    const officialEmail = await verifyOfficialEmail(emailId as string, data.token);
     res.json(officialEmail);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -100,7 +100,7 @@ router.post("/official-emails/:emailId/verify", authenticate, async (req: AuthRe
 router.get("/official-emails/:emailId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { emailId } = req.params;
-    const officialEmail = await getOfficialEmail(emailId);
+    const officialEmail = await getOfficialEmail(emailId as string);
     res.json(officialEmail);
   } catch (err) { next(err); }
 });
@@ -108,7 +108,7 @@ router.get("/official-emails/:emailId", authenticate, async (req: AuthRequest, r
 router.get("/official-emails/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const officialEmail = await getOfficialEmailByUser(userId);
+    const officialEmail = await getOfficialEmailByUser(userId as string);
     res.json(officialEmail);
   } catch (err) { next(err); }
 });
@@ -116,7 +116,7 @@ router.get("/official-emails/user/:userId", authenticate, async (req: AuthReques
 router.patch("/official-emails/:emailId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { emailId } = req.params;
-    const officialEmail = await updateOfficialEmail(emailId, req.body, req.user!.id);
+    const officialEmail = await updateOfficialEmail(emailId as string, req.body, req.user!.id);
     res.json(officialEmail);
   } catch (err) { next(err); }
 });
@@ -124,7 +124,7 @@ router.patch("/official-emails/:emailId", authenticate, requireAdmin, async (req
 router.post("/official-emails/:emailId/revoke", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { emailId } = req.params;
-    const officialEmail = await revokeOfficialEmail(emailId, req.user!.id);
+    const officialEmail = await revokeOfficialEmail(emailId as string, req.user!.id);
     res.json(officialEmail);
   } catch (err) { next(err); }
 });
@@ -159,7 +159,7 @@ router.post("/security-otps/:otpId/verify", authenticate, async (req: AuthReques
 
     const { otpId } = req.params;
     const data = schema.parse(req.body);
-    const securityOtp = await verifySecurityOtp(otpId, data.otpNumber);
+    const securityOtp = await verifySecurityOtp(otpId as string, data.otpNumber);
     res.json(securityOtp);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -170,7 +170,7 @@ router.post("/security-otps/:otpId/verify", authenticate, async (req: AuthReques
 router.get("/security-otps/:otpId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { otpId } = req.params;
-    const securityOtp = await getSecurityOtp(otpId);
+    const securityOtp = await getSecurityOtp(otpId as string);
     res.json(securityOtp);
   } catch (err) { next(err); }
 });
@@ -178,7 +178,7 @@ router.get("/security-otps/:otpId", authenticate, async (req: AuthRequest, res: 
 router.get("/security-otps/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const securityOtp = await getSecurityOtpByUser(userId);
+    const securityOtp = await getSecurityOtpByUser(userId as string);
     res.json(securityOtp);
   } catch (err) { next(err); }
 });
@@ -186,7 +186,7 @@ router.get("/security-otps/user/:userId", authenticate, async (req: AuthRequest,
 router.patch("/security-otps/:otpId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { otpId } = req.params;
-    const securityOtp = await updateSecurityOtp(otpId, req.body, req.user!.id);
+    const securityOtp = await updateSecurityOtp(otpId as string, req.body, req.user!.id);
     res.json(securityOtp);
   } catch (err) { next(err); }
 });
@@ -194,7 +194,7 @@ router.patch("/security-otps/:otpId", authenticate, requireAdmin, async (req: Au
 router.post("/security-otps/:otpId/report-lost", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { otpId } = req.params;
-    const securityOtp = await reportLostOtp(otpId, req.user!.id);
+    const securityOtp = await reportLostOtp(otpId as string, req.user!.id);
     res.json(securityOtp);
   } catch (err) { next(err); }
 });
@@ -231,7 +231,7 @@ router.post("/password-resets/:requestId/verify", authenticate, async (req: Auth
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const resetRequest = await verifyPasswordReset(requestId, data.verificationMethod, data.code, data.otpNumber);
+    const resetRequest = await verifyPasswordReset(requestId as string, data.verificationMethod, data.code, data.otpNumber);
     res.json(resetRequest);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -247,7 +247,7 @@ router.post("/password-resets/:requestId/approve", authenticate, async (req: Aut
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const resetRequest = await approvePasswordReset(requestId, req.user!.id, data.approvalReason);
+    const resetRequest = await approvePasswordReset(requestId as string, req.user!.id, data.approvalReason);
     res.json(resetRequest);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -263,7 +263,7 @@ router.post("/password-resets/:requestId/reject", authenticate, async (req: Auth
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const resetRequest = await rejectPasswordReset(requestId, req.user!.id, data.rejectionReason);
+    const resetRequest = await rejectPasswordReset(requestId as string, req.user!.id, data.rejectionReason);
     res.json(resetRequest);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -279,7 +279,7 @@ router.post("/password-resets/:requestId/complete", authenticate, async (req: Au
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const resetRequest = await completePasswordReset(requestId, data.newPassword);
+    const resetRequest = await completePasswordReset(requestId as string, data.newPassword);
     res.json(resetRequest);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -290,7 +290,7 @@ router.post("/password-resets/:requestId/complete", authenticate, async (req: Au
 router.get("/password-resets/:requestId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { requestId } = req.params;
-    const resetRequest = await getPasswordResetRequest(requestId);
+    const resetRequest = await getPasswordResetRequest(requestId as string);
     res.json(resetRequest);
   } catch (err) { next(err); }
 });
@@ -298,7 +298,7 @@ router.get("/password-resets/:requestId", authenticate, async (req: AuthRequest,
 router.get("/password-resets/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const resetRequests = await getPasswordResetRequestsByUser(userId);
+    const resetRequests = await getPasswordResetRequestsByUser(userId as string);
     res.json({ resetRequests, count: resetRequests.length });
   } catch (err) { next(err); }
 });
@@ -343,7 +343,7 @@ router.post("/network-changes/:requestId/verify", authenticate, async (req: Auth
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const networkChange = await verifyNetworkChange(requestId, data.verificationMethod, data.otpNumber);
+    const networkChange = await verifyNetworkChange(requestId as string, data.verificationMethod, data.otpNumber);
     res.json(networkChange);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -361,7 +361,7 @@ router.post("/network-changes/:requestId/approve", authenticate, async (req: Aut
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const networkChange = await approveNetworkChange(requestId, req.user!.id, data.approverEmailId, data.approverOtpId, data.comment);
+    const networkChange = await approveNetworkChange(requestId as string, req.user!.id, data.approverEmailId, data.approverOtpId, data.comment);
     res.json(networkChange);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -377,7 +377,7 @@ router.post("/network-changes/:requestId/reject", authenticate, async (req: Auth
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const networkChange = await rejectNetworkChange(requestId, req.user!.id, data.rejectionReason);
+    const networkChange = await rejectNetworkChange(requestId as string, req.user!.id, data.rejectionReason);
     res.json(networkChange);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -393,7 +393,7 @@ router.post("/network-changes/:requestId/execute", authenticate, async (req: Aut
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const networkChange = await executeNetworkChange(requestId, req.user!.id, data.executionLog);
+    const networkChange = await executeNetworkChange(requestId as string, req.user!.id, data.executionLog);
     res.json(networkChange);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -409,7 +409,7 @@ router.post("/network-changes/:requestId/rollback", authenticate, async (req: Au
 
     const { requestId } = req.params;
     const data = schema.parse(req.body);
-    const networkChange = await rollbackNetworkChange(requestId, data.rollbackReason);
+    const networkChange = await rollbackNetworkChange(requestId as string, data.rollbackReason);
     res.json(networkChange);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -420,7 +420,7 @@ router.post("/network-changes/:requestId/rollback", authenticate, async (req: Au
 router.get("/network-changes/:requestId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { requestId } = req.params;
-    const networkChange = await getNetworkChangeRequest(requestId);
+    const networkChange = await getNetworkChangeRequest(requestId as string);
     res.json(networkChange);
   } catch (err) { next(err); }
 });
@@ -428,7 +428,7 @@ router.get("/network-changes/:requestId", authenticate, async (req: AuthRequest,
 router.get("/network-changes/agency/:agencyId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const networkChanges = await getNetworkChangeRequestsByAgency(agencyId);
+    const networkChanges = await getNetworkChangeRequestsByAgency(agencyId as string);
     res.json({ networkChanges, count: networkChanges.length });
   } catch (err) { next(err); }
 });
@@ -473,7 +473,7 @@ router.get("/access-logs/user/:userId", authenticate, async (req: AuthRequest, r
   try {
     const { userId } = req.params;
     const limit = parseInt((req.query.limit as string) || "50");
-    const logs = await getDashboardAccessLogs(userId, limit);
+    const logs = await getDashboardAccessLogs(userId as string, limit);
     res.json({ logs, count: logs.length });
   } catch (err) { next(err); }
 });
@@ -482,7 +482,7 @@ router.get("/access-logs/level/:dashboardLevel", authenticate, async (req: AuthR
   try {
     const { dashboardLevel } = req.params;
     const limit = parseInt((req.query.limit as string) || "100");
-    const logs = await getDashboardAccessLogsByLevel(dashboardLevel, limit);
+    const logs = await getDashboardAccessLogsByLevel(dashboardLevel as string, limit);
     res.json({ logs, count: logs.length });
   } catch (err) { next(err); }
 });
@@ -536,7 +536,7 @@ router.post("/dashboards/minister", authenticate, async (req: AuthRequest, res: 
 router.get("/dashboards/minister/:ministerId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { ministerId } = req.params;
-    const dashboard = await getMinisterDashboard(ministerId);
+    const dashboard = await getMinisterDashboard(ministerId as string);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
@@ -544,7 +544,7 @@ router.get("/dashboards/minister/:ministerId", authenticate, async (req: AuthReq
 router.patch("/dashboards/minister/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updateMinisterDashboard(dashboardId, req.body, req.user!.id);
+    const dashboard = await updateMinisterDashboard(dashboardId as string, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
@@ -590,7 +590,7 @@ router.post("/dashboards/police-general", authenticate, async (req: AuthRequest,
 router.get("/dashboards/police-general/:policeGeneralId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { policeGeneralId } = req.params;
-    const dashboard = await getPoliceGeneralDashboard(policeGeneralId);
+    const dashboard = await getPoliceGeneralDashboard(policeGeneralId as string);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
@@ -598,7 +598,7 @@ router.get("/dashboards/police-general/:policeGeneralId", authenticate, async (r
 router.patch("/dashboards/police-general/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updatePoliceGeneralDashboard(dashboardId, req.body, req.user!.id);
+    const dashboard = await updatePoliceGeneralDashboard(dashboardId as string, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
@@ -645,7 +645,7 @@ router.post("/dashboards/station-admin", authenticate, async (req: AuthRequest, 
 router.get("/dashboards/station-admin/:stationAdminId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { stationAdminId } = req.params;
-    const dashboard = await getStationAdminDashboard(stationAdminId);
+    const dashboard = await getStationAdminDashboard(stationAdminId as string);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
@@ -653,7 +653,7 @@ router.get("/dashboards/station-admin/:stationAdminId", authenticate, async (req
 router.patch("/dashboards/station-admin/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updateStationAdminDashboard(dashboardId, req.body, req.user!.id);
+    const dashboard = await updateStationAdminDashboard(dashboardId as string, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
@@ -693,7 +693,7 @@ router.post("/dashboards/user", authenticate, async (req: AuthRequest, res: Resp
 router.get("/dashboards/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const dashboard = await getUserDashboard(userId);
+    const dashboard = await getUserDashboard(userId as string);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
@@ -701,7 +701,7 @@ router.get("/dashboards/user/:userId", authenticate, async (req: AuthRequest, re
 router.patch("/dashboards/user/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = await updateUserDashboard(dashboardId, req.body, req.user!.id);
+    const dashboard = await updateUserDashboard(dashboardId as string, req.body, req.user!.id);
     res.json(dashboard);
   } catch (err) { next(err); }
 });
