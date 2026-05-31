@@ -81,7 +81,7 @@ router.post("/official-emails", authenticate, requireAdmin, async (req: AuthRequ
   }
 });
 
-router.post("/official-emails/:emailId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/official-emails/:emailId/verify", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       token: z.string(),
@@ -97,7 +97,7 @@ router.post("/official-emails/:emailId/verify", authenticate, async (req: Reques
   }
 });
 
-router.get("/official-emails/:emailId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/official-emails/:emailId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { emailId } = req.params;
     const officialEmail = await getOfficialEmail(emailId);
@@ -105,7 +105,7 @@ router.get("/official-emails/:emailId", authenticate, async (req: Request, res: 
   } catch (err) { next(err); }
 });
 
-router.get("/official-emails/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/official-emails/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const officialEmail = await getOfficialEmailByUser(userId);
@@ -151,7 +151,7 @@ router.post("/security-otps", authenticate, requireAdmin, async (req: AuthReques
   }
 });
 
-router.post("/security-otps/:otpId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/security-otps/:otpId/verify", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       otpNumber: z.string(),
@@ -167,7 +167,7 @@ router.post("/security-otps/:otpId/verify", authenticate, async (req: Request, r
   }
 });
 
-router.get("/security-otps/:otpId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/security-otps/:otpId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { otpId } = req.params;
     const securityOtp = await getSecurityOtp(otpId);
@@ -175,7 +175,7 @@ router.get("/security-otps/:otpId", authenticate, async (req: Request, res: Resp
   } catch (err) { next(err); }
 });
 
-router.get("/security-otps/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/security-otps/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const securityOtp = await getSecurityOtpByUser(userId);
@@ -200,7 +200,7 @@ router.post("/security-otps/:otpId/report-lost", authenticate, async (req: AuthR
 });
 
 // ── Password Reset Workflow ─────────────────────────────────────────────────────────
-router.post("/password-resets", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/password-resets", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -221,7 +221,7 @@ router.post("/password-resets", authenticate, async (req: Request, res: Response
   }
 });
 
-router.post("/password-resets/:requestId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/password-resets/:requestId/verify", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       verificationMethod: z.enum(["official_email", "security_otp", "both"]),
@@ -271,7 +271,7 @@ router.post("/password-resets/:requestId/reject", authenticate, async (req: Auth
   }
 });
 
-router.post("/password-resets/:requestId/complete", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/password-resets/:requestId/complete", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       newPassword: z.string().min(8),
@@ -287,7 +287,7 @@ router.post("/password-resets/:requestId/complete", authenticate, async (req: Re
   }
 });
 
-router.get("/password-resets/:requestId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/password-resets/:requestId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { requestId } = req.params;
     const resetRequest = await getPasswordResetRequest(requestId);
@@ -295,7 +295,7 @@ router.get("/password-resets/:requestId", authenticate, async (req: Request, res
   } catch (err) { next(err); }
 });
 
-router.get("/password-resets/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/password-resets/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const resetRequests = await getPasswordResetRequestsByUser(userId);
@@ -304,7 +304,7 @@ router.get("/password-resets/user/:userId", authenticate, async (req: Request, r
 });
 
 // ── Network Change Workflow ────────────────────────────────────────────────────────
-router.post("/network-changes", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/network-changes", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       requesterId: z.string(),
@@ -334,7 +334,7 @@ router.post("/network-changes", authenticate, async (req: Request, res: Response
   }
 });
 
-router.post("/network-changes/:requestId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/network-changes/:requestId/verify", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       verificationMethod: z.enum(["official_email", "security_otp", "both"]),
@@ -401,7 +401,7 @@ router.post("/network-changes/:requestId/execute", authenticate, async (req: Aut
   }
 });
 
-router.post("/network-changes/:requestId/rollback", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/network-changes/:requestId/rollback", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       rollbackReason: z.string(),
@@ -417,7 +417,7 @@ router.post("/network-changes/:requestId/rollback", authenticate, async (req: Re
   }
 });
 
-router.get("/network-changes/:requestId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/network-changes/:requestId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { requestId } = req.params;
     const networkChange = await getNetworkChangeRequest(requestId);
@@ -425,7 +425,7 @@ router.get("/network-changes/:requestId", authenticate, async (req: Request, res
   } catch (err) { next(err); }
 });
 
-router.get("/network-changes/agency/:agencyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/network-changes/agency/:agencyId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
     const networkChanges = await getNetworkChangeRequestsByAgency(agencyId);
@@ -434,7 +434,7 @@ router.get("/network-changes/agency/:agencyId", authenticate, async (req: Reques
 });
 
 // ── Dashboard Access Logging ────────────────────────────────────────────────────────
-router.post("/access-logs", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/access-logs", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -469,7 +469,7 @@ router.post("/access-logs", authenticate, async (req: Request, res: Response, ne
   }
 });
 
-router.get("/access-logs/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/access-logs/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const limit = parseInt((req.query.limit as string) || "50");
@@ -478,7 +478,7 @@ router.get("/access-logs/user/:userId", authenticate, async (req: Request, res: 
   } catch (err) { next(err); }
 });
 
-router.get("/access-logs/level/:dashboardLevel", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/access-logs/level/:dashboardLevel", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardLevel } = req.params;
     const limit = parseInt((req.query.limit as string) || "100");
@@ -487,7 +487,7 @@ router.get("/access-logs/level/:dashboardLevel", authenticate, async (req: Reque
   } catch (err) { next(err); }
 });
 
-router.get("/access-logs/suspicious", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/access-logs/suspicious", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const limit = parseInt((req.query.limit as string) || "50");
     const logs = await getSuspiciousActivityLogs(limit);
@@ -496,7 +496,7 @@ router.get("/access-logs/suspicious", authenticate, requireAdmin, async (req: Re
 });
 
 // ── Minister Dashboard Management ─────────────────────────────────────────────────
-router.post("/dashboards/minister", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/dashboards/minister", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       ministerId: z.string(),
@@ -533,7 +533,7 @@ router.post("/dashboards/minister", authenticate, async (req: Request, res: Resp
   }
 });
 
-router.get("/dashboards/minister/:ministerId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/dashboards/minister/:ministerId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { ministerId } = req.params;
     const dashboard = await getMinisterDashboard(ministerId);
@@ -550,7 +550,7 @@ router.patch("/dashboards/minister/:dashboardId", authenticate, async (req: Auth
 });
 
 // ── Police General Dashboard Management ───────────────────────────────────────────
-router.post("/dashboards/police-general", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/dashboards/police-general", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policeGeneralId: z.string(),
@@ -587,7 +587,7 @@ router.post("/dashboards/police-general", authenticate, async (req: Request, res
   }
 });
 
-router.get("/dashboards/police-general/:policeGeneralId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/dashboards/police-general/:policeGeneralId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { policeGeneralId } = req.params;
     const dashboard = await getPoliceGeneralDashboard(policeGeneralId);
@@ -604,7 +604,7 @@ router.patch("/dashboards/police-general/:dashboardId", authenticate, async (req
 });
 
 // ── Station Admin Dashboard Management ────────────────────────────────────────────
-router.post("/dashboards/station-admin", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/dashboards/station-admin", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       stationAdminId: z.string(),
@@ -642,7 +642,7 @@ router.post("/dashboards/station-admin", authenticate, async (req: Request, res:
   }
 });
 
-router.get("/dashboards/station-admin/:stationAdminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/dashboards/station-admin/:stationAdminId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { stationAdminId } = req.params;
     const dashboard = await getStationAdminDashboard(stationAdminId);
@@ -659,7 +659,7 @@ router.patch("/dashboards/station-admin/:dashboardId", authenticate, async (req:
 });
 
 // ── User Dashboard Management ───────────────────────────────────────────────────────
-router.post("/dashboards/user", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/dashboards/user", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -690,7 +690,7 @@ router.post("/dashboards/user", authenticate, async (req: Request, res: Response
   }
 });
 
-router.get("/dashboards/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/dashboards/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
     const dashboard = await getUserDashboard(userId);
@@ -707,7 +707,7 @@ router.patch("/dashboards/user/:dashboardId", authenticate, async (req: AuthRequ
 });
 
 // ── Dashboard Access Control ────────────────────────────────────────────────────────
-router.post("/dashboards/check-access", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/dashboards/check-access", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -725,7 +725,7 @@ router.post("/dashboards/check-access", authenticate, async (req: Request, res: 
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getDashboardStatistics();
     res.json(stats);
