@@ -204,18 +204,18 @@ router.post("/agency", authenticate, requireAdmin, async (req: AuthRequest, res:
   }
 });
 
-router.get("/agency/:agencyId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/agency/:agencyId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const config = await getAgencyConfig(agencyId);
+    const config = await getAgencyConfig(agencyId as string);
     res.json(config);
   } catch (err) { next(err); }
 });
 
-router.get("/agency/country/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/agency/country/:country", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
-    const configs = await getAgencyConfigByCountry(country);
+    const configs = await getAgencyConfigByCountry(country as string);
     res.json({ configs, count: configs.length });
   } catch (err) { next(err); }
 });
@@ -223,23 +223,23 @@ router.get("/agency/country/:country", authenticate, async (req: Request, res: R
 router.patch("/agency/:agencyId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const config = await updateAgencyConfig(agencyId, req.body, req.user!.id);
+    const config = await updateAgencyConfig(agencyId as string, req.body, req.user!.id);
     res.json(config);
   } catch (err) { next(err); }
 });
 
-router.post("/agency/:agencyId/api-key", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/agency/:agencyId/api-key", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const apiKey = await generateApiKey(agencyId);
+    const apiKey = await generateApiKey(agencyId as string);
     res.json({ apiKey });
   } catch (err) { next(err); }
 });
 
-router.delete("/agency/:agencyId/api-key", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/agency/:agencyId/api-key", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId } = req.params;
-    const config = await revokeApiKey(agencyId);
+    const config = await revokeApiKey(agencyId as string);
     res.json(config);
   } catch (err) { next(err); }
 });
@@ -293,15 +293,15 @@ router.post("/country", authenticate, requireAdmin, async (req: AuthRequest, res
   }
 });
 
-router.get("/country/:countryCode", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/country/:countryCode", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { countryCode } = req.params;
-    const config = await getCountryConfig(countryCode);
+    const config = await getCountryConfig(countryCode as string);
     res.json(config);
   } catch (err) { next(err); }
 });
 
-router.get("/countries", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/countries", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const configs = await getAllCountryConfigs();
     res.json({ configs, count: configs.length });
@@ -311,7 +311,7 @@ router.get("/countries", authenticate, async (req: Request, res: Response, next:
 router.patch("/country/:countryCode", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { countryCode } = req.params;
-    const config = await updateCountryConfig(countryCode, req.body, req.user!.id);
+    const config = await updateCountryConfig(countryCode as string, req.body, req.user!.id);
     res.json(config);
   } catch (err) { next(err); }
 });
@@ -346,7 +346,7 @@ router.post("/policies", authenticate, requireAdmin, async (req: AuthRequest, re
   }
 });
 
-router.get("/policies", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/policies", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const filters: any = {};
     if (req.query.policyType) filters.policyType = req.query.policyType;
@@ -358,7 +358,7 @@ router.get("/policies", authenticate, async (req: Request, res: Response, next: 
   } catch (err) { next(err); }
 });
 
-router.get("/policies/scope", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/policies/scope", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string().optional(),
@@ -375,7 +375,7 @@ router.get("/policies/scope", authenticate, async (req: Request, res: Response, 
   }
 });
 
-router.post("/policies/evaluate", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/policies/evaluate", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       context: z.any(),
@@ -394,29 +394,29 @@ router.post("/policies/evaluate", authenticate, async (req: Request, res: Respon
 router.patch("/policies/:policyId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { policyId } = req.params;
-    const rule = await updatePolicyRule(policyId, req.body, req.user!.id);
+    const rule = await updatePolicyRule(policyId as string, req.body, req.user!.id);
     res.json(rule);
   } catch (err) { next(err); }
 });
 
-router.post("/policies/:policyId/enable", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/policies/:policyId/enable", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { policyId } = req.params;
-    const rule = await enablePolicyRule(policyId);
+    const rule = await enablePolicyRule(policyId as string);
     res.json(rule);
   } catch (err) { next(err); }
 });
 
-router.post("/policies/:policyId/disable", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/policies/:policyId/disable", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { policyId } = req.params;
-    const rule = await disablePolicyRule(policyId);
+    const rule = await disablePolicyRule(policyId as string);
     res.json(rule);
   } catch (err) { next(err); }
 });
 
 // ── Security Checks ─────────────────────────────────────────────────────────────────
-router.post("/security/check-rate-limit", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/security/check-rate-limit", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -433,7 +433,7 @@ router.post("/security/check-rate-limit", authenticate, async (req: Request, res
   }
 });
 
-router.post("/security/check-ip-access", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/security/check-ip-access", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -449,7 +449,7 @@ router.post("/security/check-ip-access", authenticate, async (req: Request, res:
   }
 });
 
-router.post("/security/check-time-access", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/security/check-time-access", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -464,7 +464,7 @@ router.post("/security/check-time-access", authenticate, async (req: Request, re
   }
 });
 
-router.post("/security/validate-password", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/security/validate-password", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       password: z.string(),
@@ -480,7 +480,7 @@ router.post("/security/validate-password", authenticate, async (req: Request, re
   }
 });
 
-router.post("/security/mask-data", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/security/mask-data", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       data: z.any(),
@@ -497,15 +497,15 @@ router.post("/security/mask-data", authenticate, async (req: Request, res: Respo
 });
 
 // ── Integration Helpers ─────────────────────────────────────────────────────────────
-router.get("/integration/:agencyId/:provider", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/integration/:agencyId/:provider", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { agencyId, provider } = req.params;
-    const integration = await getIntegrationConfig(agencyId, provider);
+    const integration = await getIntegrationConfig(agencyId as string, provider as string);
     res.json(integration);
   } catch (err) { next(err); }
 });
 
-router.post("/integration/map-fields", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/integration/map-fields", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       data: z.any(),
@@ -521,7 +521,7 @@ router.post("/integration/map-fields", authenticate, async (req: Request, res: R
   }
 });
 
-router.post("/webhooks/trigger", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/webhooks/trigger", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       agencyId: z.string(),
@@ -539,7 +539,7 @@ router.post("/webhooks/trigger", authenticate, async (req: Request, res: Respons
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getConfigurationStatistics();
     res.json(stats);
