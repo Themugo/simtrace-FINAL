@@ -11,6 +11,7 @@ const TABS = [
   { id:"account",      icon:"👤", label:"Account"      },
   { id:"subscription", icon:"💳", label:"Subscription" },
   { id:"invoices",     icon:"📄", label:"Invoices"     },
+  { id:"notifications",icon:"🔔", label:"Notifications"},
   { id:"security",     icon:"🔒", label:"Security"     },
 ];
 
@@ -36,6 +37,29 @@ interface Invoice {
   status: string;
 }
 
+interface NotificationPreferences {
+  channels: {
+    sms: boolean;
+    email: boolean;
+    push: boolean;
+    inApp: boolean;
+  };
+  alertTypes: {
+    theft_report: boolean;
+    sim_swap: boolean;
+    location_jump: boolean;
+    fraud_pattern: boolean;
+    blacklist_ping: boolean;
+    recovery_update: boolean;
+  };
+  quietHours: {
+    enabled: boolean;
+    start: string;
+    end: string;
+    timezone: string;
+  };
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
@@ -49,6 +73,8 @@ export default function ProfilePage() {
   const [saving,   setSaving]  = useState(false);
   const [pwForm,   setPwForm]  = useState({ current:"", next:"", confirm:"" });
   const [pwSaving, setPwSaving]= useState(false);
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
+  const [notifSaving, setNotifSaving] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) { router.push("/login"); return; }
@@ -57,6 +83,7 @@ export default function ProfilePage() {
       setName(user.name  || "");
       api.get("/api/billing/subscription").then(setSub).catch(() => {});
       api.get("/api/billing/invoices").then(setInvoices).catch(() => {});
+      api.get("/api/notification-preferences").then(setNotifPrefs).catch(() => {});
     }
   }, [user, authLoading]);
 
@@ -81,6 +108,16 @@ export default function ProfilePage() {
       setPwForm({ current:"", next:"", confirm:"" });
     } catch (err: any) { toast?.add(err.message, "danger"); }
     finally { setPwSaving(false); }
+  }
+
+  async function saveNotificationPreferences() {
+    if (!notifPrefs) return;
+    setNotifSaving(true);
+    try {
+      await api.put("/api/notification-preferences", notifPrefs);
+      toast?.add("Notification preferences saved", "success");
+    } catch (err: any) { toast?.add(err.message, "danger"); }
+    finally { setNotifSaving(false); }
   }
 
   if (authLoading || !user) return (
@@ -268,6 +305,171 @@ export default function ProfilePage() {
               Sign Out
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── Notifications tab ── */}
+      {tab === "notifications" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:"1rem" }}>
+          <div className="card">
+            <h3 style={{ marginBottom:"1.25rem" }}>Notification Channels</h3>
+            <p style={{ color:"var(--muted)", fontSize:"0.85rem", marginBottom:"1rem" }}>
+              Choose how you want to receive alerts about your devices.
+            </p>
+            {notifPrefs && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"0.75rem" }}>
+                {[
+                  { key:"sms", label:"SMS", icon:"📱", desc:"Text message alerts" },
+                  { key:"email", label:"Email", icon:"📧", desc:"Email notifications" },
+                  { key:"push", label:"Push", icon:"🔔", desc:"In-app push notifications" },
+                  { key:"inApp", label:"In-App", icon:"💬", desc:"Dashboard notifications" },
+                ].map(({ key, label, icon, desc }) => (
+                  <div key={key} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0.75rem", background:"var(--bg)", borderRadius:8 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
+                      <span style={{ fontSize:"1.2rem" }}>{icon}</span>
+                      <div>
+                        <div style={{ fontWeight:600, fontSize:"0.9rem" }}>{label}</div>
+                        <div style={{ fontSize:"0.75rem", color:"var(--muted)" }}>{desc}</div>
+                      </div>
+                    </div>
+                    <label style={{ display:"flex", alignItems:"center", gap:"0.5rem", cursor:"pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={notifPrefs.channels[key as keyof typeof notifPrefs.channels]}
+                        onChange={(e) => setNotifPrefs({
+                          ...notifPrefs,
+                          channels: { ...notifPrefs.channels, [key]: e.target.checked }
+                        })}
+                        style={{ width:18, height:18, cursor:"pointer" }}
+                      />
+                      <span style={{ fontSize:"0.85rem", color: notifPrefs.channels[key as keyof typeof notifPrefs.channels] ? "var(--emerald)" : "var(--muted)" }}>
+                        {notifPrefs.channels[key as keyof typeof notifPrefs.channels] ? "Enabled" : "Disabled"}
+                      </span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <h3 style={{ marginBottom:"1.25rem" }}>Alert Types</h3>
+            <p style={{ color:"var(--muted)", fontSize:"0.85rem", marginBottom:"1rem" }}>
+              Choose which types of alerts you want to receive.
+            </p>
+            {notifPrefs && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"0.75rem" }}>
+                {[
+                  { key:"theft_report", label:"Theft Reports", icon:"🚨", desc:"When a device is reported stolen" },
+                  { key:"sim_swap", label:"SIM Swaps", icon:"🔄", desc:"When SIM card is changed" },
+                  { key:"location_jump", label:"Location Jumps", icon:"⚡", desc:"Unusual location changes" },
+                  { key:"fraud_pattern", label:"Fraud Patterns", icon:"🕵️", desc:"Suspicious activity detected" },
+                  { key:"blacklist_ping", label:"Blacklist Alerts", icon:"📡", desc:"Device appears on blacklist" },
+                  { key:"recovery_update", label:"Recovery Updates", icon:"✅", desc:"Device recovery progress" },
+                ].map(({ key, label, icon, desc }) => (
+                  <div key={key} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0.75rem", background:"var(--bg)", borderRadius:8 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"0.75rem" }}>
+                      <span style={{ fontSize:"1.2rem" }}>{icon}</span>
+                      <div>
+                        <div style={{ fontWeight:600, fontSize:"0.9rem" }}>{label}</div>
+                        <div style={{ fontSize:"0.75rem", color:"var(--muted)" }}>{desc}</div>
+                      </div>
+                    </div>
+                    <label style={{ display:"flex", alignItems:"center", gap:"0.5rem", cursor:"pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={notifPrefs.alertTypes[key as keyof typeof notifPrefs.alertTypes]}
+                        onChange={(e) => setNotifPrefs({
+                          ...notifPrefs,
+                          alertTypes: { ...notifPrefs.alertTypes, [key]: e.target.checked }
+                        })}
+                        style={{ width:18, height:18, cursor:"pointer" }}
+                      />
+                      <span style={{ fontSize:"0.85rem", color: notifPrefs.alertTypes[key as keyof typeof notifPrefs.alertTypes] ? "var(--emerald)" : "var(--muted)" }}>
+                        {notifPrefs.alertTypes[key as keyof typeof notifPrefs.alertTypes] ? "Enabled" : "Disabled"}
+                      </span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <h3 style={{ marginBottom:"1.25rem" }}>Quiet Hours</h3>
+            <p style={{ color:"var(--muted)", fontSize:"0.85rem", marginBottom:"1rem" }}>
+              Suppress non-critical alerts during specific hours.
+            </p>
+            {notifPrefs && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"1rem" }}>
+                <label style={{ display:"flex", alignItems:"center", gap:"0.75rem", cursor:"pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs.quietHours.enabled}
+                    onChange={(e) => setNotifPrefs({
+                      ...notifPrefs,
+                      quietHours: { ...notifPrefs.quietHours, enabled: e.target.checked }
+                    })}
+                    style={{ width:18, height:18, cursor:"pointer" }}
+                  />
+                  <span style={{ fontSize:"0.9rem", fontWeight:600 }}>Enable quiet hours</span>
+                </label>
+                {notifPrefs.quietHours.enabled && (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.75rem" }}>
+                    <div>
+                      <label className="label">Start time</label>
+                      <input
+                        type="time"
+                        value={notifPrefs.quietHours.start}
+                        onChange={(e) => setNotifPrefs({
+                          ...notifPrefs,
+                          quietHours: { ...notifPrefs.quietHours, start: e.target.value }
+                        })}
+                        style={{ width:"100%" }}
+                      />
+                    </div>
+                    <div>
+                      <label className="label">End time</label>
+                      <input
+                        type="time"
+                        value={notifPrefs.quietHours.end}
+                        onChange={(e) => setNotifPrefs({
+                          ...notifPrefs,
+                          quietHours: { ...notifPrefs.quietHours, end: e.target.value }
+                        })}
+                        style={{ width:"100%" }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="label">Timezone</label>
+                  <select
+                    value={notifPrefs.quietHours.timezone}
+                    onChange={(e) => setNotifPrefs({
+                      ...notifPrefs,
+                      quietHours: { ...notifPrefs.quietHours, timezone: e.target.value }
+                    })}
+                    style={{ width:"100%" }}
+                  >
+                    <option value="Africa/Nairobi">Africa/Nairobi (EAT)</option>
+                    <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
+                    <option value="Africa/Cairo">Africa/Cairo (EET)</option>
+                    <option value="Europe/London">Europe/London (GMT)</option>
+                    <option value="Europe/Paris">Europe/Paris (CET)</option>
+                    <option value="America/New_York">America/New_York (EST)</option>
+                    <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
+                    <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                    <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button onClick={saveNotificationPreferences} className="btn-primary" disabled={notifSaving} style={{ width:"100%" }}>
+            {notifSaving ? "Saving…" : "Save Notification Preferences"}
+          </button>
         </div>
       )}
     </div>

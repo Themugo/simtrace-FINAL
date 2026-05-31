@@ -38,6 +38,7 @@ import lockRoutes      from "./routes/lock.js";
 import healthRoutes    from "./routes/health.js";
 import marketplaceRoutes from "./routes/marketplace.js";
 import externalMarketplaceRoutes from "./routes/external-marketplace.js";
+import notificationPreferencesRoutes from "./routes/notification-preferences.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
@@ -186,6 +187,7 @@ app.use("/api/admin",                 adminRoutes);
 app.use("/api/community",             communityRoutes);
 app.use("/api/marketplace",           marketplaceRoutes);
 app.use("/api/external-marketplace",  externalMarketplaceRoutes);
+app.use("/api/notification-preferences", notificationPreferencesRoutes);
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = initIO(server, allowedOrigins);

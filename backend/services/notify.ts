@@ -2,7 +2,7 @@
 // Supports: SMS via Africa's Talking, email via SendGrid
 
 import pino, { Logger } from "pino";
-import { User, Device } from "../db/index.js";
+import { User, Device, NotificationPreferences } from "../db/index.js";
 
 const log: Logger = pino({ level: "info" }).child({ service: "notify" });
 
@@ -23,7 +23,7 @@ export async function sendAlert({ type, imei, userId, message }: {
 
     if (!ownerId) {
       const device = await Device.findOne({ imei }).select("owner");
-      ownerId = device?.owner;
+      ownerId = device?.owner ? device.owner.toString() : undefined;
     }
 
     if (!ownerId) return;
@@ -31,13 +31,83 @@ export async function sendAlert({ type, imei, userId, message }: {
     const user = await User.findById(ownerId).select("email phone");
     if (!user) return;
 
-    await Promise.allSettled([
-      sendSMS(user.phone, `[SimTrace] ${message}`),
-      sendEmail(user.email, `SimTrace Alert: ${type}`, message),
-    ]);
+    // Get user notification preferences
+    const prefs = await NotificationPreferences.findOne({ user: ownerId });
+    
+    // Check if this alert type is enabled
+    const alertTypeKey = type.replace(/_/g, '_') as keyof typeof prefs?.alertTypes;
+    const alertEnabled = prefs?.alertTypes?.[alertTypeKey] !== false;
+
+    if (!alertEnabled) {
+      log.info({ userId: ownerId, type }, "Alert type disabled by user preferences");
+      return;
+    }
+
+    // Check quiet hours
+    if (prefs?.quietHours?.enabled) {
+      const now = new Date();
+      const userTime = convertToTimezone(now, prefs.quietHours.timezone);
+      const [startHour, startMin] = prefs.quietHours.start.split(':').map(Number);
+      const [endHour, endMin] = prefs.quietHours.end.split(':').map(Number);
+      
+      const currentTime = userTime.getHours() * 60 + userTime.getMinutes();
+      const startTime = startHour * 60 + startMin;
+      const endTime = endHour * 60 + endMin;
+
+      // Check if current time is within quiet hours
+      let inQuietHours = false;
+      if (startTime < endTime) {
+        inQuietHours = currentTime >= startTime && currentTime < endTime;
+      } else {
+        // Handle overnight quiet hours (e.g., 22:00 to 08:00)
+        inQuietHours = currentTime >= startTime || currentTime < endTime;
+      }
+
+      if (inQuietHours) {
+        log.info({ userId: ownerId, type }, "Alert suppressed due to quiet hours");
+        return;
+      }
+    }
+
+    // Send notifications based on channel preferences
+    const promises: Promise<void>[] = [];
+
+    if (prefs?.channels?.sms !== false) {
+      promises.push(sendSMS(user.phone, `[SimTrace] ${message}`));
+    }
+
+    if (prefs?.channels?.email !== false) {
+      promises.push(sendEmail(user.email, `SimTrace Alert: ${type}`, message));
+    }
+
+    await Promise.allSettled(promises);
   } catch (err) {
     log.error({ err }, "sendAlert failed");
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// TIMEZONE CONVERSION HELPER
+// ─────────────────────────────────────────────────────────────
+function convertToTimezone(date: Date, timezone: string): Date {
+  const offset = getTimezoneOffset(timezone);
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  return new Date(utc + (offset * 60000));
+}
+
+function getTimezoneOffset(timezone: string): number {
+  const offsets: Record<string, number> = {
+    'Africa/Nairobi': 3,
+    'Africa/Lagos': 1,
+    'Africa/Cairo': 2,
+    'Europe/London': 0,
+    'Europe/Paris': 1,
+    'America/New_York': -5,
+    'America/Los_Angeles': -8,
+    'Asia/Dubai': 4,
+    'Asia/Tokyo': 9,
+  };
+  return offsets[timezone] || 0;
 }
 
 // ─────────────────────────────────────────────────────────────
