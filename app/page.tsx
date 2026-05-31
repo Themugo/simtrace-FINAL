@@ -5,7 +5,28 @@ import Link from "next/link";
 import SimTraceLogo from "../components/SimTraceLogo";
 import { api } from "../lib/api";
 
-const FEATURES = [
+interface Feature {
+  icon: string;
+  label: string;
+  desc: string;
+  color: string;
+  href: string;
+}
+
+interface Testimonial {
+  name: string;
+  role: string;
+  text: string;
+  avatar: string;
+}
+
+interface AnimatedCounterProps {
+  target: number;
+  suffix?: string;
+  duration?: number;
+}
+
+const FEATURES: Feature[] = [
   { icon:"🛡️", label:"SIM Swap Detection",  desc:"Instant alert the moment a SIM card is swapped in any protected device.", color:"var(--sky)", href:"/alerts" },
   { icon:"📡", label:"Live GPS Tracking",   desc:"Precise location every 30s. Works even on stolen devices.", color:"var(--emerald)", href:"/devices" },
   { icon:"🔒", label:"Remote Lockdown",     desc:"One click to lock the screen of a stolen device remotely.", color:"var(--rose)", href:"/remote-lock" },
@@ -15,15 +36,15 @@ const FEATURES = [
   { icon:"🏛️", label:"Police Network",      desc:"Integrated with DCI Kenya and law enforcement nationwide.", color:"var(--sky)", href:"/law-enforcement" },
 ];
 
-const TESTIMONIALS = [
+const TESTIMONIALS: Testimonial[] = [
   { name:"James Mwangi", role:"IT Manager, Nairobi", text:"SimTrace helped us recover 3 laptops stolen from our office within 24 hours. The GPS tracking was accurate to 5 metres.", avatar:"JM" },
   { name:"Sarah Ochieng", role:"Freelancer, Kisumu", text:"My phone was snatched on a matatu. SimTrace showed exactly where it was and DCI picked it up the same evening.", avatar:"SO" },
   { name:"Safaricom Tech", role:"Telecom Partner", text:"The bulk IMEI API integrates cleanly with our subscriber management system. 10 million checks in our first month.", avatar:"ST" },
 ];
 
-function AnimatedCounter({ target, suffix = "", duration = 2000 }) {
+function AnimatedCounter({ target, suffix = "", duration = 2000 }: AnimatedCounterProps) {
   const [val, setVal] = useState(0);
-  const ref = useRef(null);
+  const ref = useRef<HTMLSpanElement>(null);
   const started = useRef(false);
 
   useEffect(() => {
@@ -51,7 +72,7 @@ function AnimatedCounter({ target, suffix = "", duration = 2000 }) {
 export default function HomePage() {
   const [imei,    setImei]    = useState("");
   const [error,   setError]   = useState("");
-  const [stats,   setStats]   = useState(null);
+  const [stats,   setStats]   = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -59,7 +80,7 @@ export default function HomePage() {
     api.get("/api/devices/public-stats").then(setStats).catch(() => {});
   }, []);
 
-  function handleCheck(e) {
+  function handleCheck(e: React.FormEvent) {
     e.preventDefault();
     const clean = imei.replace(/\D/g, "");
     if (clean.length < 15 || clean.length > 17) {
@@ -161,11 +182,11 @@ export default function HomePage() {
           [stats?.recovered || 9100,   "",   "Devices Recovered", "var(--emerald)"],
           [47,                          "+",  "Telecom Partners",  "var(--amber)"],
         ].map(([n,s,l,c]) => (
-          <div key={l} style={{ background: "var(--bg2)", padding: "1.75rem 1.25rem", textAlign: "center" }}>
+          <div key={l as string} style={{ background: "var(--bg2)", padding: "1.75rem 1.25rem", textAlign: "center" }}>
             <div style={{ fontSize: "2rem", fontWeight: 900, color: c, marginBottom: 4 }}>
-              <AnimatedCounter target={n} suffix={s} />
+              <AnimatedCounter target={n as number} suffix={s as string} />
             </div>
-            <div style={{ color: "var(--muted)", fontSize: "0.8rem", fontWeight: 500 }}>{l}</div>
+            <div style={{ color: "var(--muted)", fontSize: "0.8rem", fontWeight: 500 }}>{l as string}</div>
           </div>
         ))}
       </section>
