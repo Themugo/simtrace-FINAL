@@ -5,7 +5,7 @@
  * Validates that all required environment variables are set before deployment
  */
 
-const requiredVars = {
+const requiredVars: Record<string, string> = {
   // Frontend variables (Vercel deployment)
   NEXT_PUBLIC_API_URL: 'Backend API URL',
   NEXT_PUBLIC_SOCKET_URL: 'WebSocket URL',
@@ -15,7 +15,7 @@ const requiredVars = {
   NEXT_PUBLIC_SENTRY_DSN: 'Sentry DSN for error tracking (optional)',
 };
 
-const optionalVars = {
+const optionalVars: Record<string, string> = {
   STRIPE_SECRET_KEY: 'Stripe secret key',
   STRIPE_WEBHOOK_SECRET: 'Stripe webhook secret',
   MPESA_ENV: 'M-Pesa environment (sandbox/production)',
@@ -29,11 +29,11 @@ const optionalVars = {
   FROM_EMAIL: 'From email address for SendGrid',
 };
 
-function validateEnv() {
+function validateEnv(): boolean {
   console.log('🔍 Validating environment variables...\n');
   
-  let errors = [];
-  let warnings = [];
+  let errors: string[] = [];
+  let warnings: string[] = [];
   
   // Check required variables
   for (const [key, description] of Object.entries(requiredVars)) {
