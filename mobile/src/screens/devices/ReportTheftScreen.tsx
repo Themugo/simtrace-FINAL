@@ -1,5 +1,5 @@
 // screens/devices/ReportTheftScreen.tsx - Theft reporting screen
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { reportTheft } from '@store/slices/deviceSlice';
 import { RootState } from '@store';
 import * as Location from 'expo-location';
+import { biometricAuthService } from '../../services/biometricAuth';
 
 export default function ReportTheftScreen() {
   const dispatch = useDispatch();
@@ -28,6 +29,12 @@ export default function ReportTheftScreen() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+  useEffect(() => {
+    biometricAuthService.initialize();
+    biometricAuthService.isEnabled().then(setBiometricEnabled);
+  }, []);
 
   const getCurrentLocation = async () => {
     setGettingLocation(true);
@@ -54,6 +61,15 @@ export default function ReportTheftScreen() {
     if (!description.trim()) {
       Alert.alert('Error', 'Please provide a description of the theft');
       return;
+    }
+
+    // Use biometric authentication if enabled
+    if (biometricEnabled) {
+      const authenticated = await biometricAuthService.authenticate('Authenticate to report theft');
+      if (!authenticated) {
+        Alert.alert('Authentication Failed', 'Biometric authentication required to report theft');
+        return;
+      }
     }
 
     try {
