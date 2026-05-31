@@ -4,14 +4,34 @@ import { useRouter } from "next/navigation";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 
+interface Device {
+  _id: string;
+  imei: string;
+  make?: string;
+  model?: string;
+  status: string;
+  owner?: {
+    name?: string;
+    email: string;
+  };
+  lastSeen?: string;
+}
+
+interface DeviceStats {
+  total?: number;
+  stolen?: number;
+  blacklisted?: number;
+  recovered?: number;
+}
+
 export default function AdminDevicesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [devices, setDevices] = useState([]);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState("");
   const [filter,  setFilter]  = useState("all");
-  const [stats,   setStats]   = useState({});
+  const [stats,   setStats]   = useState<DeviceStats>({});
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== "admin")) { router.push("/login"); return; }
@@ -21,9 +41,8 @@ export default function AdminDevicesPage() {
   async function load() {
     setLoading(true);
     try {
-      // admin role → /api/devices returns ALL devices
       const [devs, st] = await Promise.all([
-        api.myDevices(),   // api.myDevices calls /api/devices; admin gets all due to server-side check
+        api.myDevices(),
         api.deviceStats(),
       ]);
       setDevices(devs);
@@ -32,15 +51,15 @@ export default function AdminDevicesPage() {
     finally { setLoading(false); }
   }
 
-  async function setStatus(imei, status) {
+  async function setStatus(imei: string, status: string) {
     try {
       await api.updateStatus(imei, status);
       setDevices(d => d.map(x => x.imei === imei ? { ...x, status } : x));
-    } catch (err) { alert(err.message); }
+    } catch (err: any) { alert(err.message); }
   }
 
-  const STATUS_COLOR  = { active: "var(--emerald)", stolen: "var(--rose)", blacklisted: "var(--amber)", recovered: "var(--sky)" };
-  const STATUS_ICON   = { active: "✅", stolen: "🚨", blacklisted: "⛔", recovered: "✔️" };
+  const STATUS_COLOR: Record<string, string> = { active: "var(--emerald)", stolen: "var(--rose)", blacklisted: "var(--amber)", recovered: "var(--sky)" };
+  const STATUS_ICON: Record<string, string> = { active: "✅", stolen: "🚨", blacklisted: "⛔", recovered: "✔️" };
 
   const filtered = devices.filter(d => {
     const matchFilter = filter === "all" || d.status === filter;
