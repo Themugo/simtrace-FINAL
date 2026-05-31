@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "dev": "tsx server.ts",
     "build": "tsc",
+    "postinstall": "npm run build",
     "seed": "tsx scripts/seed-demo.ts",
     "test": "jest",
     "test:watch": "jest --watch",
