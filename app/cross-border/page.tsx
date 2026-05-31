@@ -3,12 +3,34 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../lib/auth";
 import { api } from "../../lib/api";
 
+interface NewRequestData {
+  imei: string;
+  requestingCountry: string;
+  targetCountry: string;
+  requestType: string;
+  priority: string;
+}
+
+interface Request {
+  _id: string;
+  imei: string;
+  requestingCountry: string;
+  targetCountry: string;
+  requestType: string;
+  status: string;
+  priority: string;
+  treaty?: string;
+  submittedAt: string;
+  expiresAt?: string;
+  outcome?: string;
+}
+
 export default function CrossBorderPage() {
   const { user } = useAuth();
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewRequest, setShowNewRequest] = useState(false);
-  const [newRequestData, setNewRequestData] = useState({
+  const [newRequestData, setNewRequestData] = useState<NewRequestData>({
     imei: "",
     requestingCountry: "KE",
     targetCountry: "",
@@ -57,12 +79,12 @@ export default function CrossBorderPage() {
         priority: "medium",
       });
       loadRequests();
-    } catch (err) {
+    } catch (err: any) {
       alert(err.message || "Failed to create request");
     }
   }
 
-  const requestTypeLabels = {
+  const requestTypeLabels: Record<string, string> = {
     location_request: "Location Request",
     device_seizure: "Device Seizure",
     investigation_assist: "Investigation Assist",
@@ -71,7 +93,7 @@ export default function CrossBorderPage() {
     evidence_sharing: "Evidence Sharing",
   };
 
-  const statusLabels = {
+  const statusLabels: Record<string, string> = {
     pending: "Pending",
     acknowledged: "Acknowledged",
     in_progress: "In Progress",
@@ -81,7 +103,7 @@ export default function CrossBorderPage() {
     expired: "Expired",
   };
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     pending: "var(--dim)",
     acknowledged: "var(--sky)",
     in_progress: "var(--amber)",
