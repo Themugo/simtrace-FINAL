@@ -8,12 +8,13 @@ const router = Router();
 interface AuthRequest extends Request {
   user?: {
     id: string;
+    email: string;
     role: string;
   };
 }
 
 // GET /api/admin/users
-router.get("/users", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/users", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const users = await User.find().select("-passwordHash -apiKey").sort({ createdAt: -1 }).lean();
 
@@ -36,11 +37,11 @@ router.patch("/users/:id/role", authenticate, requireAdmin, async (req: AuthRequ
       role: z.enum(["user", "admin", "telecom", "law_enforcement"])
     }).parse(req.body);
 
-    if (req.params.id === req.user!.id) {
+    if (req.params.id as string === req.user!.id) {
       return res.status(400).json({ error: "Cannot change your own role" });
     }
 
-    const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select("-passwordHash");
+    const user = await User.findByIdAndUpdate(req.params.id as string, { role }, { new: true }).select("-passwordHash");
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);
   } catch (err) {
