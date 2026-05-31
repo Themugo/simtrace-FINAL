@@ -5,7 +5,14 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useToast } from "../../components/ToastProvider";
 
-const LOCK_STATES = {
+interface Device {
+  _id: string;
+  imei: string;
+  make?: string;
+  model?: string;
+}
+
+const LOCK_STATES: Record<string, { icon: string; label: string; color: string }> = {
   idle:    { icon: "🔓", label: "Unlocked",  color: "var(--emerald)" },
   locking: { icon: "⟳",  label: "Sending command…", color: "var(--amber)" },
   locked:  { icon: "🔒", label: "Locked",    color: "var(--rose)" },
@@ -16,38 +23,36 @@ export default function RemoteLockPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const toast  = useToast();
-  const [devices,  setDevices]  = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [lockState, setLockState] = useState({});   // { [deviceId]: "idle"|"locking"|"locked"|"error" }
-  const [msg,      setMsg]      = useState({});      // { [deviceId]: string }
+  const [devices,  setDevices]  = useState<Device[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [lockState, setLockState] = useState<Record<string, string>>({});
+  const [msg,      setMsg]      = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) { router.push("/login"); return; }
     if (user) api.myDevices()
-      .then(d => { setDevices(d); if (d.length) setSelected(d[0]._id); })
+      .then((d: Device[]) => { setDevices(d); if (d.length) setSelected(d[0]._id); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [user, authLoading]);
 
-  async function sendLock(deviceId, imei) {
+  async function sendLock(deviceId: string, imei: string) {
     setLockState(s => ({ ...s, [deviceId]: "locking" }));
     setMsg(m => ({ ...m, [deviceId]: "" }));
     try {
-      // POST to /api/devices/:id/lock — queues a lock command
-      // The mobile agent polls /api/devices/:id/commands and executes it
       await api.lockDevice(deviceId);
       setLockState(s => ({ ...s, [deviceId]: "locked" }));
       toast?.add(`🔒 Lock command sent — device will lock within 60s`, "warning", 8000);
       setMsg(m => ({ ...m, [deviceId]: `Lock command queued. Device locks on next agent check-in.` }));
-    } catch (err) {
+    } catch (err: any) {
       setLockState(s => ({ ...s, [deviceId]: "error" }));
       toast?.add(err.message, "danger");
       setMsg(m => ({ ...m, [deviceId]: err.message }));
     }
   }
 
-  async function sendUnlock(deviceId) {
+  async function sendUnlock(deviceId: string) {
     setLockState(s => ({ ...s, [deviceId]: "idle" }));
     setMsg(m => ({ ...m, [deviceId]: "Unlock command sent." }));
     try { await api.unlockDevice(deviceId); } catch { /* silent */ }
