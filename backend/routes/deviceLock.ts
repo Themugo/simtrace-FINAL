@@ -48,12 +48,12 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response, next: Nex
 router.post("/:lockId/unlock", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { lockId } = req.params;
-    const lock = await unlockDevice(lockId, req.user!.id);
+    const lock = await unlockDevice(lockId as string, req.user!.id);
     res.json(lock);
   } catch (err) { next(err); }
 });
 
-router.post("/:lockId/record-attempt", async (req: Request, res: Response, next: NextFunction) => {
+router.post("/:lockId/record-attempt", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       location: z.object({
@@ -65,7 +65,7 @@ router.post("/:lockId/record-attempt", async (req: Request, res: Response, next:
 
     const { lockId } = req.params;
     const data = schema.parse(req.body);
-    const lock = await recordUnlockAttempt(lockId, data.location);
+    const lock = await recordUnlockAttempt(lockId as string, data.location);
     res.json(lock);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -76,52 +76,52 @@ router.post("/:lockId/record-attempt", async (req: Request, res: Response, next:
 router.post("/:lockId/wipe", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { lockId } = req.params;
-    const lock = await remoteWipeDevice(lockId, req.user!.id);
+    const lock = await remoteWipeDevice(lockId as string, req.user!.id);
     res.json(lock);
   } catch (err) { next(err); }
 });
 
-router.get("/:lockId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:lockId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { lockId } = req.params;
-    const lock = await getDeviceLock(lockId);
+    const lock = await getDeviceLock(lockId as string);
     res.json(lock);
   } catch (err) { next(err); }
 });
 
-router.get("/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/device/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
-    const locks = await getDeviceLocksByDevice(deviceId);
+    const locks = await getDeviceLocksByDevice(deviceId as string);
     res.json({ locks, count: locks.length });
   } catch (err) { next(err); }
 });
 
-router.get("/user/:userId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/user/:userId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const locks = await getDeviceLocksByUser(userId);
+    const locks = await getDeviceLocksByUser(userId as string);
     res.json({ locks, count: locks.length });
   } catch (err) { next(err); }
 });
 
-router.get("/device/:deviceId/active", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/device/:deviceId/active", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
-    const lock = await getActiveLocksByDevice(deviceId);
+    const lock = await getActiveLocksByDevice(deviceId as string);
     res.json(lock);
   } catch (err) { next(err); }
 });
 
-router.get("/device/:deviceId/status", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/device/:deviceId/status", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
-    const status = await checkDeviceLockStatus(deviceId);
+    const status = await checkDeviceLockStatus(deviceId as string);
     res.json(status);
   } catch (err) { next(err); }
 });
 
-router.post("/expire-temporary", async (req: Request, res: Response, next: NextFunction) => {
+router.post("/expire-temporary", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await expireTemporaryLocks();
     res.json(result);
