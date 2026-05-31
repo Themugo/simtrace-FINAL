@@ -24,17 +24,20 @@ export async function auditLog(req: Request, res: Response, next: NextFunction) 
         // Log the audit entry
         await AuditLog.create({
           userId,
-          userEmail,
-          userRole,
           action,
           resource,
           resourceId,
           method: req.method,
-          endpoint: req.path,
-          ipAddress: req.ip || req.socket.remoteAddress,
+          path: req.path,
+          ip: req.ip || req.socket.remoteAddress,
           userAgent: req.get("user-agent"),
-          status: res.statusCode < 400 ? "success" : "failure",
-          complianceCheck: true,
+          statusCode: res.statusCode,
+          success: res.statusCode < 400,
+          errorMessage: res.statusCode >= 400 ? (data?.error || data?.message) : undefined,
+          metadata: {
+            userEmail,
+            userRole,
+          },
           timestamp: new Date(),
         });
       } catch (err) {
@@ -94,7 +97,7 @@ function getResourceIdFromPath(path: string): string | null {
 }
 
 // ── Compliance Check Middleware ─────────────────────────────────────────────────
-export function complianceCheck(req: Request, res: Response, next: NextFunction) {
+export function complianceCheck(req: Request, _res: Response, next: NextFunction) {
   // Add compliance metadata to request
   (req as any).compliance = {
     checked: true,
@@ -138,25 +141,27 @@ export async function logSensitiveAction(data: any) {
 
   await AuditLog.create({
     userId,
-    userEmail,
-    userRole,
     action,
     resource,
     resourceId,
     method: "SENSITIVE",
-    endpoint: "sensitive_action",
-    ipAddress,
+    path: "sensitive_action",
+    ip: ipAddress,
     userAgent,
-    changes,
-    status: "success",
-    complianceCheck: true,
-    complianceNotes: "Sensitive action logged for compliance",
+    success: true,
+    metadata: {
+      userEmail,
+      userRole,
+      changes,
+      complianceCheck: true,
+      complianceNotes: "Sensitive action logged for compliance",
+    },
     timestamp: new Date(),
   });
 }
 
 // ── Audit Log Query Helpers ─────────────────────────────────────────────────────
-export async function getAuditLogsByUser(userId: string, limit: number = 100) {
+export async function getAuditLogsByUser(userId: string, limit: number = 100): Promise<any[]> {
   const logs = await AuditLog.find({ userId })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -164,7 +169,7 @@ export async function getAuditLogsByUser(userId: string, limit: number = 100) {
   return logs;
 }
 
-export async function getAuditLogsByAction(action: string, limit: number = 100) {
+export async function getAuditLogsByAction(action: string, limit: number = 100): Promise<any[]> {
   const logs = await AuditLog.find({ action })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -172,7 +177,7 @@ export async function getAuditLogsByAction(action: string, limit: number = 100) 
   return logs;
 }
 
-export async function getAuditLogsByResource(resource: string, limit: number = 100) {
+export async function getAuditLogsByResource(resource: string, limit: number = 100): Promise<any[]> {
   const logs = await AuditLog.find({ resource })
     .sort({ timestamp: -1 })
     .limit(limit);
@@ -180,7 +185,7 @@ export async function getAuditLogsByResource(resource: string, limit: number = 1
   return logs;
 }
 
-export async function getAuditLogsByDateRange(startDate: Date, endDate: Date) {
+export async function getAuditLogsByDateRange(startDate: Date, endDate: Date): Promise<any[]> {
   const logs = await AuditLog.find({
     timestamp: { $gte: startDate, $lte: endDate },
   })
@@ -189,8 +194,8 @@ export async function getAuditLogsByDateRange(startDate: Date, endDate: Date) {
   return logs;
 }
 
-export async function getFailedAuditLogs(limit: number = 100) {
-  const logs = await AuditLog.find({ status: "failure" })
+export async function getFailedAuditLogs(limit: number = 100): Promise<any[]> {
+  const logs = await AuditLog.find({ success: false })
     .sort({ timestamp: -1 })
     .limit(limit);
 

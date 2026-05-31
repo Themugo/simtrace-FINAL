@@ -687,3 +687,41 @@ const notificationPreferencesSchema = new mongoose.Schema<INotificationPreferenc
   updatedAt: { type: Date, default: Date.now },
 });
 export const NotificationPreferences = mongoose.model<INotificationPreferences>('NotificationPreferences', notificationPreferencesSchema);
+
+// ── Audit Log ───────────────────────────────────────────────────────────────
+interface IAuditLog {
+  userId?: mongoose.Types.ObjectId;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  method: string;
+  path: string;
+  ip?: string;
+  userAgent?: string;
+  statusCode?: number;
+  success: boolean;
+  errorMessage?: string;
+  metadata?: Record<string, any>;
+  timestamp: Date;
+}
+
+const auditLogSchema = new mongoose.Schema<IAuditLog>({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  action: { type: String, required: true },
+  resource: { type: String, required: true },
+  resourceId: { type: String },
+  method: { type: String, required: true },
+  path: { type: String, required: true },
+  ip: { type: String },
+  userAgent: { type: String },
+  statusCode: { type: Number },
+  success: { type: Boolean, required: true },
+  errorMessage: { type: String },
+  metadata: { type: mongoose.Schema.Types.Mixed },
+  timestamp: { type: Date, default: Date.now, index: true },
+});
+auditLogSchema.index({ userId: 1, timestamp: -1 });
+auditLogSchema.index({ resource: 1, timestamp: -1 });
+auditLogSchema.index({ action: 1, timestamp: -1 });
+auditLogSchema.index({ timestamp: -1 }, { expireAfterSeconds: 365 * 24 * 60 * 60 }); // 1 year retention
+export const AuditLog = mongoose.model<IAuditLog>('AuditLog', auditLogSchema);

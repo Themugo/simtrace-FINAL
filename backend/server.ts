@@ -40,6 +40,7 @@ import marketplaceRoutes from "./routes/marketplace.js";
 import externalMarketplaceRoutes from "./routes/external-marketplace.js";
 import notificationPreferencesRoutes from "./routes/notification-preferences.js";
 import telecomAnalyticsRoutes from "./routes/telecom-analytics.js";
+import auditLogsRoutes from "./routes/audit-logs.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
@@ -190,6 +191,7 @@ app.use("/api/marketplace",           marketplaceRoutes);
 app.use("/api/external-marketplace",  externalMarketplaceRoutes);
 app.use("/api/notification-preferences", notificationPreferencesRoutes);
 app.use("/api/telecom-analytics",     telecomAnalyticsRoutes);
+app.use("/api/audit-logs",            auditLogsRoutes);
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = initIO(server, allowedOrigins);
