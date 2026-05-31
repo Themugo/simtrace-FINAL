@@ -44,7 +44,7 @@ interface AuthRequest extends Request {
 }
 
 // ── Police Hierarchy Management ─────────────────────────────────────────────────────
-router.post("/hierarchy", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/hierarchy", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       country: z.string(),
@@ -75,18 +75,18 @@ router.post("/hierarchy", authenticate, requireAdmin, async (req: Request, res: 
   }
 });
 
-router.get("/hierarchy/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/hierarchy/:country", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
-    const units = await getHierarchyByCountry(country);
+    const units = await getHierarchyByCountry(country as string);
     res.json({ units, count: units.length });
   } catch (err) { next(err); }
 });
 
-router.get("/hierarchy/:country/tree", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/hierarchy/:country/tree", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
-    const tree = await getHierarchyTree(country);
+    const tree = await getHierarchyTree(country as string);
     res.json(tree);
   } catch (err) { next(err); }
 });
@@ -155,18 +155,18 @@ router.post("/roles", authenticate, requireAdmin, async (req: AuthRequest, res: 
   }
 });
 
-router.get("/roles/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/roles/:country", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
-    const roles = await getRolesByCountry(country);
+    const roles = await getRolesByCountry(country as string);
     res.json({ roles, count: roles.length });
   } catch (err) { next(err); }
 });
 
-router.get("/users/:userId/assignments", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/users/:userId/assignments", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { userId } = req.params;
-    const assignments = await getUserAssignments(userId);
+    const assignments = await getUserAssignments(userId as string);
     res.json({ assignments, count: assignments.length });
   } catch (err) { next(err); }
 });
@@ -189,7 +189,7 @@ router.post("/check-permission", authenticate, async (req: AuthRequest, res: Res
 });
 
 // ── Immutable Audit Logging ─────────────────────────────────────────────────────────
-router.get("/audit-logs", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/audit-logs", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const filters: any = {};
     if (req.query.entityType) filters.entityType = req.query.entityType;
@@ -201,10 +201,10 @@ router.get("/audit-logs", authenticate, requireAdmin, async (req: Request, res: 
   } catch (err) { next(err); }
 });
 
-router.get("/audit-logs/:entityType/:entityId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/audit-logs/:entityType/:entityId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { entityType, entityId } = req.params;
-    const logs = await getEntityAuditLogs(entityType, entityId);
+    const logs = await getEntityAuditLogs(entityType as string, entityId as string);
     res.json({ logs, count: logs.length });
   } catch (err) { next(err); }
 });
@@ -315,7 +315,7 @@ router.post("/data-access/:id/revoke", authenticate, async (req: AuthRequest, re
 });
 
 // ── Agency Cooperation Delay Alerts ─────────────────────────────────────────────────
-router.post("/cooperation-alerts", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/cooperation-alerts", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       caseId: z.string(),
@@ -343,7 +343,7 @@ router.post("/cooperation-alerts/:id/respond", authenticate, async (req: AuthReq
 
     const { id } = req.params;
     const { response } = schema.parse(req.body);
-    const alert = await respondToCooperationAlert(id, response, req.user!.id);
+    const alert = await respondToCooperationAlert(id as string, response, req.user!.id);
     res.json(alert);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -351,7 +351,7 @@ router.post("/cooperation-alerts/:id/respond", authenticate, async (req: AuthReq
   }
 });
 
-router.post("/cooperation-alerts/check-delayed", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/cooperation-alerts/check-delayed", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const delayedAlerts = await checkDelayedAlerts();
     res.json({ delayedAlerts, count: delayedAlerts.length });
@@ -359,7 +359,7 @@ router.post("/cooperation-alerts/check-delayed", authenticate, async (req: Reque
 });
 
 // ── Senior Officer Confirmation Workflow ─────────────────────────────────────────────
-router.post("/senior-confirmations", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/senior-confirmations", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       caseId: z.string(),
@@ -383,7 +383,7 @@ router.post("/senior-confirmations", authenticate, async (req: Request, res: Res
   }
 });
 
-router.post("/senior-confirmations/:id/confirm", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/senior-confirmations/:id/confirm", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       confirmation: z.enum(["approved", "rejected", "escalated"]),
@@ -394,7 +394,7 @@ router.post("/senior-confirmations/:id/confirm", authenticate, async (req: Reque
     const { id } = req.params;
     const data = schema.parse(req.body);
     const confirmation = await confirmBySenior(
-      id,
+      id as string,
       data.confirmation,
       data.confirmationNotes,
       data.overrideReason
@@ -406,7 +406,7 @@ router.post("/senior-confirmations/:id/confirm", authenticate, async (req: Reque
   }
 });
 
-router.post("/senior-confirmations/:id/escalate", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/senior-confirmations/:id/escalate", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       escalationNotes: z.string(),
@@ -414,7 +414,7 @@ router.post("/senior-confirmations/:id/escalate", authenticate, async (req: Requ
 
     const { id } = req.params;
     const { escalationNotes } = schema.parse(req.body);
-    const confirmation = await escalateConfirmation(id, escalationNotes);
+    const confirmation = await escalateConfirmation(id as string, escalationNotes);
     res.json(confirmation);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -423,7 +423,7 @@ router.post("/senior-confirmations/:id/escalate", authenticate, async (req: Requ
 });
 
 // ── Missing Person Declaration Rules ─────────────────────────────────────────────────
-router.post("/missing-person-rules", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/missing-person-rules", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       country: z.string(),
@@ -446,10 +446,10 @@ router.post("/missing-person-rules", authenticate, requireAdmin, async (req: Req
   }
 });
 
-router.get("/missing-person-rules/:country", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/missing-person-rules/:country", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
-    const rule = await getMissingPersonRule(country);
+    const rule = await getMissingPersonRule(country as string);
     res.json(rule);
   } catch (err) { next(err); }
 });
@@ -457,12 +457,12 @@ router.get("/missing-person-rules/:country", authenticate, async (req: Request, 
 router.patch("/missing-person-rules/:country", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { country } = req.params;
-    const rule = await updateMissingPersonRule(country, req.body, req.user!.id);
+    const rule = await updateMissingPersonRule(country as string, req.body, req.user!.id);
     res.json(rule);
   } catch (err) { next(err); }
 });
 
-router.post("/missing-person/check", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/missing-person/check", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       personAge: z.number(),
@@ -480,7 +480,7 @@ router.post("/missing-person/check", authenticate, async (req: Request, res: Res
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getHierarchyStatistics();
     res.json(stats);
