@@ -6,7 +6,7 @@ import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useToast } from "../../components/ToastProvider";
 
-const TYPE_META = {
+const TYPE_META: Record<string, { label: string; icon: string; color: string }> = {
   blacklist_ping: { label:"Blacklist Ping",      icon:"🚨", color:"var(--rose)"    },
   sim_swap:       { label:"SIM Swap Detected",   icon:"🔄", color:"var(--amber)"   },
   location_jump:  { label:"Impossible Location", icon:"⚡", color:"var(--amber)"   },
@@ -16,20 +16,31 @@ const TYPE_META = {
 
 const FILTER_TYPES = Object.entries(TYPE_META).map(([k,v]) => ({ value:k, label:v.label }));
 
+interface Alert {
+  _id: string;
+  type: string;
+  imei: string;
+  narrative?: string;
+  ts: string;
+  read: boolean;
+  aiUrgency?: string;
+  payload?: any;
+}
+
 export default function AlertsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const toast  = useToast();
 
-  const [alerts,     setAlerts]     = useState([]);
+  const [alerts,     setAlerts]     = useState<Alert[]>([]);
   const [total,      setTotal]      = useState(0);
   const [page,       setPage]       = useState(1);
   const [pages,      setPages]      = useState(1);
   const [typeFilter, setTypeFilter] = useState("");
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [loading,    setLoading]    = useState(true);
-  const [explaining, setExplaining] = useState(null);
-  const [explanations, setExplanations] = useState({});
+  const [explaining, setExplaining] = useState<string | null>(null);
+  const [explanations, setExplanations] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!authLoading && !user) { router.push("/login"); return; }
@@ -39,7 +50,7 @@ export default function AlertsPage() {
   async function load() {
     setLoading(true);
     try {
-      const params = { page, limit: 25 };
+      const params: any = { page, limit: 25 };
       if (typeFilter) params.type   = typeFilter;
       if (unreadOnly) params.unread = "true";
       const res = await api.alerts(params);
@@ -50,7 +61,7 @@ export default function AlertsPage() {
     finally { setLoading(false); }
   }
 
-  async function markRead(id) {
+  async function markRead(id: string) {
     await api.markRead(id);
     setAlerts(a => a.map(x => x._id === id ? { ...x, read: true } : x));
   }
@@ -61,13 +72,13 @@ export default function AlertsPage() {
     toast?.add("All alerts marked as read", "success");
   }
 
-  async function explain(alert) {
+  async function explain(alert: Alert) {
     if (explanations[alert._id]) return; // already fetched
     setExplaining(alert._id);
     try {
       const { explanation } = await api.explainAlert(alert._id);
       setExplanations(e => ({ ...e, [alert._id]: explanation }));
-    } catch (err) {
+    } catch (err: any) {
       toast?.add("Could not generate explanation: " + err.message, "danger");
     } finally { setExplaining(null); }
   }
