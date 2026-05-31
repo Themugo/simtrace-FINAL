@@ -35,7 +35,7 @@ interface AuthRequest extends Request {
 }
 
 // ── Admin Management ─────────────────────────────────────────────────────────────────
-router.post("/", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       officialEmail: z.string().email(),
@@ -62,26 +62,26 @@ router.post("/", authenticate, async (req: Request, res: Response, next: NextFun
   }
 });
 
-router.get("/:adminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:adminId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const admin = await getAdmin(adminId);
+    const admin = await getAdmin(adminId as string);
     res.json(admin);
   } catch (err) { next(err); }
 });
 
-router.get("/official-email/:officialEmail", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/official-email/:officialEmail", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { officialEmail } = req.params;
-    const admin = await getAdminByOfficialEmail(officialEmail);
+    const admin = await getAdminByOfficialEmail(officialEmail as string);
     res.json(admin);
   } catch (err) { next(err); }
 });
 
-router.patch("/:adminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/:adminId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const admin = await updateAdmin(adminId, req.body);
+    const admin = await updateAdmin(adminId as string, req.body);
     res.json(admin);
   } catch (err) { next(err); }
 });
@@ -89,61 +89,61 @@ router.patch("/:adminId", authenticate, async (req: Request, res: Response, next
 router.post("/:adminId/suspend", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const admin = await suspendAdmin(adminId, req.user!.id);
+    const admin = await suspendAdmin(adminId as string, req.user!.id);
     res.json(admin);
   } catch (err) { next(err); }
 });
 
-router.post("/:adminId/activate", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/:adminId/activate", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const admin = await activateAdmin(adminId);
+    const admin = await activateAdmin(adminId as string);
     res.json(admin);
   } catch (err) { next(err); }
 });
 
-router.post("/:adminId/verify", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/:adminId/verify", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const admin = await verifyAdmin(adminId);
+    const admin = await verifyAdmin(adminId as string);
     res.json(admin);
   } catch (err) { next(err); }
 });
 
-router.delete("/:adminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/:adminId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const admin = await deleteAdmin(adminId);
+    const admin = await deleteAdmin(adminId as string);
     res.json(admin);
   } catch (err) { next(err); }
 });
 
-router.get("/super-admin/:superAdminId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/super-admin/:superAdminId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { superAdminId } = req.params;
-    const admins = await getAdminsBySuperAdmin(superAdminId);
+    const admins = await getAdminsBySuperAdmin(superAdminId as string);
     res.json({ admins, count: admins.length });
   } catch (err) { next(err); }
 });
 
-router.get("/role/:role", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/role/:role", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { role } = req.params;
-    const admins = await getAdminsByRole(role);
+    const admins = await getAdminsByRole(role as string);
     res.json({ admins, count: admins.length });
   } catch (err) { next(err); }
 });
 
-router.get("/layer/:layer", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/layer/:layer", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { layer } = req.params;
-    const admins = await getAdminsByLayer(layer);
+    const admins = await getAdminsByLayer(layer as string);
     res.json({ admins, count: admins.length });
   } catch (err) { next(err); }
 });
 
 // ── Layer Access Management ───────────────────────────────────────────────────────────
-router.post("/:adminId/layer-access", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/:adminId/layer-access", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       layer: z.enum(["end_user", "seller_reseller", "repair_shop", "telecom", "law_enforcement"]),
@@ -152,7 +152,7 @@ router.post("/:adminId/layer-access", authenticate, async (req: Request, res: Re
 
     const { adminId } = req.params;
     const data = schema.parse(req.body);
-    const admin = await addLayerAccess(adminId, data.layer, data.permissions);
+    const admin = await addLayerAccess(adminId as string, data.layer, data.permissions);
     res.json(admin);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -160,15 +160,15 @@ router.post("/:adminId/layer-access", authenticate, async (req: Request, res: Re
   }
 });
 
-router.delete("/:adminId/layer-access/:layer", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/:adminId/layer-access/:layer", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId, layer } = req.params;
-    const admin = await removeLayerAccess(adminId, layer);
+    const admin = await removeLayerAccess(adminId as string, layer as string);
     res.json(admin);
   } catch (err) { next(err); }
 });
 
-router.patch("/:adminId/layer-access/:layer", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/:adminId/layer-access/:layer", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       permissions: z.array(z.string()),
@@ -176,7 +176,7 @@ router.patch("/:adminId/layer-access/:layer", authenticate, async (req: Request,
 
     const { adminId, layer } = req.params;
     const data = schema.parse(req.body);
-    const admin = await updateLayerPermissions(adminId, layer, data.permissions);
+    const admin = await updateLayerPermissions(adminId as string, layer as string, data.permissions);
     res.json(admin);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -185,7 +185,7 @@ router.patch("/:adminId/layer-access/:layer", authenticate, async (req: Request,
 });
 
 // ── Role Management ───────────────────────────────────────────────────────────────────
-router.patch("/:adminId/role", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/:adminId/role", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       role: z.enum(["finance", "technical", "support", "marketing", "legal", "operations", "compliance", "audit"]),
@@ -194,7 +194,8 @@ router.patch("/:adminId/role", authenticate, async (req: Request, res: Response,
 
     const { adminId } = req.params;
     const data = schema.parse(req.body);
-    const admin = await updateAdminRole(adminId, data.role, data.roleLevel);
+    const roleLevelMap: Record<string, number> = { senior: 3, mid: 2, junior: 1 };
+    const admin = await updateAdminRole(adminId as string, data.role, data.roleLevel ? roleLevelMap[data.roleLevel] : undefined);
     res.json(admin);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -213,7 +214,7 @@ router.post("/:adminId/login", async (req: Request, res: Response, next: NextFun
 
     const { adminId } = req.params;
     const data = schema.parse(req.body);
-    const admin = await recordAdminLogin(adminId, data.ipAddress, data.userAgent, data.success);
+    const admin = await recordAdminLogin(adminId as string, data.ipAddress, data.userAgent, data.success);
     res.json(admin);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -221,25 +222,25 @@ router.post("/:adminId/login", async (req: Request, res: Response, next: NextFun
   }
 });
 
-router.get("/:adminId/login-history", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:adminId/login-history", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
     const limit = parseInt((req.query.limit as string) || "50");
-    const history = await getAdminLoginHistory(adminId, limit);
+    const history = await getAdminLoginHistory(adminId as string, limit);
     res.json({ history, count: history.length });
   } catch (err) { next(err); }
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────────
-router.get("/:adminId/statistics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:adminId/statistics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const stats = await getAdminStatistics(adminId);
+    const stats = await getAdminStatistics(adminId as string);
     res.json(stats);
   } catch (err) { next(err); }
 });
 
-router.get("/statistics", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getAllAdminStatistics();
     res.json(stats);
