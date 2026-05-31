@@ -49,7 +49,7 @@ interface AuthRequest extends Request {
 }
 
 // ── Police Station Management ─────────────────────────────────────────────────────
-router.post("/stations", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/stations", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       stationCode: z.string(),
@@ -80,7 +80,7 @@ router.post("/stations", authenticate, requireAdmin, async (req: Request, res: R
   }
 });
 
-router.get("/stations", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stations", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const filters: any = {};
     if (req.query.county) filters.county = req.query.county;
@@ -92,7 +92,7 @@ router.get("/stations", authenticate, async (req: Request, res: Response, next: 
   } catch (err) { next(err); }
 });
 
-router.get("/stations/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stations/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const station = await getPoliceStation(id);
@@ -100,7 +100,7 @@ router.get("/stations/:id", authenticate, async (req: Request, res: Response, ne
   } catch (err) { next(err); }
 });
 
-router.patch("/stations/:id", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/stations/:id", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const station = await updatePoliceStation(id, req.body);
@@ -108,7 +108,7 @@ router.patch("/stations/:id", authenticate, requireAdmin, async (req: Request, r
   } catch (err) { next(err); }
 });
 
-router.get("/stations/nearby", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stations/nearby", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { lat, lng, radius } = req.query;
     if (!lat || !lng) {
@@ -175,7 +175,7 @@ router.post("/reports/:id/confirm", authenticate, async (req: AuthRequest, res: 
   }
 });
 
-router.get("/reports/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/reports/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const report = await getPoliceReport(id);
@@ -183,7 +183,7 @@ router.get("/reports/:id", authenticate, async (req: Request, res: Response, nex
   } catch (err) { next(err); }
 });
 
-router.get("/reports/station/:stationId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/reports/station/:stationId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { stationId } = req.params;
     const reports = await getPoliceReportsByStation(stationId);
@@ -191,7 +191,7 @@ router.get("/reports/station/:stationId", authenticate, async (req: Request, res
   } catch (err) { next(err); }
 });
 
-router.get("/reports/device/:deviceId", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/reports/device/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { deviceId } = req.params;
     const reports = await getPoliceReportsByDevice(deviceId);
@@ -199,7 +199,7 @@ router.get("/reports/device/:deviceId", authenticate, async (req: Request, res: 
   } catch (err) { next(err); }
 });
 
-router.post("/reports/:id/evidence", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/reports/:id/evidence", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       type: z.string(),
@@ -218,7 +218,7 @@ router.post("/reports/:id/evidence", authenticate, async (req: Request, res: Res
 });
 
 // ── Nationwide Alert System ───────────────────────────────────────────────────────
-router.post("/alerts", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/alerts", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -244,7 +244,7 @@ router.post("/alerts", authenticate, async (req: Request, res: Response, next: N
   }
 });
 
-router.get("/alerts/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/alerts/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const alert = await getNationwideAlert(id);
@@ -252,7 +252,7 @@ router.get("/alerts/:id", authenticate, async (req: Request, res: Response, next
   } catch (err) { next(err); }
 });
 
-router.get("/alerts", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/alerts", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const alerts = await getActiveNationwideAlerts();
     res.json({ alerts, count: alerts.length });
@@ -281,7 +281,7 @@ router.post("/alerts/:id/sighting", authenticate, async (req: AuthRequest, res: 
   }
 });
 
-router.post("/alerts/:id/deactivate", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/alerts/:id/deactivate", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const alert = await deactivateAlert(id);
@@ -341,7 +341,7 @@ router.post("/case-transfers/:id/complete", authenticate, async (req: AuthReques
 });
 
 // ── Recovery Workflow ─────────────────────────────────────────────────────────────
-router.post("/recovery", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/recovery", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       deviceId: z.string(),
@@ -375,7 +375,7 @@ router.patch("/recovery/:id/stage", authenticate, async (req: AuthRequest, res: 
   }
 });
 
-router.post("/recovery/:id/investigators", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/recovery/:id/investigators", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       investigatorId: z.string(),
@@ -451,7 +451,7 @@ router.post("/recovery/:id/return", authenticate, async (req: AuthRequest, res: 
   }
 });
 
-router.post("/recovery/:id/arrests", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/recovery/:id/arrests", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       suspectName: z.string(),
@@ -474,7 +474,7 @@ router.post("/recovery/:id/arrests", authenticate, async (req: Request, res: Res
 });
 
 // ── Court Case Integration ───────────────────────────────────────────────────────
-router.post("/court-cases", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/court-cases", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policeReportId: z.string(),
@@ -503,7 +503,7 @@ router.post("/court-cases", authenticate, async (req: Request, res: Response, ne
   }
 });
 
-router.patch("/court-cases/:id", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/court-cases/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const courtCase = await updateCourtCase(id, req.body);
@@ -512,7 +512,7 @@ router.patch("/court-cases/:id", authenticate, async (req: Request, res: Respons
 });
 
 // ── Interpol Integration ─────────────────────────────────────────────────────────
-router.post("/interpol", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/interpol", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       policeReportId: z.string(),
@@ -534,7 +534,7 @@ router.post("/interpol", authenticate, async (req: Request, res: Response, next:
   }
 });
 
-router.post("/interpol/:id/publish", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/interpol/:id/publish", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const interpolCase = await publishInterpolNotice(id);
@@ -542,7 +542,7 @@ router.post("/interpol/:id/publish", authenticate, async (req: Request, res: Res
   } catch (err) { next(err); }
 });
 
-router.post("/interpol/:id/response", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/interpol/:id/response", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       country: z.string(),
@@ -561,7 +561,7 @@ router.post("/interpol/:id/response", authenticate, async (req: Request, res: Re
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getPoliceStatistics();
     res.json(stats);
