@@ -51,6 +51,15 @@ const adminUser = await User.findOneAndUpdate(
 await Subscription.findOneAndUpdate({ user: adminUser._id }, { plan: "enterprise", status: "active" }, { upsert: true });
 console.log("✅ Admin: admin@simtrace.site / Admin@2024!");
 
+// Super Admin (Owner)
+const superAdminUser = await User.findOneAndUpdate(
+  { email: "mugo.james27@gmail.com" },
+  { name: "Mugo James", email: "mugo.james27@gmail.com", passwordHash: await hash("SuperAdmin@2024!"), role: "super_admin", phone: "+254700000000" },
+  { upsert: true, new: true }
+);
+await Subscription.findOneAndUpdate({ user: superAdminUser._id }, { plan: "enterprise", status: "active" }, { upsert: true });
+console.log("✅ Super Admin: mugo.james27@gmail.com / SuperAdmin@2024! (CHANGE ON FIRST LOGIN)");
+
 // Demo user (Pro)
 const proUser = await User.findOneAndUpdate(
   { email: "jane@demo.simtrace.site" },
@@ -243,11 +252,12 @@ console.log("✅ Payments seeded");
 console.log("\n═══════════════════════════════════════════════════════");
 console.log("  SIMTRACE DEMO SEED COMPLETE");
 console.log("═══════════════════════════════════════════════════════");
-console.log("  Admin:     admin@simtrace.site / Admin@2024!");
-console.log("  Pro user:  jane@demo.simtrace.site / Demo@2024!");
-console.log("  Free user: john@demo.simtrace.site / Demo@2024!");
-console.log("  Telecom:   api@safaricom-demo.simtrace.site / Telecom@2024!");
-console.log("  Law:       dci@demo.simtrace.site / Law@2024!");
+console.log("  Super Admin: mugo.james27@gmail.com / SuperAdmin@2024! (CHANGE ON FIRST LOGIN)");
+console.log("  Admin:       admin@simtrace.site / Admin@2024!");
+console.log("  Pro user:    jane@demo.simtrace.site / Demo@2024!");
+console.log("  Free user:   john@demo.simtrace.site / Demo@2024!");
+console.log("  Telecom:     api@safaricom-demo.simtrace.site / Telecom@2024!");
+console.log("  Law:         dci@demo.simtrace.site / Law@2024!");
 console.log("═══════════════════════════════════════════════════════");
 console.log(`  Devices: ${DEVICES_DATA.length} | Alerts: ${ALERT_TEMPLATES.length} | Ads: ${ADS_DATA.length}`);
 console.log("═══════════════════════════════════════════════════════\n");
