@@ -4,10 +4,48 @@ import { useRouter } from "next/navigation";
 import { api } from "../../../lib/api";
 import { useAuth } from "../../../lib/auth";
 
+interface User {
+  _id: string;
+  name?: string;
+  email: string;
+  phone?: string;
+  role: string;
+  subscription?: {
+    plan: string;
+  };
+  deviceCount?: number;
+  createdAt: string;
+}
+
+interface SparklineProps {
+  data?: number[];
+  color?: string;
+  height?: number;
+  fill?: boolean;
+}
+
+function Sparkline({ data = [], color = "var(--sky)", height = 48, fill = true }: SparklineProps) {
+  if (!data.length) return null;
+  const max = Math.max(...data, 1);
+  const pts = data.map((v, i) => {
+    const x = (i / Math.max(data.length - 1, 1)) * 200;
+    const y = height - (v / max) * (height - 6) + 3;
+    return `${x},${y}`;
+  }).join(" ");
+  return (
+    <svg viewBox={`0 0 200 ${height}`} style={{ width:"100%", height, display:"block" }} preserveAspectRatio="none">
+      {fill && <polyline points={`0,${height} ${pts} 200,${height}`} fill={color} fillOpacity="0.12" stroke="none"/>}
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+const PLAN_COLOR: Record<string, string> = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
+
 export default function AdminUsersPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [users,   setUsers]   = useState([]);
+  const [users,   setUsers]   = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState("");
 
@@ -24,13 +62,12 @@ export default function AdminUsersPage() {
     finally { setLoading(false); }
   }
 
-  async function setRole(id, role) {
+  async function setRole(id: string, role: string) {
     await api.patch(`/api/admin/users/${id}/role`, { role });
     setUsers(u => u.map(x => x._id === id ? { ...x, role } : x));
   }
 
-  const ROLE_COLOR = { admin: "var(--rose)", telecom: "var(--sky)", law_enforcement: "var(--amber)", user: "var(--muted)" };
-  const PLAN_COLOR = { free: "var(--muted)", pro: "var(--sky)", business: "var(--violet)", enterprise: "var(--amber)" };
+  const ROLE_COLOR: Record<string, string> = { admin: "var(--rose)", telecom: "var(--sky)", law_enforcement: "var(--amber)", user: "var(--muted)" };
 
   function exportCSV() {
     const header = "Name,Email,Phone,Role,Plan,Devices,Joined";
