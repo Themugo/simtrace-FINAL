@@ -18,7 +18,7 @@ Sentry.init({
   beforeSend(event, hint) {
     // Filter out certain errors if needed
     if (event.exception) {
-      const error = hint.originalException;
+      const error = hint.originalException as Error | undefined;
       // Example: filter out specific error types
       if (error && error.message && error.message.includes('ResizeObserver')) {
         return null;
