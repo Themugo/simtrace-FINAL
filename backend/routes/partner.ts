@@ -72,7 +72,7 @@ router.get("/me", authenticate, async (req: AuthRequest, res: Response, next: Ne
   try {
     const partner = await Partner.findOne({ user: req.user!.id });
     if (!partner) return res.status(404).json({ error: "No partner account found" });
-    res.json(await getPartnerStats(partner._id));
+    res.json(await getPartnerStats(String(partner._id)));
   } catch (err) { next(err); }
 });
 

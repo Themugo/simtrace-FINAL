@@ -376,6 +376,8 @@ interface ITrackingEvent {
   eventType: 'location_update' | 'network_change' | 'sim_change' | 'device_boot' | 'app_install' | 'app_uninstall' | 'suspicious_activity';
   data: Record<string, any>;
   timestamp: Date;
+  riskScore?: number;
+  threatLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }
 
 const trackingEventSchema = new mongoose.Schema<ITrackingEvent>({
@@ -512,7 +514,6 @@ const organizationSchema = new mongoose.Schema<IOrganization>({
   updatedAt: { type: Date, default: Date.now },
 });
 organizationSchema.index({ owner: 1 });
-organizationSchema.index({ slug: 1 });
 organizationSchema.index({ type: 1, status: 1 });
 export const Organization = mongoose.model<IOrganization>('Organization', organizationSchema);
 
@@ -630,7 +631,6 @@ const organizationInviteSchema = new mongoose.Schema<IOrganizationInvite>({
   createdAt: { type: Date, default: Date.now },
 });
 organizationInviteSchema.index({ organization: 1, email: 1 });
-organizationInviteSchema.index({ token: 1 });
 organizationInviteSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 export const OrganizationInvite = mongoose.model<IOrganizationInvite>('OrganizationInvite', organizationInviteSchema);
 
@@ -808,6 +808,5 @@ const lawEnforcementCaseSchema = new mongoose.Schema<ILawEnforcementCase>({
 });
 lawEnforcementCaseSchema.index({ assignedTo: 1, status: 1 });
 lawEnforcementCaseSchema.index({ agency: 1, status: 1 });
-lawEnforcementCaseSchema.index({ caseNumber: 1 });
 lawEnforcementCaseSchema.index({ relatedImeis: 1 });
 export const LawEnforcementCase = mongoose.model<ILawEnforcementCase>('LawEnforcementCase', lawEnforcementCaseSchema);

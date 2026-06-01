@@ -126,7 +126,7 @@ async function getMpesaToken(): Promise<{ token: string; baseUrl: string }> {
   const res = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
     { headers: { Authorization: `Basic ${creds}` } }
   );
-  const data = await res.json();
+  const data = await res.json() as { access_token?: string };
   if (!data.access_token) throw new Error("M-Pesa auth failed");
   return { token: data.access_token, baseUrl };
 }
@@ -168,7 +168,7 @@ export async function initiateMpesaSTK({ phone, amountKES, description, referenc
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await res.json() as { ResponseCode?: string; ResponseDescription?: string; CheckoutRequestID?: string };
 
   if (data.ResponseCode !== "0") throw new Error(data.ResponseDescription || "STK push failed");
 
@@ -271,7 +271,7 @@ export async function createStripeIntent({ amountUSD, userId, description, planI
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      amount: amountCents,
+      amount: String(amountCents),
       currency: "usd",
       "metadata[userId]": userId,
       "metadata[planId]": planId || "",
@@ -279,7 +279,7 @@ export async function createStripeIntent({ amountUSD, userId, description, planI
     }),
   });
 
-  const intent = await res.json();
+  const intent = await res.json() as { error?: { message?: string }; id?: string; client_secret?: string };
   if (intent.error) throw new Error(intent.error.message);
 
   await Payment.create({

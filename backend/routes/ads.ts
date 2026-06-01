@@ -17,7 +17,7 @@ interface AuthRequest extends Request {
 // GET /api/ads/serve?placement=dashboard_banner — serve one ad for a placement
 router.get("/serve", async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const placement = req.query.placement || "dashboard_banner";
+    const placement = (req.query.placement as string) || "dashboard_banner";
     const userId    = req.user?.id;                 // optional auth
     const ad = await serveAd({ placement, userId });
     res.json({ ad });                               // null if user is on paid plan
@@ -75,7 +75,7 @@ router.get("/admin/all", authenticate, requireAdmin, async (req: Request, res: R
 // POST /api/ads/:id/click — record a click
 router.post("/:id/click", async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    await recordAdEvent({ adId: req.params.id, userId: req.user?.id, type: "click", ip: req.ip });
+    await recordAdEvent({ adId: String(req.params.id), userId: req.user?.id, type: "click", ip: req.ip });
     res.json({ ok: true });
   } catch (err) { next(err); }
 });
@@ -84,7 +84,7 @@ router.post("/:id/click", async (req: AuthRequest, res: Response, next: NextFunc
 // GET /api/ads/:id/stats — campaign analytics
 router.get("/:id/stats", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const stats = await getAdStats(req.params.id, req.user!.id);
+    const stats = await getAdStats(String(req.params.id), req.user!.id);
     if (!stats) return res.status(404).json({ error: "Ad not found" });
     res.json(stats);
   } catch (err) { next(err); }

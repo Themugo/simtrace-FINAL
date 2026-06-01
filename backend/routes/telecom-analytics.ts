@@ -61,7 +61,7 @@ router.get("/overview", authenticate, requireRole("telecom"), async (req: AuthRe
     });
 
     // Get daily trend data
-    const dailyTrend = [];
+    const dailyTrend: Array<{ date: string; fraud: number; simSwap: number }> = [];
     for (let i = 29; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dayStart = new Date(date.setHours(0, 0, 0, 0));
@@ -176,7 +176,7 @@ router.get("/sim-swaps", authenticate, requireRole("telecom"), async (req: AuthR
     });
 
     // Get daily trend
-    const dailyTrend = [];
+    const dailyTrend: Array<{ date: string; count: number }> = [];
     for (let i = 29; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
       const dayStart = new Date(date.setHours(0, 0, 0, 0));

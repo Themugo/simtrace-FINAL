@@ -34,7 +34,7 @@ export async function serveAd({ placement, userId }: { placement: string; userId
   }
 
   // Record impression (fire-and-forget)
-  recordAdEvent({ adId: selected._id, userId, type: "impression" }).catch(() => {});
+  recordAdEvent({ adId: String(selected._id), userId, type: "impression" }).catch(() => {});
 
   return {
     id:       selected._id,

@@ -30,7 +30,7 @@ export async function computeRiskScore(imei: string): Promise<number> {
     const a = recentPings[i - 1];
     const b = recentPings[i];
     const km  = haversineKm(a.lat, a.lng, b.lat, b.lng);
-    const hrs = (a.ts - b.ts) / 3600000;
+    const hrs = (+a.ts - +b.ts) / 3600000;
     if (hrs > 0 && km / hrs > 500) { score += 25; break; }
   }
 
@@ -107,7 +107,7 @@ export async function runIntelligence({ ping, device }: { ping: any; device: any
 
   if (prevPing) {
     const km  = haversineKm(prevPing.lat, prevPing.lng, ping.lat, ping.lng);
-    const hrs = (ping.ts - prevPing.ts) / 3600000;
+    const hrs = (+ping.ts - +prevPing.ts) / 3600000;
     if (hrs > 0 && km / hrs > 500) {
       alerts.push({
         type: "location_jump",

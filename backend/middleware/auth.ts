@@ -2,8 +2,8 @@ import jwt from "jsonwebtoken";
 import { User } from "../db/index.js";
 import { Request, Response, NextFunction } from "express";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET && process.env.NODE_ENV === "production") {
+const JWT_SECRET: string = process.env.JWT_SECRET || "dev-insecure-jwt-secret-change-me";
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
   throw new Error("FATAL: JWT_SECRET environment variable is not set");
 }
 
@@ -56,7 +56,7 @@ export function authenticateSocket(socket: any, next: (err?: Error) => void) {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error("Authentication required"));
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET) as unknown as { id: string; role: string };
     socket.data.userId = payload.id;
     socket.data.role = payload.role;
     next();

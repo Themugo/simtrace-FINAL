@@ -35,7 +35,7 @@ async function callClaude({ system, messages, maxTokens = 1024, json = false }: 
     throw new Error(`Anthropic API error ${res.status}: ${err}`);
   }
 
-  const data = await res.json();
+  const data: any = await res.json();
   const text = data.content.map((b: any) => b.text || "").join("");
 
   if (json) {

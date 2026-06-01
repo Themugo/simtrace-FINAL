@@ -134,7 +134,7 @@ router.get("/my-reports", authenticate, async (req: AuthRequest, res: Response, 
 // ⚠️  NEVER return owner PII to unauthenticated callers
 router.get("/:imei", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { imei } = req.params;
+    const imei = String(req.params.imei);
     if (!/^\d{15,17}$/.test(imei)) {
       return res.status(400).json({ error: "Invalid IMEI format" });
     }

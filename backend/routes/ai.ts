@@ -65,7 +65,7 @@ router.post("/imei-report", async (req: Request, res: Response, next: NextFuncti
     const { imei } = z.object({ imei: z.string().min(15).max(17) }).parse(req.body);
 
     // Optional auth — enforce quota only for authenticated users
-    let userId = null;
+    let userId = "";
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
@@ -155,8 +155,8 @@ router.post("/chat", async (req: Request, res: Response, next: NextFunction) => 
     const { messages } = schema.parse(req.body);
 
     // Build user context if authenticated
-    let userContext = null;
-    let userId = null;
+    let userContext: { role: string; deviceCount: number; alertCount: number } | undefined = undefined;
+    let userId = "";
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
@@ -213,7 +213,7 @@ router.post("/chat/stream", async (req: Request, res: Response, next: NextFuncti
     }).parse(req.body);
 
     // Auth + quota check
-    let userId = null;
+    let userId = "";
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {

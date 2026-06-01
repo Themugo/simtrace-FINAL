@@ -180,7 +180,7 @@ router.get("/installations", authenticate, async (req: AuthRequest, res: Respons
 // DELETE /api/marketplace/installations/:id — uninstall extension
 router.delete("/installations/:id", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const success = enterpriseMarketplace.uninstallExtension(req.params.id);
+    const success = enterpriseMarketplace.uninstallExtension(String(req.params.id));
     if (!success) {
       return res.status(404).json({ error: "Installation not found" });
     }
@@ -255,7 +255,7 @@ router.post("/workflows", authenticate, async (req: AuthRequest, res: Response, 
 // POST /api/marketplace/workflows/:id/execute — execute workflow
 router.post("/workflows/:id/execute", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const workflow = await executeAppWorkflow(req.params.id);
+    const workflow = await executeAppWorkflow(String(req.params.id));
     res.json(workflow);
   } catch (err) { next(err); }
 });

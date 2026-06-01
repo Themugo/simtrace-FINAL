@@ -16,7 +16,7 @@ export const ipRateLimiter = rateLimit({
     async get(key: string): Promise<any> {
       try {
         const value = await redisClient.get(key);
-        return value ? parseInt(value) : null;
+        return value ? parseInt(value.toString()) : null;
       } catch (error) {
         console.error('[Rate Limit] Redis get error:', error);
         return null;
@@ -98,7 +98,7 @@ export const ipThrottlingMiddleware = async (req: Request, res: Response, next: 
       await redisClient.expire(key, 60); // 1 minute window
     }
     
-    if (requests > 100) { // More than 100 requests per minute
+    if (Number(requests) > 100) { // More than 100 requests per minute
       return res.status(429).json({
         success: false,
         error: 'IP throttled due to excessive requests',
@@ -123,7 +123,7 @@ export const abuseDetectionMiddleware = async (req: Request, res: Response, next
     const suspiciousActivity = await redisClient.get(key);
     
     if (suspiciousActivity) {
-      const activityCount = parseInt(suspiciousActivity);
+      const activityCount = parseInt(suspiciousActivity.toString());
       
       if (activityCount > 10) {
         return res.status(403).json({

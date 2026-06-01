@@ -94,7 +94,7 @@ router.get("/listing/:marketplace/:listingId", authenticate, async (req: AuthReq
   try {
     const { marketplace, listingId } = req.params;
 
-    const listing = await getListingDetails(marketplace, listingId);
+    const listing = await getListingDetails(String(marketplace), String(listingId));
     if (!listing) {
       return res.status(404).json({ error: "Listing not found" });
     }

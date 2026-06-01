@@ -123,7 +123,7 @@ router.get("/mpesa-status/:checkoutId", authenticate, async (req: AuthRequest, r
 
     // 2. Query Daraja STK status
     try {
-      const daraja = await queryMpesaSTK(checkoutId);
+      const daraja = await queryMpesaSTK(String(checkoutId));
       res.json({ status: "pending", daraja, message: "Waiting for M-Pesa confirmation…" });
     } catch {
       res.json({ status: "pending", message: "Waiting for M-Pesa confirmation…" });
@@ -135,6 +135,7 @@ router.post("/upgrade-stripe", authenticate, async (req: AuthRequest, res: Respo
   try {
     const { planId } = z.object({ planId: z.enum(["pro", "business"]) }).parse(req.body);
     const plan = PLANS.find(p => p.id === planId);
+    if (!plan) return res.status(400).json({ error: "Invalid plan" });
     const result = await createStripeIntent({
       amountUSD:   plan.priceUSD,
       userId:      req.user!.id,

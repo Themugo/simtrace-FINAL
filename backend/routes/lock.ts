@@ -23,7 +23,7 @@ const commandSchema = new mongoose.Schema({
   issuedAt:  { type: Date, default: Date.now },
   executedAt: Date,
 });
-const DeviceCommand = mongoose.models.DeviceCommand || mongoose.model("DeviceCommand", commandSchema);
+const DeviceCommand = (mongoose.models.DeviceCommand || mongoose.model("DeviceCommand", commandSchema)) as mongoose.Model<any>;
 
 // POST /api/devices/:id/lock
 router.post("/:id/lock", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {

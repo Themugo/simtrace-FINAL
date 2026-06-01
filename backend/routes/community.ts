@@ -22,7 +22,7 @@ const sightingSchema = new mongoose.Schema({
   reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdAt:  { type: Date, default: Date.now },
 });
-const Sighting = mongoose.models.Sighting || mongoose.model("Sighting", sightingSchema);
+const Sighting = (mongoose.models.Sighting || mongoose.model("Sighting", sightingSchema)) as mongoose.Model<any>;
 
 const sightingLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: "Too many sightings submitted" } });
 

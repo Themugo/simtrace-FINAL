@@ -140,7 +140,7 @@ class DigitalTwinManager {
   private detectMovementPatternType(locations: any[]): 'commute' | 'random' | 'stationary' | 'travel' {
     if (locations.length < 2) return 'stationary';
 
-    const distances = [];
+    const distances: number[] = [];
     for (let i = 1; i < locations.length; i++) {
       const prev = locations[i];
       const curr = locations[i - 1];

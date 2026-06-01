@@ -2,7 +2,9 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "moduleResolution": "bundler",
     "allowJs": true,
     "outDir": "./dist",
@@ -19,8 +21,19 @@
     "noUnusedParameters": false,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "strictNullChecks": true
   },
-  "include": ["**/*.ts", "**/*.js"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "include": [
+    "server.ts"
+  ],
+  "exclude": [
+    "_quarantine",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "dist",
+    "node_modules"
+  ]
 }

@@ -42,7 +42,7 @@ router.post("/orchestrate", authenticate, async (req: AuthRequest, res: Response
 // GET /api/ai/context/:organizationId — get AI context for organization
 router.get("/context/:organizationId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { organizationId } = req.params;
+    const organizationId = String(req.params.organizationId);
     const context = getAIContext(organizationId);
     
     if (!context) {
@@ -56,7 +56,7 @@ router.get("/context/:organizationId", authenticate, async (req: AuthRequest, re
 // POST /api/ai/context/:organizationId/device — update device context
 router.post("/context/:organizationId/device", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { organizationId } = req.params;
+    const organizationId = String(req.params.organizationId);
     const schema = z.object({
       deviceId: z.string(),
       imei: z.string(),
@@ -83,7 +83,7 @@ router.post("/context/:organizationId/device", authenticate, async (req: AuthReq
 // POST /api/ai/context/:organizationId/investigation — add investigation memory
 router.post("/context/:organizationId/investigation", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { organizationId } = req.params;
+    const organizationId = String(req.params.organizationId);
     const schema = z.object({
       caseId: z.string(),
       summary: z.string(),
@@ -106,7 +106,7 @@ router.post("/context/:organizationId/investigation", authenticate, async (req: 
 // POST /api/ai/context/:organizationId/threat — add threat memory
 router.post("/context/:organizationId/threat", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { organizationId } = req.params;
+    const organizationId = String(req.params.organizationId);
     const schema = z.object({
       threatType: z.string(),
       pattern: z.string(),
@@ -127,7 +127,7 @@ router.post("/context/:organizationId/threat", authenticate, async (req: AuthReq
 // POST /api/ai/context/:organizationId/behavior — add behavioral memory
 router.post("/context/:organizationId/behavior", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { organizationId } = req.params;
+    const organizationId = String(req.params.organizationId);
     const schema = z.object({
       entityType: z.enum(['device', 'user', 'organization', 'location']),
       entityId: z.string(),

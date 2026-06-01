@@ -1,19 +1,20 @@
 // Queue Infrastructure Foundation
 // BullMQ-based job queue system with Redis backend
 
-import { Queue, Worker } from 'bullmq';
-import { createClient } from 'redis';
+import { Queue, Worker, QueueOptions, ConnectionOptions } from 'bullmq';
+import IORedis from 'ioredis';
 
 // Redis connection
-const redisConnection = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
+const redisConnection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  maxRetriesPerRequest: null, // required by BullMQ
+  lazyConnect: true,          // connect explicitly in initializeQueues()
 });
 
 redisConnection.on('error', (err) => console.error('Redis Client Error', err));
 
 // Queue configuration
-const queueOptions = {
-  connection: redisConnection,
+const queueOptions: QueueOptions = {
+  connection: redisConnection as ConnectionOptions,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

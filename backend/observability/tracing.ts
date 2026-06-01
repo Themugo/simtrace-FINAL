@@ -11,8 +11,8 @@ const sdk = new NodeSDK({
     [SemanticResourceAttributes.SERVICE_NAME]: 'simtrace-backend',
     [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
     [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
-  }),
-  spanProcessor: new SimpleSpanProcessor(new ConsoleSpanExporter()),
+  }) as any,
+  spanProcessor: new SimpleSpanProcessor(new ConsoleSpanExporter() as any) as any,
   // Add more exporters as needed (e.g., Jaeger, OTLP)
 });
 
