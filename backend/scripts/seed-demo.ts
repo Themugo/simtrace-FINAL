@@ -6,6 +6,37 @@ import crypto from "crypto";
 import dotenv from "dotenv";
 dotenv.config();
 
+// ── Production guard ──────────────────────────────────────────────────────────
+// This script creates demo users (including admin / super_admin roles) and must
+// never run against a production database. Override only if you truly mean to.
+if (process.env.NODE_ENV === "production" && process.env.SEED_ALLOW_PRODUCTION !== "true") {
+  console.error("\n✋ Refusing to run the demo seed: NODE_ENV=production.");
+  console.error("   This creates demo/admin accounts and is intended for dev/staging only.");
+  console.error("   If you really intend to seed production, re-run with SEED_ALLOW_PRODUCTION=true.\n");
+  process.exit(1);
+}
+
+// ── Seed credentials (from env; secure random per-run fallback) ────────────────
+// Set SEED_ADMIN_PASSWORD / SEED_SUPERADMIN_PASSWORD / SEED_DEMO_PASSWORD /
+// SEED_TELECOM_PASSWORD / SEED_LAW_PASSWORD to control these. If unset, a strong
+// random password is generated for that account and printed ONCE at the end.
+const generatedCreds: string[] = [];
+function seedPassword(envName: string): string {
+  const v = process.env[envName];
+  if (v && v.length >= 8) return v;
+  const gen = crypto.randomBytes(18).toString("base64url");
+  generatedCreds.push(`${envName}=${gen}`);
+  return gen;
+}
+const PW = {
+  admin:      seedPassword("SEED_ADMIN_PASSWORD"),
+  superAdmin: seedPassword("SEED_SUPERADMIN_PASSWORD"),
+  demo:       seedPassword("SEED_DEMO_PASSWORD"),
+  telecom:    seedPassword("SEED_TELECOM_PASSWORD"),
+  law:        seedPassword("SEED_LAW_PASSWORD"),
+};
+const SUPERADMIN_EMAIL = process.env.SEED_SUPERADMIN_EMAIL || "mugo.james27@gmail.com";
+
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/simtrace";
 
 // ── Inline minimal models (avoid circular service imports) ────────────────────
@@ -45,45 +76,45 @@ const hash = (pw: string) => bcrypt.hash(pw, 12);
 // Admin
 const adminUser = await User.findOneAndUpdate(
   { email: "admin@simtrace.site" },
-  { name: "SimTrace Admin", email: "admin@simtrace.site", passwordHash: await hash("Admin@2024!"), role: "admin", phone: "+254712000001" },
+  { name: "SimTrace Admin", email: "admin@simtrace.site", passwordHash: await hash(PW.admin), role: "admin", phone: "+254712000001" },
   { upsert: true, new: true }
 );
 await Subscription.findOneAndUpdate({ user: adminUser._id }, { plan: "enterprise", status: "active" }, { upsert: true });
-console.log("✅ Admin: admin@simtrace.site / Admin@2024!");
+console.log("✅ Admin: admin@simtrace.site");
 
 // Super Admin (Owner)
 const superAdminUser = await User.findOneAndUpdate(
-  { email: "mugo.james27@gmail.com" },
-  { name: "Mugo James", email: "mugo.james27@gmail.com", passwordHash: await hash("SuperAdmin@2024!"), role: "super_admin", phone: "+254700000000" },
+  { email: SUPERADMIN_EMAIL },
+  { name: "Mugo James", email: SUPERADMIN_EMAIL, passwordHash: await hash(PW.superAdmin), role: "super_admin", phone: "+254700000000" },
   { upsert: true, new: true }
 );
 await Subscription.findOneAndUpdate({ user: superAdminUser._id }, { plan: "enterprise", status: "active" }, { upsert: true });
-console.log("✅ Super Admin: mugo.james27@gmail.com / SuperAdmin@2024! (CHANGE ON FIRST LOGIN)");
+console.log(`✅ Super Admin: ${SUPERADMIN_EMAIL}`);
 
 // Demo user (Pro)
 const proUser = await User.findOneAndUpdate(
   { email: "jane@demo.simtrace.site" },
-  { name: "Jane Kamau", email: "jane@demo.simtrace.site", passwordHash: await hash("Demo@2024!"), role: "user", phone: "+254722334455" },
+  { name: "Jane Kamau", email: "jane@demo.simtrace.site", passwordHash: await hash(PW.demo), role: "user", phone: "+254722334455" },
   { upsert: true, new: true }
 );
 await Subscription.findOneAndUpdate({ user: proUser._id }, { plan: "pro", status: "active", currentPeriodEnd: new Date(Date.now() + 30*86400000) }, { upsert: true });
 await Payment.findOneAndUpdate({ user: proUser._id, type: "subscription" }, { user: proUser._id, type: "subscription", amountKES: 799, method: "mpesa", status: "completed", description: "SimTrace Pro - 1 month", reference: "QHX2Y8KL9Z", paidAt: new Date(Date.now() - 15*86400000) }, { upsert: true });
-console.log("✅ Pro user: jane@demo.simtrace.site / Demo@2024!");
+console.log("✅ Pro user: jane@demo.simtrace.site");
 
 // Free user (2 devices + 1 extra)
 const freeUser = await User.findOneAndUpdate(
   { email: "john@demo.simtrace.site" },
-  { name: "John Otieno", email: "john@demo.simtrace.site", passwordHash: await hash("Demo@2024!"), role: "user", phone: "+254733556677" },
+  { name: "John Otieno", email: "john@demo.simtrace.site", passwordHash: await hash(PW.demo), role: "user", phone: "+254733556677" },
   { upsert: true, new: true }
 );
 await Subscription.findOneAndUpdate({ user: freeUser._id }, { plan: "free", status: "active", extraDevices: 1 }, { upsert: true });
 await Payment.findOneAndUpdate({ user: freeUser._id, type: "extra_device" }, { user: freeUser._id, type: "extra_device", amountKES: 150, method: "mpesa", status: "completed", description: "Extra device slot", reference: "LMN7P3QR4S", paidAt: new Date(Date.now() - 3*86400000) }, { upsert: true });
-console.log("✅ Free user: john@demo.simtrace.site / Demo@2024!");
+console.log("✅ Free user: john@demo.simtrace.site");
 
 // Telecom partner user
 const telecomUser = await User.findOneAndUpdate(
   { email: "api@safaricom-demo.simtrace.site" },
-  { name: "Safaricom API", email: "api@safaricom-demo.simtrace.site", passwordHash: await hash("Telecom@2024!"), role: "telecom", phone: "+254722000001" },
+  { name: "Safaricom API", email: "api@safaricom-demo.simtrace.site", passwordHash: await hash(PW.telecom), role: "telecom", phone: "+254722000001" },
   { upsert: true, new: true }
 );
 const partnerKey = apiKey();
@@ -98,7 +129,7 @@ console.log(`✅ Telecom partner: ${partnerKey.slice(0,20)}…`);
 // Law enforcement
 const lawUser = await User.findOneAndUpdate(
   { email: "dci@demo.simtrace.site" },
-  { name: "DCI Kenya (Demo)", email: "dci@demo.simtrace.site", passwordHash: await hash("Law@2024!"), role: "law_enforcement" },
+  { name: "DCI Kenya (Demo)", email: "dci@demo.simtrace.site", passwordHash: await hash(PW.law), role: "law_enforcement" },
   { upsert: true, new: true }
 );
 const lawKey = apiKey();
@@ -107,7 +138,7 @@ await Partner.findOneAndUpdate(
   { user: lawUser._id, orgName: "DCI Kenya (Demo)", orgType: "law_enforcement", country: "KE", apiKey: lawKey, tier: "premium", apiCallsMonth: 312, apiCallsLimit: 50000, status: "active" },
   { upsert: true }
 );
-console.log("✅ Law enforcement: dci@demo.simtrace.site / Law@2024!");
+console.log("✅ Law enforcement: dci@demo.simtrace.site");
 
 // ── Devices ───────────────────────────────────────────────────────────────────
 const DEVICES_DATA = [
@@ -252,14 +283,23 @@ console.log("✅ Payments seeded");
 console.log("\n═══════════════════════════════════════════════════════");
 console.log("  SIMTRACE DEMO SEED COMPLETE");
 console.log("═══════════════════════════════════════════════════════");
-console.log("  Super Admin: mugo.james27@gmail.com / SuperAdmin@2024! (CHANGE ON FIRST LOGIN)");
-console.log("  Admin:       admin@simtrace.site / Admin@2024!");
-console.log("  Pro user:    jane@demo.simtrace.site / Demo@2024!");
-console.log("  Free user:   john@demo.simtrace.site / Demo@2024!");
-console.log("  Telecom:     api@safaricom-demo.simtrace.site / Telecom@2024!");
-console.log("  Law:         dci@demo.simtrace.site / Law@2024!");
+console.log(`  Super Admin: ${SUPERADMIN_EMAIL}`);
+console.log("  Admin:       admin@simtrace.site");
+console.log("  Pro user:    jane@demo.simtrace.site");
+console.log("  Free user:   john@demo.simtrace.site");
+console.log("  Telecom:     api@safaricom-demo.simtrace.site");
+console.log("  Law:         dci@demo.simtrace.site");
 console.log("═══════════════════════════════════════════════════════");
 console.log(`  Devices: ${DEVICES_DATA.length} | Alerts: ${ALERT_TEMPLATES.length} | Ads: ${ADS_DATA.length}`);
+console.log("═══════════════════════════════════════════════════════\n");
+
+if (generatedCreds.length) {
+  console.log("  ⚠  Auto-generated passwords for this run (shown ONCE — store securely):");
+  for (const c of generatedCreds) console.log("     " + c);
+  console.log("     Set the matching SEED_*_PASSWORD env vars to use fixed passwords instead.");
+} else {
+  console.log("  Passwords were taken from SEED_*_PASSWORD environment variables.");
+}
 console.log("═══════════════════════════════════════════════════════\n");
 
 await mongoose.disconnect();
