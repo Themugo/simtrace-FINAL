@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth";
@@ -14,6 +14,15 @@ export default function RegisterPage() {
   const [form,    setForm]    = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+  useEffect(() => {
+    fetch(`${API}/api/auth/oauth/providers`)
+      .then(r => r.json())
+      .then(d => setGoogleEnabled(!!d.google))
+      .catch(() => {});
+  }, [API]);
 
   const f = (k: keyof typeof form) => ({ value: form[k], onChange: (e: React.ChangeEvent<HTMLInputElement>) => { setForm(p => ({ ...p, [k]: e.target.value })); setError(""); } });
 
@@ -59,6 +68,13 @@ export default function RegisterPage() {
           {/* Step 0 — Account info */}
           {step === 0 && (
             <form onSubmit={next} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <a href={`${API}/api/auth/oauth/google`} className="btn-secondary"
+                style={{ display: googleEnabled ? "flex" : "none", width: "100%", justifyContent: "center", alignItems: "center", gap: 8, height: 46, textDecoration: "none" }}>
+                <span style={{ fontWeight: 700, color: "var(--sky)" }}>G</span> Continue with Google
+              </a>
+              <div style={{ display: googleEnabled ? "flex" : "none", alignItems: "center", gap: "0.75rem", color: "var(--dim)", fontSize: "0.8rem" }}>
+                <span style={{ flex: 1, height: 1, background: "var(--border2)" }} /> or register with email <span style={{ flex: 1, height: 1, background: "var(--border2)" }} />
+              </div>
               <div>
                 <label className="label">Full name *</label>
                 <input required autoFocus placeholder="Jane Kamau" {...f("name")} />

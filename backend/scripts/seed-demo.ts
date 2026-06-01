@@ -76,7 +76,7 @@ const hash = (pw: string) => bcrypt.hash(pw, 12);
 // Admin
 const adminUser = await User.findOneAndUpdate(
   { email: "admin@simtrace.site" },
-  { name: "SimTrace Admin", email: "admin@simtrace.site", passwordHash: await hash(PW.admin), role: "admin", phone: "+254712000001" },
+  { name: "SimTrace Admin", email: "admin@simtrace.site", passwordHash: await hash(PW.admin), role: "admin", phone: "+254712000001", emailVerified: true, mustChangePassword: true },
   { upsert: true, new: true }
 );
 await Subscription.findOneAndUpdate({ user: adminUser._id }, { plan: "enterprise", status: "active" }, { upsert: true });
@@ -85,7 +85,7 @@ console.log("✅ Admin: admin@simtrace.site");
 // Super Admin (Owner)
 const superAdminUser = await User.findOneAndUpdate(
   { email: SUPERADMIN_EMAIL },
-  { name: "Mugo James", email: SUPERADMIN_EMAIL, passwordHash: await hash(PW.superAdmin), role: "super_admin", phone: "+254700000000" },
+  { name: "Mugo James", email: SUPERADMIN_EMAIL, passwordHash: await hash(PW.superAdmin), role: "super_admin", phone: "+254700000000", emailVerified: true, mustChangePassword: true },
   { upsert: true, new: true }
 );
 await Subscription.findOneAndUpdate({ user: superAdminUser._id }, { plan: "enterprise", status: "active" }, { upsert: true });
@@ -94,7 +94,7 @@ console.log(`✅ Super Admin: ${SUPERADMIN_EMAIL}`);
 // Demo user (Pro)
 const proUser = await User.findOneAndUpdate(
   { email: "jane@demo.simtrace.site" },
-  { name: "Jane Kamau", email: "jane@demo.simtrace.site", passwordHash: await hash(PW.demo), role: "user", phone: "+254722334455" },
+  { name: "Jane Kamau", email: "jane@demo.simtrace.site", passwordHash: await hash(PW.demo), role: "user", phone: "+254722334455", emailVerified: true },
   { upsert: true, new: true }
 );
 await Subscription.findOneAndUpdate({ user: proUser._id }, { plan: "pro", status: "active", currentPeriodEnd: new Date(Date.now() + 30*86400000) }, { upsert: true });
@@ -104,7 +104,7 @@ console.log("✅ Pro user: jane@demo.simtrace.site");
 // Free user (2 devices + 1 extra)
 const freeUser = await User.findOneAndUpdate(
   { email: "john@demo.simtrace.site" },
-  { name: "John Otieno", email: "john@demo.simtrace.site", passwordHash: await hash(PW.demo), role: "user", phone: "+254733556677" },
+  { name: "John Otieno", email: "john@demo.simtrace.site", passwordHash: await hash(PW.demo), role: "user", phone: "+254733556677", emailVerified: true },
   { upsert: true, new: true }
 );
 await Subscription.findOneAndUpdate({ user: freeUser._id }, { plan: "free", status: "active", extraDevices: 1 }, { upsert: true });
@@ -114,7 +114,7 @@ console.log("✅ Free user: john@demo.simtrace.site");
 // Telecom partner user
 const telecomUser = await User.findOneAndUpdate(
   { email: "api@safaricom-demo.simtrace.site" },
-  { name: "Safaricom API", email: "api@safaricom-demo.simtrace.site", passwordHash: await hash(PW.telecom), role: "telecom", phone: "+254722000001" },
+  { name: "Safaricom API", email: "api@safaricom-demo.simtrace.site", passwordHash: await hash(PW.telecom), role: "telecom", phone: "+254722000001", emailVerified: true },
   { upsert: true, new: true }
 );
 const partnerKey = apiKey();
@@ -129,7 +129,7 @@ console.log(`✅ Telecom partner: ${partnerKey.slice(0,20)}…`);
 // Law enforcement
 const lawUser = await User.findOneAndUpdate(
   { email: "dci@demo.simtrace.site" },
-  { name: "DCI Kenya (Demo)", email: "dci@demo.simtrace.site", passwordHash: await hash(PW.law), role: "law_enforcement" },
+  { name: "DCI Kenya (Demo)", email: "dci@demo.simtrace.site", passwordHash: await hash(PW.law), role: "law_enforcement", emailVerified: true },
   { upsert: true, new: true }
 );
 const lawKey = apiKey();

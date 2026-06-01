@@ -32,16 +32,26 @@ interface IUser {
   role: 'user' | 'admin' | 'telecom' | 'law_enforcement';
   phone?: string;
   apiKey?: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  mustChangePassword?: boolean;
+  authProvider?: 'local' | 'google';
+  providerId?: string;
   createdAt: Date;
 }
 
 const userSchema = new mongoose.Schema<IUser>({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true },
-  passwordHash: { type: String, required: true },
+  passwordHash: { type: String },
   role: { type: String, enum: ['user', 'admin', 'telecom', 'law_enforcement'], default: 'user' },
   phone: { type: String },
   apiKey: { type: String, index: true, sparse: true },
+  emailVerified: { type: Boolean, default: false },
+  phoneVerified: { type: Boolean, default: false },
+  mustChangePassword: { type: Boolean, default: false },
+  authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
+  providerId: { type: String, index: true, sparse: true },
   createdAt: { type: Date, default: Date.now },
 });
 export const User = mongoose.model<IUser>('User', userSchema);

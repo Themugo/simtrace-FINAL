@@ -23,6 +23,8 @@ import "./sentry.js";
 
 // Route imports
 import authRoutes      from "./routes/auth.js";
+import verificationRoutes from "./routes/verification.js";
+import oauthRoutes     from "./routes/oauth.js";
 import deviceRoutes    from "./routes/devices.js";
 import imeiRoutes      from "./routes/imei.js";
 import trackRoutes     from "./routes/track.js";
@@ -178,6 +180,8 @@ function mpesaIpWhitelist(req: Request, res: Response, next: NextFunction): void
 app.use("/api/health", healthRoutes);
 
 app.use("/api/auth",      authLimiter,  authRoutes);
+app.use("/api/auth/oauth", oauthRoutes);
+app.use("/api/verify",    authLimiter,  verificationRoutes);
 app.use("/api/devices",               deviceRoutes);
 app.use("/api/devices",               lockRoutes);     // lock/unlock/commands on /api/devices/:id/*
 app.use("/api/imei",    imeiLimiter,  imeiRoutes);

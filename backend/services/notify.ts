@@ -113,7 +113,7 @@ function getTimezoneOffset(timezone: string): number {
 // ─────────────────────────────────────────────────────────────
 // AFRICA'S TALKING SMS
 // ─────────────────────────────────────────────────────────────
-async function sendSMS(phone: string | undefined, text: string): Promise<void> {
+export async function sendSMS(phone: string | undefined, text: string): Promise<void> {
   try {
     if (!process.env.AT_API_KEY || !phone) return;
 
@@ -149,7 +149,7 @@ async function sendSMS(phone: string | undefined, text: string): Promise<void> {
 // ─────────────────────────────────────────────────────────────
 // SENDGRID EMAIL
 // ─────────────────────────────────────────────────────────────
-async function sendEmail(to: string | undefined, subject: string, body: string): Promise<void> {
+export async function sendEmail(to: string | undefined, subject: string, body: string): Promise<void> {
   try {
     if (!process.env.SENDGRID_API_KEY || !to) return;
 

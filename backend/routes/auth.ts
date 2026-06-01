@@ -20,6 +20,9 @@ interface SanitizedUser {
   name: string;
   email: string;
   role: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  mustChangePassword?: boolean;
 }
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -101,6 +104,7 @@ router.post("/change-password", authenticate, async (req: AuthRequest, res: Resp
       return res.status(401).json({ error: "Current password is incorrect" });
     }
     user.passwordHash = await bcrypt.hash(newPassword, 12);
+    user.mustChangePassword = false;
     await user.save();
     res.json({ message: "Password updated successfully" });
   } catch (err) {
@@ -174,7 +178,15 @@ router.post("/reset-password", async (req: Request, res: Response, next: NextFun
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function sanitize(user: any): SanitizedUser {
-  return { id: user._id, name: user.name, email: user.email, role: user.role };
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    emailVerified: user.emailVerified,
+    phoneVerified: user.phoneVerified,
+    mustChangePassword: user.mustChangePassword,
+  };
 }
 
 async function sendResetEmail(to: string, name: string, resetUrl: string): Promise<void> {
