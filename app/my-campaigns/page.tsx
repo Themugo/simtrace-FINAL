@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
-import { useToast } from "../../components/ToastProvider";
 
 const STATUS_COLOR: Record<string, string> = { active:"var(--emerald)", pending:"var(--amber)", rejected:"var(--rose)", paused:"var(--muted)", exhausted:"var(--dim)" };
 const STATUS_ICON: Record<string, string> = { active:"🟢", pending:"⏳", rejected:"❌", paused:"⏸️", exhausted:"💸" };
@@ -100,7 +99,6 @@ function CampaignCard({ ad }: CampaignCardProps) {
 export default function MyCampaignsPage() {
   const { user, loading: authLoading } = useAuth();
   const router   = useRouter();
-  const toast    = useToast();
   const [ads,    setAds]    = useState<Campaign[]>([]);
   const [loading,setLoading]= useState(true);
 

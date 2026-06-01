@@ -1,7 +1,6 @@
 'use client';
-import { useEffect, useState, CSSProperties, ReactNode } from 'react';
+import { useEffect, useState, CSSProperties } from 'react';
 import { api } from '../lib/api';
-import { useAuth } from '../lib/auth';
 
 interface AdBannerProps {
   placement?: string;
@@ -9,7 +8,6 @@ interface AdBannerProps {
 }
 
 export default function AdBanner({ placement = 'dashboard_banner', style: extraStyle = {} }: AdBannerProps) {
-  const { user } = useAuth();
   const [ad, setAd] = useState<any>(null);
 
   useEffect(() => {

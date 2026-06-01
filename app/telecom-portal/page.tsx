@@ -103,7 +103,6 @@ export default function TelecomPortalPage() {
     if (!partner || !confirm("Rotating your API key will invalidate the current one. All integrations must be updated. Continue?")) return;
     setRotating(true);
     try {
-      const res = await api.patch(`/api/partner/${partner._id}/webhook`, { webhookUrl: partner.partner?.webhookUrl || "https://example.com" });
       const keyRes = await api.post(`/api/partner/${partner._id}/regenerate-key`, {});
       setPartner(p => ({ ...p, apiKey: keyRes.apiKey }));
       alert("API key rotated. Copy the new key now — it won't be shown again after you leave this page.");

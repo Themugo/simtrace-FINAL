@@ -84,7 +84,6 @@ export default function StatusPage() {
     setChecking(false);
   }
 
-  const allOk = Object.values(statuses).every(s => s.ok);
   const anyDown = Object.values(statuses).some(s => !s.ok);
 
   return (

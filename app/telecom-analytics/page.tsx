@@ -145,7 +145,7 @@ export default function TelecomAnalyticsPage() {
         <div className="card" style={{ marginBottom: "2rem" }}>
           <h3 style={{ marginBottom: "1rem" }}>30-Day Trend</h3>
           <div style={{ height: 200, display: "flex", alignItems: "flex-end", gap: 4 }}>
-            {overview.trends.daily.map((day, i) => (
+            {overview.trends.daily.map((day) => (
               <div
                 key={day.date}
                 style={{

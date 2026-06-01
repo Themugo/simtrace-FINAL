@@ -27,7 +27,6 @@ export default function LawEnforcementPage() {
   const [bulkInput, setBulkInput] = useState("");
   const [bulkResults, setBulkResults] = useState<BulkResult[]>([]);
   const [checkLoading, setCheckLoading] = useState(false);
-  const [reports, setReports] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) { router.push("/login"); return; }

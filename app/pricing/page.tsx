@@ -142,13 +142,12 @@ function MpesaModal({ plan, onClose }: MpesaModalProps) {
   async function payStripe() {
     setLoading(true); setError("");
     try {
-      const { clientSecret } = await api.post("/api/billing/upgrade-stripe", { planId: plan.id });
+      await api.post("/api/billing/upgrade-stripe", { planId: plan.id });
       // Stripe.js card payment — confirmCardPayment with clientSecret
       if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
         // Dynamic import keeps Stripe out of initial bundle
         const { loadStripe } = await import("@stripe/stripe-js").catch(() => ({ loadStripe: null }));
         if (loadStripe) {
-          const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
           // In production: use Stripe Elements to collect card details
           // const { error } = await stripe.confirmCardPayment(clientSecret, { payment_method: { card: cardElement } });
           // if (error) { setError(error.message); setLoading(false); return; }

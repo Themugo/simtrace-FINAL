@@ -14,7 +14,7 @@ interface DeviceKeyModalProps {
   onClose: () => void;
 }
 
-function DeviceKeyModal({ deviceKey, imei, onClose }: DeviceKeyModalProps) {
+function DeviceKeyModal({ deviceKey, onClose }: DeviceKeyModalProps) {
   const [copied, setCopied] = useState(false);
   function copy() {
     navigator.clipboard.writeText(deviceKey);

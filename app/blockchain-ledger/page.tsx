@@ -1,6 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useAuth } from "../../lib/auth";
+import { useState } from "react";
 import { api } from "../../lib/api";
 
 interface BlockchainEntry {
@@ -16,7 +15,6 @@ interface BlockchainEntry {
 }
 
 export default function BlockchainLedgerPage() {
-  const { user } = useAuth();
   const [imei, setImei] = useState("");
   const [history, setHistory] = useState<BlockchainEntry[]>([]);
   const [loading, setLoading] = useState(false);

@@ -1,6 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useAuth } from "../../lib/auth";
+import { useState } from "react";
 import { api } from "../../lib/api";
 
 interface DnaData {
@@ -23,7 +22,6 @@ interface DnaData {
 }
 
 export default function DeviceDnaPage() {
-  const { user } = useAuth();
   const [imei, setImei] = useState("");
   const [dnaData, setDnaData] = useState<DnaData | null>(null);
   const [loading, setLoading] = useState(false);

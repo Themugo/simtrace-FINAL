@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useAuth } from "../../lib/auth";
 import { api } from "../../lib/api";
 
 interface NewCaseData {
@@ -26,7 +25,6 @@ interface RecoveryCase {
 }
 
 export default function RecoveryNetworkPage() {
-  const { user } = useAuth();
   const [cases, setCases] = useState<RecoveryCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewCase, setShowNewCase] = useState(false);

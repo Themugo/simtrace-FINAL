@@ -113,7 +113,7 @@ export default function DeviceDetailPage() {
     try {
       const data = await api.deviceDetail(id as string);
       setDevice(data);
-    } catch (err: any) {
+    } catch {
       toast?.add("Device not found or access denied", "danger");
       router.push("/devices");
     } finally { setLoading(false); }

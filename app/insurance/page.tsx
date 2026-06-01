@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useAuth } from "../../lib/auth";
 import { api } from "../../lib/api";
 
 interface Policy {
@@ -28,7 +27,6 @@ interface Claim {
 }
 
 export default function InsurancePage() {
-  const { user } = useAuth();
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [activeTab, setActiveTab] = useState("policies");

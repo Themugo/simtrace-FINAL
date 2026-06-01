@@ -39,7 +39,7 @@ function ResetForm() {
       if (data.token) saveToken(data.token);
       setStep("success");
       setTimeout(() => router.push("/devices"), 2500);
-    } catch (err) {
+    } catch {
       setError("Could not connect. Please try again.");
     } finally {
       setLoading(false);

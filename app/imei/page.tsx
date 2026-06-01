@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useToast } from "../../components/ToastProvider";
@@ -176,7 +176,6 @@ interface ImeiResult {
 
 function ImeiPageInner() {
   const params               = useSearchParams();
-  const router               = useRouter();
   const { user }             = useAuth();
   const toast                = useToast();
   const [tab,      setTab]   = useState("single");
@@ -211,7 +210,6 @@ function ImeiPageInner() {
     finally { setAiLoad(false); }
   }
 
-  const riskColor = result ? (result.riskScore && result.riskScore >= 70 ? "var(--rose)" : result.riskScore && result.riskScore >= 35 ? "var(--amber)" : "var(--emerald)") : "var(--muted)";
   const statusColor: Record<string, string> = { active:"var(--emerald)", stolen:"var(--rose)", blacklisted:"var(--amber)", recovered:"var(--sky)", unknown:"var(--muted)" };
 
   return (

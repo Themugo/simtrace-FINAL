@@ -12,7 +12,7 @@ interface Sighting {
 }
 
 export default function CommunityPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [sightings, setSightings]  = useState<Sighting[]>([]);
   const [loading,   setLoading]    = useState(true);
