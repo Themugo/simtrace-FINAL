@@ -231,12 +231,12 @@ export default function AdminAdsPage() {
                     </div>
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"0.5rem" }}>
-                    {[
+                    {([
                       ["Impressions", ad.impressions?.toLocaleString() || 0, "var(--text2)"],
                       ["Clicks",      ad.clicks?.toLocaleString() || 0,      "var(--sky)"  ],
                       ["CTR",         `${ctr}%`,                             parseFloat(ctr) >= 2 ? "var(--emerald)" : "var(--muted)"],
                       ["Spent",       `KES ${(ad.spentKES||0).toLocaleString()}`, "var(--amber)"],
-                    ].map(([l,v,c]) => (
+                    ] as const).map(([l,v,c]) => (
                       <div key={l} style={{ background:"var(--bg)", borderRadius:"var(--r)", padding:"0.5rem 0.65rem" }}>
                         <div style={{ fontSize:"0.65rem", color:"var(--muted)", marginBottom:2, textTransform:"uppercase", letterSpacing:"0.06em" }}>{l}</div>
                         <div style={{ fontWeight:700, color:c, fontSize:"0.92rem" }}>{v}</div>

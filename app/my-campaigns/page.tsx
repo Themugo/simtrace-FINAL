@@ -59,12 +59,12 @@ function CampaignCard({ ad }: CampaignCardProps) {
 
       {/* Stats grid */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"0.6rem", marginBottom:"0.85rem" }}>
-        {[
+        {([
           ["Impressions", ad.impressions?.toLocaleString() || 0,  "var(--sky)"],
           ["Clicks",      ad.clicks?.toLocaleString() || 0,       "var(--indigo)"],
-          ["CTR",         `${ctr}%`,                              ctr >= 2 ? "var(--emerald)" : "var(--muted)"],
+          ["CTR",         `${ctr}%`,                              parseFloat(ctr) >= 2 ? "var(--emerald)" : "var(--muted)"],
           ["Spent",       `KES ${(ad.spentKES||0).toLocaleString()}`, "var(--amber)"],
-        ].map(([l,v,c]) => (
+        ] as const).map(([l,v,c]) => (
           <div key={l} style={{ background:"var(--bg)", borderRadius:8, padding:"0.6rem 0.75rem" }}>
             <div style={{ fontSize:"0.68rem", color:"var(--muted)", marginBottom:2, textTransform:"uppercase", letterSpacing:"0.06em" }}>{l}</div>
             <div style={{ fontSize:"1rem", fontWeight:700, color:c }}>{v}</div>

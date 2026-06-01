@@ -70,11 +70,11 @@ export default function CommunityPage() {
 
       {/* Stats bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
-        {[
+        {([
           ["Community members", stats.members, "var(--sky)"],
           ["Devices recovered", stats.recovered, "var(--emerald)"],
           ["Active sightings", sightings.length, "var(--amber)"],
-        ].map(([label, value, color]) => (
+        ] as const).map(([label, value, color]) => (
           <div key={label} className="card" style={{ textAlign: "center" }}>
             <div style={{ fontSize: "1.8rem", fontWeight: 800, color }}>{value}</div>
             <div className="text-muted" style={{ fontSize: "0.78rem", marginTop: 2 }}>{label}</div>

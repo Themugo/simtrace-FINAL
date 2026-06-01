@@ -24,7 +24,7 @@ interface MessageProps {
   msg: Message;
 }
 
-function Message({ msg }: MessageProps) {
+function MessageBubble({ msg }: MessageProps) {
   const isUser = msg.role === "user";
   return (
     <div style={{ display:"flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom:"0.85rem" }}>
@@ -227,7 +227,7 @@ export default function AIAssistantPage() {
           </div>
         ) : (
           <>
-            {messages.map((m,i) => <Message key={i} msg={m} />)}
+            {messages.map((m,i) => <MessageBubble key={i} msg={m} />)}
             <div ref={bottomRef} />
           </>
         )}

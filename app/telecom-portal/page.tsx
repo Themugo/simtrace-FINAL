@@ -22,6 +22,7 @@ interface TierBenefits {
 interface Partner {
   _id: string;
   partner?: {
+    _id?: string;
     orgName: string;
     orgType: string;
     tier: string;

@@ -29,19 +29,33 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "instrumentation.ts",
+    "types/**/*.ts",
+    "types/**/*.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules",
-    "backend/modules/device-intelligence/digital-twin.ts",
-    "backend/events/subscribers.ts",
-    "backend/gateway/api.ts",
+    "backend",
     "mobile",
+    "mobile-app",
     "k6",
+    "e2e",
+    "scripts",
+    "prototypes",
     "__tests__",
+    "lib/mobile",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "lib/mobile"
+    "**/*.spec.tsx"
   ]
 }

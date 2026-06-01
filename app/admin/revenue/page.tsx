@@ -130,11 +130,11 @@ export default function AdminRevenuePage() {
         {/* Revenue sources donut (simple bars) */}
         <div className="card">
           <h3 style={{ marginBottom:"1rem" }}>Revenue Sources</h3>
-          {[
+          {([
             ["Subscriptions", subRevKES, "var(--sky)"],
             ["Ad Revenue",    adRev,     "var(--amber)"],
             ["Stripe/USD",    totalRevUSD * 130, "var(--violet)"],
-          ].filter(([,v]) => v > 0).map(([label, val, color]) => {
+          ] as const).filter(([,v]) => v > 0).map(([label, val, color]) => {
             const total = subRevKES + adRev + totalRevUSD * 130;
             const pct   = total ? Math.round((val / total) * 100) : 0;
             return (

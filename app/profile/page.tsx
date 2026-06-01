@@ -204,11 +204,11 @@ export default function ProfilePage() {
                 </span>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"0.75rem" }}>
-                {[
+                {([
                   ["Devices used",    `${sub.slotsUsed ?? "—"} / ${sub.totalAllowed ?? "—"}`,  "var(--sky)"],
                   ["Extra slots",     sub.extraDevices || 0,                                     "var(--emerald)"],
                   ["Remaining",       sub.slotsRemaining ?? "—",                                 "var(--violet)"],
-                ].map(([k,v,c]) => (
+                ] as const).map(([k,v,c]) => (
                   <div key={k} style={{ background:"var(--bg)", borderRadius:8, padding:"0.75rem" }}>
                     <div style={{ fontSize:"0.68rem", color:"var(--muted)", marginBottom:3, textTransform:"uppercase", letterSpacing:"0.06em", fontWeight:600 }}>{k}</div>
                     <div style={{ fontSize:"1.3rem", fontWeight:800, color:c }}>{v}</div>

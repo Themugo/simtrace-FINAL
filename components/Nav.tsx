@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useAuth } from '../lib/auth';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect, useRef, MouseEvent, CSSProperties } from 'react';
+import { useState, useEffect, useRef, CSSProperties } from 'react';
 import SimTraceLogo from './SimTraceLogo';
 
 export default function Nav() {
@@ -24,7 +24,7 @@ export default function Nav() {
   }, []);
 
   useEffect(() => {
-    function handler(e: MouseEvent) {
+    function handler(e: globalThis.MouseEvent) {
       if (adminRef.current && !adminRef.current.contains(e.target as Node)) setAdminMenu(false);
     }
     document.addEventListener('mousedown', handler);

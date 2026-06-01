@@ -120,6 +120,8 @@ interface DeviceStats {
   stolen?: number;
   recovered?: number;
   blacklisted?: number;
+  recentPings?: number;
+  openReports?: number;
 }
 
 interface DeviceStatusBarProps {
@@ -179,12 +181,12 @@ function RevenueSnapshot({ revenue }: RevenueSnapshotProps) {
     <div className="card">
       <div style={{ fontSize:"0.72rem", color:"var(--muted)", marginBottom:"0.85rem", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>Revenue · 30 days</div>
       <div style={{ display:"flex", gap:"1.5rem", flexWrap:"wrap", marginBottom:"1rem" }}>
-        {[
+        {([
           [revenue.monthlyRevKES, "KES", "Total", "var(--emerald)"],
           [revenue.monthlyRevUSD, "USD", "Stripe", "var(--sky)"],
           [revenue.adRevKES,      "KES", "Ads",    "var(--amber)"],
           [revenue.weeklyRevKES,  "KES", "Week",   "var(--violet)"],
-        ].filter(([v]) => v).map(([v, currency, label, color]) => (
+        ] as const).filter(([v]) => v).map(([v, currency, label, color]) => (
           <div key={label as string}>
             <div style={{ fontSize:"1.4rem", fontWeight:800, color, letterSpacing:"-0.02em" }}>
               {currency} {(v || 0).toLocaleString()}
@@ -236,7 +238,7 @@ export default function DashboardPage() {
     if (!user || user.role !== "admin") return;
     const [s, a, r] = await Promise.allSettled([
       api.deviceStats(),
-      api.alerts({ limit: 40 }),
+      api.alerts({ limit: "40" }),
       api.get("/api/billing/revenue"),
     ]);
     if (s.status === "fulfilled") setStats(s.value);

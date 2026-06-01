@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -123,11 +124,11 @@ function BulkChecker() {
           <div className="card" style={{ padding:0, overflow:"hidden" }}>
             {/* Summary */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", borderBottom:"1px solid var(--border)" }}>
-              {[
+              {([
                 [high,   "High risk",   "var(--rose)"   ],
                 [clean,  "Clean",       "var(--emerald)"],
                 [results.length, "Total","var(--text2)" ],
-              ].map(([n,l,c]) => (
+              ] as const).map(([n,l,c]) => (
                 <div key={l as string} style={{ padding:"0.75rem", textAlign:"center", borderRight:"1px solid var(--border)" }}>
                   <div style={{ fontSize:"1.4rem", fontWeight:800, color:c }}>{n}</div>
                   <div style={{ fontSize:"0.72rem", color:"var(--muted)" }}>{l as string}</div>
@@ -288,12 +289,12 @@ function ImeiPageInner() {
                     Device Information
                   </div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.75rem" }}>
-                    {[
+                    {([
                       ["IMEI",      result.imei || imei.replace(/\D/g,""), true],
                       ["Make",      result.make  || "Unknown"],
                       ["Model",     result.model || "Unknown"],
                       ["Last seen", result.lastSeen ? new Date(result.lastSeen).toLocaleDateString("en-KE") : "Never"],
-                    ].map(([k,v,mono]) => (
+                    ] as const).map(([k,v,mono]) => (
                       <div key={k} style={{ background:"var(--bg)", borderRadius:8, padding:"0.6rem 0.85rem" }}>
                         <div style={{ fontSize:"0.68rem", color:"var(--muted)", marginBottom:2, textTransform:"uppercase", letterSpacing:"0.06em" }}>{k}</div>
                         <div style={{ fontFamily:mono?"var(--mono)":undefined, fontSize:"0.88rem", color:"var(--text)", fontWeight:500 }}>{v}</div>
@@ -355,14 +356,14 @@ function ImeiPageInner() {
                 {/* Actions */}
                 {user && (
                   <div style={{ display:"flex", gap:"0.6rem", flexWrap:"wrap" }}>
-                    <a href={`/report?imei=${result.imei || imei}`}
+                    <Link href={`/report?imei=${result.imei || imei}`}
                       style={{ background:"rgba(251,113,133,0.1)", border:"1px solid rgba(251,113,133,0.25)", color:"var(--rose)", borderRadius:"var(--r)", padding:"6px 16px", fontSize:"0.85rem", fontWeight:600, textDecoration:"none" }}>
                       🚨 Report Stolen
-                    </a>
-                    <a href="/devices"
+                    </Link>
+                    <Link href="/devices"
                       style={{ background:"var(--surface)", border:"1px solid var(--border2)", color:"var(--text2)", borderRadius:"var(--r)", padding:"6px 16px", fontSize:"0.85rem", fontWeight:600, textDecoration:"none" }}>
                       Register Device
-                    </a>
+                    </Link>
                   </div>
                 )}
               </div>

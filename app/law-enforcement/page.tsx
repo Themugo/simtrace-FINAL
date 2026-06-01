@@ -94,12 +94,12 @@ export default function LawEnforcementPage() {
         <>
           {/* Stats */}
           <div className="grid-4" style={{ marginBottom: "1.25rem" }}>
-            {[
+            {([
               ["API Calls (Month)", partner.apiCallsMonth?.toLocaleString() || 0, "var(--sky)"],
               ["Monthly Limit",     partner.apiCallsLimit?.toLocaleString() || 0, "var(--muted)"],
               ["Tier",              partner.tier?.toUpperCase(),                   "var(--amber)"],
               ["Quota Used",        `${Math.round(((partner.apiCallsMonth || 0) / (partner.apiCallsLimit || 1)) * 100)}%`, "var(--emerald)"],
-            ].map(([label, value, color]) => (
+            ] as const).map(([label, value, color]) => (
               <div key={label} className="card" style={{ borderLeft: `3px solid ${color}` }}>
                 <div style={{ fontSize: "0.72rem", color: "var(--dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
                 <div style={{ fontSize: "1.5rem", fontWeight: 800, color }}>{value}</div>

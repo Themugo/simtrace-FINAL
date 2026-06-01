@@ -75,11 +75,11 @@ export default function ReportsPage() {
 
       {/* Status summary */}
       <div className="grid-3" style={{ marginBottom:"1.25rem" }}>
-        {[
+        {([
           ["Open",          counts.open,          "var(--rose)"   ],
           ["Investigating", counts.investigating,  "var(--amber)"  ],
           ["Recovered",     counts.recovered,      "var(--emerald)"],
-        ].map(([l,v,c]) => (
+        ] as const).map(([l,v,c]) => (
           <div key={l} className="stat-card" style={{ "--accent":c, textAlign:"center", cursor:"pointer" }}
             onClick={() => { setFilter(l.toLowerCase()); setPage(1); }}>
             <div style={{ fontSize:"2rem", fontWeight:900, color:c }}>{v}</div>

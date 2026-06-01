@@ -160,7 +160,7 @@ function MpesaModal({ plan, onClose }: MpesaModalProps) {
     finally { setLoading(false); }
   }
 
-  const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" };
+  const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" } as const;
   const box     = { background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 16, padding: "2rem", maxWidth: 440, width: "100%", boxShadow: "0 20px 60px #00000060" };
 
   return (

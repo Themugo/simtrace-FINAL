@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => socket.disconnect();
+    return () => { socket.disconnect(); };
   }, [add]);
 
   const COLORS: Record<Toast['type'], { bg: string; border: string; text: string }> = {

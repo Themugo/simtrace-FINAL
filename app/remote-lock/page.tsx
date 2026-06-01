@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -101,7 +102,7 @@ export default function RemoteLockPage() {
           <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>📱</div>
           <h3>No devices registered</h3>
           <p className="text-muted" style={{ marginBottom: "1.25rem" }}>Register a device first to use remote lock.</p>
-          <a href="/devices" className="btn-primary" style={{ display: "inline-block", padding: "0.65rem 1.5rem", textDecoration: "none" }}>+ Register Device</a>
+          <Link href="/devices" className="btn-primary" style={{ display: "inline-block", padding: "0.65rem 1.5rem", textDecoration: "none" }}>+ Register Device</Link>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import Link from "next/link";
 import SimTraceLogo from "../components/SimTraceLogo";
 
 interface ErrorPageProps {
@@ -28,9 +29,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           style={{ background: "linear-gradient(135deg,var(--sky),var(--indigo))", color: "#fff", border: "none", borderRadius: 8, padding: "0.6rem 1.5rem", fontWeight: 700, cursor: "pointer" }}>
           Try again
         </button>
-        <a href="/" style={{ background: "transparent", border: "1px solid #1e2d45", color: "var(--text2)", borderRadius: 8, padding: "0.6rem 1.5rem", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+        <Link href="/" style={{ background: "transparent", border: "1px solid #1e2d45", color: "var(--text2)", borderRadius: 8, padding: "0.6rem 1.5rem", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
           Go home
-        </a>
+        </Link>
       </div>
     </div>
   );

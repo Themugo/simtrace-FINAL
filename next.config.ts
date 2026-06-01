@@ -15,10 +15,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   typescript: {
-    ignoreBuildErrors: true,
+    // Frontend type-checks clean; build now fails on type errors.
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    // Lint errors now fail the build; warnings still allowed.
+    ignoreDuringBuilds: false,
   },
   experimental: {
     optimizePackageImports: ['leaflet', 'react-leaflet', 'zustand'],

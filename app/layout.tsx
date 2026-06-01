@@ -1,6 +1,6 @@
 import { AuthProvider } from "../lib/auth";
 import { ToastProvider } from "../components/ToastProvider";
-import Nav from "../components/Nav.tsx";
+import Nav from "../components/Nav";
 import "./globals.css";
 
 export const metadata = {
