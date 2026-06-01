@@ -22,7 +22,8 @@
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": false,
     "types": [
-      "node"
+      "node",
+      "jest"
     ],
     "strictNullChecks": true
   },

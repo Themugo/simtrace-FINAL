@@ -5,7 +5,9 @@ const nextConfig: NextConfig = {
   transpilePackages: ["leaflet", "react-leaflet"],
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "**" },
+      // Scoped allowlist — never use hostname "**" (open image-proxy / SSRF risk).
+      // Add only hosts the app actually loads images from.
+      { protocol: "https", hostname: "res.cloudinary.com" },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

@@ -38,3 +38,6 @@ export async function register() {
     console.log("Sentry initialized successfully");
   }
 }
+
+// Capture errors thrown in nested React Server Components (Next.js onRequestError hook).
+export const onRequestError = Sentry.captureRequestError;
