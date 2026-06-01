@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { sendEmail, sendSMS } from "../services/notify.js";
+import { twilioConfigured, placeVerificationCall, sendTwilioSms } from "../services/twilio.js";
 import { User } from "../db/index.js";
 
 const router = Router();
@@ -41,10 +42,10 @@ router.post("/send", async (req: Request, res: Response, next: NextFunction) => 
       })
       .parse(req.body);
 
-    // Voice/call OTP requires a voice provider (e.g. Twilio Voice) — not yet wired.
-    if (channel === "call" && !process.env.VOICE_OTP_PROVIDER) {
+    // Voice/call OTP uses Twilio Voice — only available once TWILIO_* keys are set.
+    if (channel === "call" && !twilioConfigured()) {
       return res.status(501).json({
-        error: "Call verification is not configured. Set up a voice provider, or use email/SMS.",
+        error: "Call verification is not configured. Set TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_FROM_NUMBER, or use email/SMS.",
       });
     }
 
@@ -57,11 +58,18 @@ router.post("/send", async (req: Request, res: Response, next: NextFunction) => 
     );
 
     const body = `Your SimTrace verification code is ${code}. It expires in 10 minutes.`;
-    const providerConfigured =
-      channel === "email" ? !!process.env.SENDGRID_API_KEY : !!process.env.AT_API_KEY;
-
-    if (channel === "email") await sendEmail(destination, "SimTrace verification code", body);
-    else await sendSMS(destination, body);
+    let providerConfigured = false;
+    if (channel === "email") {
+      providerConfigured = !!process.env.SENDGRID_API_KEY;
+      await sendEmail(destination, "SimTrace verification code", body);
+    } else if (channel === "sms") {
+      providerConfigured = !!process.env.AT_API_KEY || twilioConfigured();
+      if (process.env.AT_API_KEY) await sendSMS(destination, body);
+      else if (twilioConfigured()) await sendTwilioSms(destination, body);
+    } else if (channel === "call") {
+      providerConfigured = twilioConfigured();
+      await placeVerificationCall(destination, code);
+    }
 
     // In non-production with no provider configured, surface the code so devs can test.
     const devEcho =

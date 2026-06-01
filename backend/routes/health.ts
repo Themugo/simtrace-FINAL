@@ -1,6 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { integrationSummary } from '../services/integrations.js';
 
 const router = Router();
+
+// GET /api/health/integrations - which integrations are plugged in (keys present)
+router.get('/integrations', (_req: Request, res: Response) => {
+  res.json(integrationSummary());
+});
 
 interface HealthCheck {
   uptime: number;
