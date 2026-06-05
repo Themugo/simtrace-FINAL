@@ -24,7 +24,8 @@
         "NSLocationWhenInUseUsageDescription": "SIMTrace needs your location to track your devices and provide accurate alerts.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "SIMTrace needs your location to track your devices even when the app is in background.",
         "NSCameraUsageDescription": "SIMTrace needs camera access to scan QR codes for device pairing.",
-        "NSFaceIDUsageDescription": "SIMTrace uses Face ID for secure authentication."
+        "NSFaceIDUsageDescription": "SIMTrace uses Face ID for secure authentication.",
+        "NSContactsUsageDescription": "SIMTrace needs access to verify your phone number for account creation."
       }
     },
     "android": {
@@ -41,7 +42,11 @@
         "USE_BIOMETRIC_AUTH",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED",
-        "SCHEDULE_EXACT_ALARM"
+        "SCHEDULE_EXACT_ALARM",
+        "READ_PHONE_STATE",
+        "READ_SMS",
+        "RECEIVE_SMS",
+        "READ_PHONE_NUMBERS"
       ]
     },
     "web": {
