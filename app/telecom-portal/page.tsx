@@ -122,7 +122,7 @@ export default function TelecomPortalPage() {
     if (!testImei) return;
     try {
       const res = await api.post("/api/partner/imei/bulk", { imeis: [testImei] });
-      setTestResult(res.results?.[0]);
+      setTestResult(res.results?.[0] || null);
     } catch (err: any) { setTestResult({ error: err.message }); }
   }
 

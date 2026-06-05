@@ -131,7 +131,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", gap:"1rem", marginBottom:"1.75rem" }}>
         <div style={{ width:56, height:56, borderRadius:"50%", background:"linear-gradient(135deg,var(--sky-dim),var(--indigo-dim))", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:"1.3rem", color:"#fff", flexShrink:0 }}>
-          {user.name?.[0]?.toUpperCase()}
+          {user.name?.[0]?.toUpperCase() || 'U'}
         </div>
         <div>
           <h1 style={{ marginBottom:3 }}>{user.name}</h1>

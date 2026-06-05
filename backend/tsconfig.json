@@ -9,8 +9,7 @@
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./",
-    "strict": false,
-    "noImplicitAny": true,
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -25,8 +24,7 @@
     "types": [
       "node",
       "jest"
-    ],
-    "strictNullChecks": true
+    ]
   },
   "include": [
     "**/*.ts"
