@@ -242,9 +242,11 @@ app.use("/api/health", healthRoutes);
 
 app.use("/api/auth",      authLimiter,  authRoutes);
 app.use("/api/auth/oauth", oauthRoutes);
+app.use("/api/auth/verify-phone", authLimiter, phoneVerificationRoutes);
 app.use("/api/verify",    authLimiter,  verificationRoutes);
 app.use("/api/devices",               deviceRoutes);
-app.use("/api/devices",               lockRoutes);     // lock/unlock/commands on /api/devices/:id/*
+app.use("/api/devices",               lockRoutes);
+app.use("/api/devices/auto-register", authenticate, autoRegisterRoutes);     // lock/unlock/commands on /api/devices/:id/*
 app.use("/api/imei",    imeiLimiter,  imeiRoutes);
 app.use("/api/track",   trackLimiter, trackRoutes);
 app.use("/api/alerts",                alertRoutes);
