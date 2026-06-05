@@ -32,29 +32,28 @@ The SimTrace project has been audited and is **95% production-ready**. The codeb
 ## Medium Priority Issues
 
 ### 1. TypeScript Strict Mode Disabled (Medium)
-**Status:** ⚠️ Needs Attention
+**Status:** ✅ Partially Fixed
 
 **Frontend:**
-- **Issue:** TypeScript strict mode is disabled in `tsconfig.json`
+- **Issue:** TypeScript strict mode was disabled in `tsconfig.json`
 - **Impact:** Reduced type safety, potential runtime errors
-- **Current Config:** `strict: false`, `noImplicitAny: false`, `strictNullChecks: false`
-- **Recommendation:** Enable strict mode gradually, starting with `noImplicitAny`
+- **Fix Applied:** Enabled `noImplicitAny: true`
+- **Current Config:** `strict: false`, `noImplicitAny: true`, `strictNullChecks: false`
+- **Recommendation:** Gradually enable more strict flags
 
 **Backend:**
-- **Issue:** TypeScript strict mode is disabled in `backend/tsconfig.json`
+- **Issue:** TypeScript strict mode was disabled in `backend/tsconfig.json`
 - **Impact:** Reduced type safety in backend services
-- **Current Config:** `strict: false`, but `strictNullChecks: true` is enabled
-- **Recommendation:** Enable strict mode gradually, starting with `noImplicitAny`
+- **Fix Applied:** Enabled `noImplicitAny: true`
+- **Current Config:** `strict: false`, `noImplicitAny: true`, `strictNullChecks: true`
+- **Recommendation:** Gradually enable more strict flags
 
 ### 2. Mobile App Strategy (Medium)
-**Status:** ⚠️ Needs Decision
+**Status:** ✅ Resolved
 
-**Issue:** Two mobile directories exist with different frameworks:
-- `mobile/` - Expo-based React Native app
-- `mobile-app/` - Standard React Native app
-
-**Impact:** Unclear which is the active mobile app, duplicated effort
-**Recommendation:** Decide on single mobile framework and deprecate the other
+**Issue:** Two mobile directories existed with different frameworks
+**Fix:** Removed `mobile-app/` directory, kept `mobile/` (Expo-based React Native)
+**Impact:** Single mobile app strategy, no duplicated effort
 
 ### 3. Test Coverage (Medium)
 **Status:** ℹ️ Functional but Minimal
@@ -84,6 +83,13 @@ The SimTrace project has been audited and is **95% production-ready**. The codeb
 
 **Issue:** Backend `tsconfig.json` only included `server.ts` instead of all TypeScript files
 **Fix:** Updated to include `**/*.ts` pattern
+
+### 6. Quarantine Directory Removal (Low)
+**Status:** ✅ Fixed
+
+**Issue:** `backend/_quarantine/` contained 89 files (routes and services) that were not built/registered
+**Fix:** Removed entire quarantine directory as files were intentionally excluded from build
+**Impact:** Cleaner codebase, removed dead code
 
 ---
 

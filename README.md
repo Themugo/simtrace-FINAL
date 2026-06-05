@@ -28,15 +28,15 @@
 - ✅ Payment processing UI complete (Stripe/M-Pesa)
 - ✅ Authentication flows complete (login, register, password reset)
 - ✅ Real-time features implemented (Socket.IO)
-- ✅ Duplicate files removed (JS/TS, frontend folder)
+- ✅ Duplicate files removed (JS/TS, mobile-app, quarantine)
 - ✅ Lockfile consistency fixed
-- ✅ Node version locked to 20.x
-- ✅ TypeScript strict mode temporarily disabled
+- ✅ Node version locked to 22.x
+- ✅ TypeScript noImplicitAny enabled (gradual strict mode)
 - ✅ Dynamic imports for Leaflet (SSR compatibility)
 
 ### 🔄 Pending (Optional Enhancements)
-- Complete TypeScript migration (backend routes, frontend components)
-- Resolve Jest configuration for ES modules (documented)
+- Complete TypeScript strict mode enablement (gradual)
+- Increase test coverage to 50%
 - Performance optimization
 - Additional UI/UX polish
 
@@ -62,10 +62,10 @@ cp .env.example .env
 docker compose up
 
 # 3. Seed demo data (first time only)
-cd backend && node scripts/seed-demo.js
+cd backend && npm run seed
 
 # 4. Frontend
-cd frontend && npm install && npm run dev
+npm run dev
 # → http://localhost:3000
 ```
 
