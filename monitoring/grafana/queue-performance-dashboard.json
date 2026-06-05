@@ -1,0 +1,199 @@
+{
+  "dashboard": {
+    "title": "SimTrace Queue Performance",
+    "uid": "simtrace-queue-performance",
+    "tags": ["simtrace", "queue", "bullmq"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Queue Depth",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "bullmq_queue_depth{queue=~\".*\"}",
+            "legendFormat": "{{queue}}"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [1000],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Queue Depth",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 2,
+        "title": "Queue Processing Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(bullmq_queue_processed_total[5m])",
+            "legendFormat": "{{queue}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Queue Failure Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(bullmq_queue_failed_total[5m])",
+            "legendFormat": "{{queue}}"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [10],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Queue Failure Rate",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 4,
+        "title": "Worker Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "bullmq_workers_active",
+            "legendFormat": "Active Workers"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Job Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(bullmq_job_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{queue}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Dead Letter Queue Size",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "bullmq_dlq_size{queue=~\".*\"}",
+            "legendFormat": "{{queue}}"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [100],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High DLQ Size",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 7,
+        "title": "Job Types by Queue",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (job_type) (bullmq_jobs_total)",
+            "legendFormat": "{{job_type}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Queue Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "bullmq_queue_latency_seconds",
+            "legendFormat": "{{queue}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s"
+          }
+        ]
+      }
+    ]
+  }
+}

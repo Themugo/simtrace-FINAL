@@ -1,0 +1,53 @@
+{
+  "name": "simtrace-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Mugo James <mugo.james27@gmail.com>",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "validate-env": "node scripts/validate-env.js"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "^10.53.1",
+    "@stripe/stripe-js": "^4.10.0",
+    "leaflet": "^1.9.4",
+    "next": "^15.1.0",
+    "postcss": "^8.5.10",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1",
+    "socket.io-client": "^4.8.1",
+    "zustand": "^5.0.0"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/leaflet": "^1.9.14",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/ui": "^4.1.7",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.1.0",
+    "jsdom": "^25.0.0",
+    "k6": "^0.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.7"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  }
+}

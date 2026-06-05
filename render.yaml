@@ -1,0 +1,30 @@
+# Render.com deployment configuration for SimTrace Backend
+
+services:
+  - type: web
+    name: simtrace-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false   # secret — set in Render dashboard, never in the repo
+      - key: REDIS_URL
+        sync: false   # secret — set in Render dashboard, never in the repo
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PORT
+        value: 4000
+      - key: ALLOWED_ORIGINS
+        value: https://www.simtrace.site,https://simtrace.site
+      - key: FRONTEND_URL
+        value: https://www.simtrace.site
+      - key: BACKEND_URL
+        value: https://simtrace-backend.onrender.com
+      - key: TRACK_REQUIRE_AUTH
+        value: true

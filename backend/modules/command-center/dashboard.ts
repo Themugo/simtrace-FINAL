@@ -1,0 +1,396 @@
+// ── Live Command Center Dashboard ───────────────────────────────────────────────────
+// SOC-style dashboard for realtime monitoring and threat detection
+
+import { emit } from '../../events/index.js';
+import { getRedisClient } from '../../services/redis.js';
+
+export interface DashboardWidget {
+  id: string;
+  type: 'incidents' | 'movement' | 'telecom' | 'risk' | 'alerts' | 'stats';
+  title: string;
+  data: any;
+  lastUpdated: Date;
+}
+
+export interface Incident {
+  id: string;
+  type: 'theft' | 'fraud' | 'sim_swap' | 'impossible_travel' | 'high_risk';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  imei: string;
+  description: string;
+  location?: { lat: number; lng: number };
+  timestamp: Date;
+  status: 'active' | 'investigating' | 'resolved';
+}
+
+export interface MovementStream {
+  imei: string;
+  location: { lat: number; lng: number };
+  timestamp: Date;
+  speed: number;
+  heading: number;
+}
+
+export interface TelecomFeed {
+  imei: string;
+  operator: string;
+  event: 'sim_change' | 'blacklist_detected' | 'network_change';
+  timestamp: Date;
+  details: any;
+}
+
+export interface RiskAlert {
+  imei: string;
+  riskScore: number;
+  threatLevel: string;
+  riskFactors: string[];
+  timestamp: Date;
+}
+
+export interface AIDetection {
+  type: 'fraud_ring' | 'coordinated_theft' | 'repeat_offender' | 'pattern_anomaly';
+  description: string;
+  confidence: number;
+  affectedDevices: string[];
+  timestamp: Date;
+}
+
+class CommandCenterDashboard {
+  private widgets: Map<string, DashboardWidget> = new Map();
+  private incidents: Incident[] = [];
+  private movementStreams: Map<string, MovementStream> = new Map();
+  private telecomFeeds: TelecomFeed[] = [];
+  private riskAlerts: RiskAlert[] = [];
+  private aiDetections: AIDetection[] = [];
+
+  constructor() {
+    this.initializeWidgets();
+    this.setupEventListeners();
+  }
+
+  // Initialize dashboard widgets
+  private initializeWidgets(): void {
+    this.widgets.set('active-incidents', {
+      id: 'active-incidents',
+      type: 'incidents',
+      title: 'Active Incidents',
+      data: [],
+      lastUpdated: new Date(),
+    });
+
+    this.widgets.set('movement-stream', {
+      id: 'movement-stream',
+      type: 'movement',
+      title: 'Live Movement Stream',
+      data: [],
+      lastUpdated: new Date(),
+    });
+
+    this.widgets.set('telecom-feed', {
+      id: 'telecom-feed',
+      type: 'telecom',
+      title: 'Telecom Activity Feed',
+      data: [],
+      lastUpdated: new Date(),
+    });
+
+    this.widgets.set('high-risk-devices', {
+      id: 'high-risk-devices',
+      type: 'risk',
+      title: 'High-Risk Devices',
+      data: [],
+      lastUpdated: new Date(),
+    });
+
+    this.widgets.set('ai-detections', {
+      id: 'ai-detections',
+      type: 'alerts',
+      title: 'AI Detections',
+      data: [],
+      lastUpdated: new Date(),
+    });
+
+    this.widgets.set('system-stats', {
+      id: 'system-stats',
+      type: 'stats',
+      title: 'System Statistics',
+      data: {
+        totalDevices: 0,
+        activeDevices: 0,
+        stolenDevices: 0,
+        recoveredDevices: 0,
+        riskScore: 0,
+      },
+      lastUpdated: new Date(),
+    });
+  }
+
+  // Setup event listeners
+  private setupEventListeners(): void {
+    // Listen to device detected events
+    emit.on('device.detected', (data) => {
+      this.handleDeviceDetected(data);
+    });
+
+    // Listen to risk calculated events
+    emit.on('risk.calculated', (data) => {
+      this.handleRiskCalculated(data);
+    });
+
+    // Listen to high risk events
+    emit.on('risk.high', (data) => {
+      this.handleHighRisk(data);
+    });
+
+    // Listen to SIM change events
+    emit.on('sim.changed', (data) => {
+      this.handleSIMChange(data);
+    });
+
+    // Listen to agent events
+    emit.on('agent.fraud_ring_detected', (data) => {
+      this.handleFraudRingDetected(data);
+    });
+
+    emit.on('agent.suspicious_relationship', (data) => {
+      this.handleSuspiciousRelationship(data);
+    });
+
+    emit.on('agent.recovery_opportunity', (data) => {
+      this.handleRecoveryOpportunity(data);
+    });
+  }
+
+  // Handle device detected event
+  private handleDeviceDetected(data: any): void {
+    const movementStream: MovementStream = {
+      imei: data.imei,
+      location: data.location,
+      timestamp: data.timestamp || new Date(),
+      speed: 0,
+      heading: 0,
+    };
+
+    this.movementStreams.set(data.imei, movementStream);
+    this.updateWidget('movement-stream', Array.from(this.movementStreams.values()));
+  }
+
+  // Handle risk calculated event
+  private handleRiskCalculated(data: any): void {
+    const riskAlert: RiskAlert = {
+      imei: data.imei,
+      riskScore: data.riskAssessment.overallScore,
+      threatLevel: data.riskAssessment.threatLevel,
+      riskFactors: data.riskAssessment.riskFactors || [],
+      timestamp: new Date(),
+    };
+
+    this.riskAlerts.push(riskAlert);
+    this.riskAlerts = this.riskAlerts.slice(-100); // Keep last 100
+
+    if (riskAlert.threatLevel === 'HIGH' || riskAlert.threatLevel === 'CRITICAL') {
+      this.updateWidget('high-risk-devices', this.riskAlerts.filter(a => 
+        a.threatLevel === 'HIGH' || a.threatLevel === 'CRITICAL'
+      ));
+    }
+  }
+
+  // Handle high risk event
+  private handleHighRisk(data: any): void {
+    const incident: Incident = {
+      id: `incident_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'high_risk',
+      severity: data.riskAssessment.threatLevel === 'CRITICAL' ? 'critical' : 'high',
+      imei: data.imei,
+      description: `High risk detected: ${data.riskAssessment.threatLevel}`,
+      timestamp: new Date(),
+      status: 'active',
+    };
+
+    this.incidents.push(incident);
+    this.updateWidget('active-incidents', this.incidents.filter(i => i.status !== 'resolved'));
+  }
+
+  // Handle SIM change event
+  private handleSIMChange(data: any): void {
+    const telecomFeed: TelecomFeed = {
+      imei: data.imei,
+      operator: 'Unknown',
+      event: 'sim_change',
+      timestamp: data.timestamp || new Date(),
+      details: {
+        oldSimIccid: data.oldSimIccid,
+        newSimIccid: data.newSimIccid,
+      },
+    };
+
+    this.telecomFeeds.push(telecomFeed);
+    this.telecomFeeds = this.telecomFeeds.slice(-50); // Keep last 50
+    this.updateWidget('telecom-feed', this.telecomFeeds);
+
+    // Create incident for SIM change
+    const incident: Incident = {
+      id: `incident_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'sim_swap',
+      severity: 'high',
+      imei: data.imei,
+      description: 'SIM card changed',
+      timestamp: new Date(),
+      status: 'active',
+    };
+
+    this.incidents.push(incident);
+    this.updateWidget('active-incidents', this.incidents.filter(i => i.status !== 'resolved'));
+  }
+
+  // Handle fraud ring detected
+  private handleFraudRingDetected(data: any): void {
+    const aiDetection: AIDetection = {
+      type: 'fraud_ring',
+      description: `Fraud ring detected with ${data.devices.length} devices`,
+      confidence: 0.8,
+      affectedDevices: data.devices,
+      timestamp: new Date(),
+    };
+
+    this.aiDetections.push(aiDetection);
+    this.aiDetections = this.aiDetections.slice(-20); // Keep last 20
+    this.updateWidget('ai-detections', this.aiDetections);
+
+    // Create incident
+    const incident: Incident = {
+      id: `incident_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'fraud',
+      severity: 'critical',
+      imei: data.devices[0],
+      description: `Fraud ring detected: ${data.pattern}`,
+      timestamp: new Date(),
+      status: 'active',
+    };
+
+    this.incidents.push(incident);
+    this.updateWidget('active-incidents', this.incidents.filter(i => i.status !== 'resolved'));
+  }
+
+  // Handle suspicious relationship
+  private handleSuspiciousRelationship(data: any): void {
+    const aiDetection: AIDetection = {
+      type: 'pattern_anomaly',
+      description: `Suspicious device-SIM relationship: ${data.duration} days`,
+      confidence: 0.7,
+      affectedDevices: [data.imei],
+      timestamp: new Date(),
+    };
+
+    this.aiDetections.push(aiDetection);
+    this.aiDetections = this.aiDetections.slice(-20);
+    this.updateWidget('ai-detections', this.aiDetections);
+  }
+
+  // Handle recovery opportunity
+  private handleRecoveryOpportunity(data: any): void {
+    const aiDetection: AIDetection = {
+      type: 'pattern_anomaly',
+      description: `Recovery opportunity detected (${(data.recoveryLikelihood * 100).toFixed(0)}% confidence)`,
+      confidence: data.recoveryLikelihood,
+      affectedDevices: [data.imei],
+      timestamp: new Date(),
+    };
+
+    this.aiDetections.push(aiDetection);
+    this.aiDetections = this.aiDetections.slice(-20);
+    this.updateWidget('ai-detections', this.aiDetections);
+  }
+
+  // Update widget
+  private updateWidget(widgetId: string, data: any): void {
+    const widget = this.widgets.get(widgetId);
+    if (widget) {
+      widget.data = data;
+      widget.lastUpdated = new Date();
+    }
+
+    // Emit widget update event
+    emit('dashboard.widget_updated', {
+      widgetId,
+      data,
+      timestamp: new Date(),
+    });
+  }
+
+  // Get all widgets
+  getWidgets(): DashboardWidget[] {
+    return Array.from(this.widgets.values());
+  }
+
+  // Get specific widget
+  getWidget(widgetId: string): DashboardWidget | undefined {
+    return this.widgets.get(widgetId);
+  }
+
+  // Get active incidents
+  getActiveIncidents(): Incident[] {
+    return this.incidents.filter(i => i.status !== 'resolved');
+  }
+
+  // Resolve incident
+  resolveIncident(incidentId: string): void {
+    const incident = this.incidents.find(i => i.id === incidentId);
+    if (incident) {
+      incident.status = 'resolved';
+      this.updateWidget('active-incidents', this.incidents.filter(i => i.status !== 'resolved'));
+    }
+  }
+
+  // Update system stats
+  async updateSystemStats(): Promise<void> {
+    // This would query the database for actual stats
+    const stats = {
+      totalDevices: 0,
+      activeDevices: 0,
+      stolenDevices: 0,
+      recoveredDevices: 0,
+      riskScore: 0,
+    };
+
+    this.updateWidget('system-stats', stats);
+  }
+
+  // Clear old data
+  clearOldData(maxAgeHours = 24): void {
+    const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+
+    this.incidents = this.incidents.filter(i => i.timestamp > cutoff);
+    this.telecomFeeds = this.telecomFeeds.filter(f => f.timestamp > cutoff);
+    this.riskAlerts = this.riskAlerts.filter(r => r.timestamp > cutoff);
+    this.aiDetections = this.aiDetections.filter(d => d.timestamp > cutoff);
+  }
+}
+
+// Singleton instance
+export const commandCenterDashboard = new CommandCenterDashboard();
+
+// ── Convenience Functions ───────────────────────────────────────────────────────
+export function getDashboardWidgets(): DashboardWidget[] {
+  return commandCenterDashboard.getWidgets();
+}
+
+export function getDashboardWidget(widgetId: string): DashboardWidget | undefined {
+  return commandCenterDashboard.getWidget(widgetId);
+}
+
+export function getActiveIncidents(): Incident[] {
+  return commandCenterDashboard.getActiveIncidents();
+}
+
+export function resolveIncident(incidentId: string): void {
+  commandCenterDashboard.resolveIncident(incidentId);
+}
+
+export async function updateSystemStats(): Promise<void> {
+  await commandCenterDashboard.updateSystemStats();
+}
+
+export function clearOldData(maxAgeHours = 24): void {
+  commandCenterDashboard.clearOldData(maxAgeHours);
+}

@@ -1,0 +1,188 @@
+{
+  "dashboard": {
+    "title": "SimTrace Error Tracking",
+    "uid": "simtrace-error-tracking",
+    "tags": ["simtrace", "errors", "sentry"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sentry_errors_total[5m])",
+            "legendFormat": "Errors/sec"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [10],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Error Rate",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 2,
+        "title": "Errors by Level",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (level) (rate(sentry_errors_total[5m]))",
+            "legendFormat": "{{level}}"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Errors by Environment",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (environment) (rate(sentry_errors_total[5m]))",
+            "legendFormat": "{{environment}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Top Error Types",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (error_type) (rate(sentry_errors_total[5m])))",
+            "legendFormat": "{{error_type}}"
+          }
+        ],
+        "transformations": [
+          {
+            "type": "sort by",
+            "field": "Value"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Errors by Route",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (route) (rate(sentry_errors_total[5m]))",
+            "legendFormat": "{{route}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Unhandled Exceptions",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sentry_unhandled_exceptions_total[5m])",
+            "legendFormat": "Unhandled/sec"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [1],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Unhandled Exception Detected",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 7,
+        "title": "Error Impact Score",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "sentry_error_impact_score",
+            "legendFormat": "Impact Score"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Error Resolution Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(sentry_error_resolution_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 Resolution Time"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s"
+          }
+        ]
+      }
+    ]
+  }
+}
