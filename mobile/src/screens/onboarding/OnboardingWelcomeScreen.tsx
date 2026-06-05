@@ -1,95 +1,111 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   SafeAreaView,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import PremiumButton from '../../components/PremiumButton';
+import PremiumCard from '../../components/PremiumCard';
+import { colors, gradients, spacing, borderRadius, typography } from '../../theme/colors';
 
 const OnboardingWelcomeScreen: React.FC = () => {
   const navigation = useNavigation();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleContinue = () => {
     navigation.navigate('PermissionRequest' as never);
   };
 
+  const features = [
+    { icon: '📱', title: 'Auto-scan device identifiers', description: 'Instantly detect IMEI, serial, and device DNA' },
+    { icon: '🔐', title: 'Phone number verification', description: 'Secure SMS verification like WhatsApp' },
+    { icon: '⚡', title: 'Instant account creation', description: 'Get started in under 3 minutes' },
+    { icon: '🛡️', title: 'Real-time device tracking', description: '24/7 location monitoring and alerts' },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <LinearGradient
-        colors={['#0f1117', '#1a1f2e']}
+        colors={gradients.dark}
         style={styles.gradient}
       >
-        <View style={styles.content}>
+        <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>
-              SIM<Text style={styles.logoAccent}>TRACE</Text>
-            </Text>
+            <LinearGradient
+              colors={gradients.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.logoGradient}
+            >
+              <Text style={styles.logoText}>
+                SIM<Text style={styles.logoAccent}>TRACE</Text>
+              </Text>
+            </LinearGradient>
           </View>
 
           {/* Welcome Message */}
           <View style={styles.messageContainer}>
             <Text style={styles.title}>Welcome to SIMTrace</Text>
             <Text style={styles.subtitle}>
-              Protect your devices with intelligent tracking
+              Protect your devices with intelligent tracking and recovery
             </Text>
           </View>
 
           {/* Features */}
           <View style={styles.featuresContainer}>
-            <View style={styles.feature}>
-              <View style={styles.featureIcon}>
-                <Text style={styles.featureIconText}>📱</Text>
-              </View>
-              <Text style={styles.featureText}>
-                Auto-scan device identifiers
-              </Text>
-            </View>
-
-            <View style={styles.feature}>
-              <View style={styles.featureIcon}>
-                <Text style={styles.featureIconText}>🔐</Text>
-              </View>
-              <Text style={styles.featureText}>
-                Phone number verification
-              </Text>
-            </View>
-
-            <View style={styles.feature}>
-              <View style={styles.featureIcon}>
-                <Text style={styles.featureIconText}>⚡</Text>
-              </View>
-              <Text style={styles.featureText}>
-                Instant account creation
-              </Text>
-            </View>
-
-            <View style={styles.feature}>
-              <View style={styles.featureIcon}>
-                <Text style={styles.featureIconText}>🛡️</Text>
-              </View>
-              <Text style={styles.featureText}>
-                Real-time device tracking
-              </Text>
-            </View>
+            {features.map((feature, index) => (
+              <PremiumCard key={index} variant="glass" padding="small" style={styles.feature}>
+                <View style={styles.featureContent}>
+                  <View style={styles.featureIcon}>
+                    <Text style={styles.featureIconText}>{feature.icon}</Text>
+                  </View>
+                  <View style={styles.featureTextContainer}>
+                    <Text style={styles.featureTitle}>{feature.title}</Text>
+                    <Text style={styles.featureDescription}>{feature.description}</Text>
+                  </View>
+                </View>
+              </PremiumCard>
+            ))}
           </View>
 
           {/* Continue Button */}
-          <TouchableOpacity style={styles.button} onPress={handleContinue}>
-            <Text style={styles.buttonText}>Get Started</Text>
-          </TouchableOpacity>
+          <PremiumButton
+            title="Get Started"
+            onPress={handleContinue}
+            variant="primary"
+            size="large"
+            style={styles.button}
+          />
 
           {/* Privacy Note */}
           <Text style={styles.privacyNote}>
             By continuing, you agree to our Terms of Service and Privacy Policy
           </Text>
-        </View>
+        </Animated.View>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -104,85 +120,88 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xxl,
     justifyContent: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: spacing.huge,
+  },
+  logoGradient: {
+    paddingHorizontal: spacing.xxxl,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.xxl,
   },
   logoText: {
-    fontSize: 48,
+    fontSize: typography.fontSize.huge,
     fontWeight: '900',
-    letterSpacing: 2,
-    color: '#f1f5f9',
+    letterSpacing: 4,
+    color: colors.text.primary,
   },
   logoAccent: {
-    color: '#0ea5e9',
+    color: colors.text.primary,
   },
   messageContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: spacing.huge,
   },
   title: {
-    fontSize: 32,
+    fontSize: typography.fontSize.xxxl,
     fontWeight: '700',
-    color: '#f1f5f9',
-    marginBottom: 12,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#94a3b8',
+    fontSize: typography.fontSize.md,
+    color: colors.text.muted,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: typography.lineHeight.relaxed,
   },
   featuresContainer: {
-    marginBottom: 40,
+    marginBottom: spacing.huge,
   },
   feature: {
+    marginBottom: spacing.md,
+  },
+  featureContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    padding: 16,
-    borderRadius: 12,
   },
   featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(14, 165, 233, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: spacing.md,
   },
   featureIconText: {
-    fontSize: 20,
+    fontSize: 24,
   },
-  featureText: {
-    fontSize: 15,
-    color: '#e2e8f0',
+  featureTextContainer: {
     flex: 1,
   },
-  button: {
-    backgroundColor: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
+  featureTitle: {
+    fontSize: typography.fontSize.md,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  featureDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.text.muted,
+    lineHeight: typography.lineHeight.normal,
+  },
+  button: {
+    marginBottom: spacing.lg,
   },
   privacyNote: {
-    fontSize: 12,
-    color: '#64748b',
+    fontSize: typography.fontSize.xs,
+    color: colors.text.disabled,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: typography.lineHeight.normal,
   },
 });
 

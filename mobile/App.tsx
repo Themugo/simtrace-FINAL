@@ -7,6 +7,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { store } from './src/store';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import DashboardScreen from './src/screens/dashboard/DashboardScreen';
+// Legal screens
+import TermsScreen from './src/screens/legal/TermsScreen';
+import PrivacyPolicyScreen from './src/screens/legal/PrivacyPolicyScreen';
 // Onboarding screens
 import OnboardingWelcomeScreen from './src/screens/onboarding/OnboardingWelcomeScreen';
 import PermissionRequestScreen from './src/screens/onboarding/PermissionRequestScreen';
@@ -23,11 +26,18 @@ export default function App() {
       <NavigationContainer>
         <StatusBar style="auto" />
         <Stack.Navigator
-          initialRouteName="OnboardingWelcome"
+          initialRouteName="Terms"
           screenOptions={{
             headerShown: false,
+            animation: 'slide_from_right',
           }}
         >
+          <Stack.Screen 
+            name="Terms" 
+            component={TermsScreen}
+            options={{ animation: 'fade' }}
+          />
+          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
           <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
           <Stack.Screen name="PermissionRequest" component={PermissionRequestScreen} />
           <Stack.Screen name="PhoneVerification" component={PhoneVerificationScreen} />

@@ -1,5 +1,5 @@
 // screens/dashboard/DashboardScreen.tsx - Main dashboard screen with device tracking
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,11 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  SafeAreaView,
+  StatusBar,
+  Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { fetchDevices, selectDevice } from '@store/slices/deviceSlice';
@@ -16,6 +20,10 @@ import { RootState } from '@store';
 import { Device } from '@api/devices';
 import { deviceService } from '@api/devices';
 import MapView, { Marker, Circle } from 'react-native-maps';
+import PremiumButton from '../../components/PremiumButton';
+import PremiumStatsCard from '../../components/PremiumStatsCard';
+import PremiumDeviceCard from '../../components/PremiumDeviceCard';
+import { colors, gradients, spacing, borderRadius, typography } from '../../theme/colors';
 
 export default function DashboardScreen() {
   const dispatch = useDispatch();
@@ -30,6 +38,15 @@ export default function DashboardScreen() {
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     loadDevices();
@@ -94,10 +111,29 @@ export default function DashboardScreen() {
   const recoveredDevices = devices.filter(d => d.status === 'recovered');
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.welcome}>Welcome, {user?.name || 'User'}</Text>
-        <Text style={styles.subtitle}>Track and protect your devices</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={gradients.dark}
+        style={styles.gradient}
+      >
+        <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+          <ScrollView
+            style={styles.scrollView}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary.main} />
+            }
+          >
+            {/* Header */}
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.welcome}>Welcome, {user?.name || 'User'}</Text>
+                <Text style={styles.subtitle}>Track and protect your devices</Text>
+              </View>
+              <TouchableOpacity style={styles.profileButton}>
+                <Text style={styles.profileIcon}>👤</Text>
+              </TouchableOpacity>
+            </View>
       </View>
 
       <ScrollView
