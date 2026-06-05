@@ -14,6 +14,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { login, verifyEmail, verifyOtp, enableBiometric } from '@store/slices/authSlice';
 import { RootState } from '@store';
 
@@ -35,6 +36,13 @@ export default function LoginScreen() {
 
     try {
       await dispatch(login({ officialEmail, otpNumber })).unwrap();
+      
+      // Store credentials for biometric authentication if enabled
+      if (biometricEnabled) {
+        await SecureStore.setItemAsync('userEmail', officialEmail);
+        await SecureStore.setItemAsync('userOtp', otpNumber);
+      }
+      
       navigation.navigate('Dashboard' as never);
     } catch (err: any) {
       Alert.alert('Login Failed', err.message || 'Authentication failed');
@@ -58,10 +66,17 @@ export default function LoginScreen() {
       });
 
       if (result.success) {
-        // Biometric authentication successful
-        // Proceed with login using stored credentials
-        Alert.alert('Success', 'Biometric authentication successful');
-        // TODO: Implement biometric login flow
+        // Retrieve stored credentials from SecureStore
+        const storedEmail = await SecureStore.getItemAsync('userEmail');
+        const storedOtp = await SecureStore.getItemAsync('userOtp');
+
+        if (storedEmail && storedOtp) {
+          // Auto-login with stored credentials
+          await dispatch(login({ officialEmail: storedEmail, otpNumber: storedOtp })).unwrap();
+          navigation.navigate('Dashboard' as never);
+        } else {
+          Alert.alert('Credentials Not Found', 'Please login with email and OTP first to enable biometric login');
+        }
       }
     } catch (error: any) {
       Alert.alert('Biometric Error', error.message || 'Biometric authentication failed');
@@ -123,7 +138,7 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
 
-            {showBiometric && (
+            {biometricEnabled && (
               <TouchableOpacity
                 style={styles.biometricButton}
                 onPress={handleBiometricAuth}

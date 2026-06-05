@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { fetchDevices, selectDevice } from '@store/slices/deviceSlice';
 import { RootState } from '@store';
 import { Device } from '@api/devices';
+import { deviceService } from '@api/devices';
 import MapView, { Marker, Circle } from 'react-native-maps';
 
 export default function DashboardScreen() {
@@ -68,9 +69,24 @@ export default function DashboardScreen() {
     );
   };
 
-  const activatePanicMode = () => {
-    // TODO: Implement panic mode activation
-    Alert.alert('Success', 'Panic mode activated for all devices');
+  const activatePanicMode = async () => {
+    try {
+      // Report all active devices as stolen
+      const activeDevices = devices.filter(d => d.status === 'active');
+      
+      for (const device of activeDevices) {
+        await deviceService.reportTheft(device.id, {
+          description: 'Panic mode activated - device reported as stolen',
+        });
+      }
+      
+      // Refresh devices to update status
+      await loadDevices();
+      
+      Alert.alert('Success', `Panic mode activated for ${activeDevices.length} device(s)`);
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to activate panic mode. Please try again.');
+    }
   };
 
   const activeDevices = devices.filter(d => d.status === 'active');
