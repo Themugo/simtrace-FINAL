@@ -135,7 +135,7 @@ app.use(ipThrottlingMiddleware);
 app.use(abuseDetectionMiddleware);
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const defaultOrigins = "http://localhost:3000,https://simtrace-final.vercel.app";
+const defaultOrigins = "http://localhost:3000,https://simtrace-final.vercel.app,https://www.simtrace.site,https://simtrace.site";
 const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || defaultOrigins).split(",").map((s: string) => s.trim());
 app.use(cors({
   origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
