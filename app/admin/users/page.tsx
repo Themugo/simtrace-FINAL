@@ -10,6 +10,8 @@ interface User {
   email: string;
   phone?: string;
   role: string;
+  isDemo?: boolean;
+  demoPartner?: string;
   subscription?: {
     plan: string;
   };
@@ -70,9 +72,10 @@ export default function AdminUsersPage() {
   const ROLE_COLOR: Record<string, string> = { admin: "var(--rose)", telecom: "var(--sky)", law_enforcement: "var(--amber)", user: "var(--muted)" };
 
   function exportCSV() {
-    const header = "Name,Email,Phone,Role,Plan,Devices,Joined";
+    const header = "Name,Email,Phone,Role,Demo,Partner,Plan,Devices,Joined";
     const rows   = filtered.map(u => [
       u.name, u.email, u.phone||"", u.role,
+      u.isDemo ? "Yes" : "No", u.demoPartner||"",
       u.subscription?.plan||"free", u.deviceCount||0,
       new Date(u.createdAt).toLocaleDateString()
     ].join(","));
@@ -115,9 +118,19 @@ export default function AdminUsersPage() {
               {u.phone && <div style={{ fontSize: "0.72rem", color: "var(--dim)" }}>{u.phone}</div>}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+              {u.isDemo && (
+                <span style={{ fontSize: "0.7rem", background: "var(--violet)22", color: "var(--violet)", padding: "2px 8px", borderRadius: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                  DEMO
+                </span>
+              )}
               <span style={{ fontSize: "0.72rem", background: ROLE_COLOR[u.role] + "22", color: ROLE_COLOR[u.role], padding: "2px 10px", borderRadius: 20, fontWeight: 700, textTransform: "capitalize" }}>
                 {u.role?.replace(/_/g, " ")}
               </span>
+              {u.demoPartner && (
+                <span style={{ fontSize: "0.7rem", background: "var(--emerald)22", color: "var(--emerald)", padding: "2px 8px", borderRadius: 12, fontWeight: 700 }}>
+                  {u.demoPartner}
+                </span>
+              )}
               {u.subscription && (
                 <span style={{ fontSize: "0.72rem", background: PLAN_COLOR[u.subscription.plan] + "22", color: PLAN_COLOR[u.subscription.plan], padding: "2px 10px", borderRadius: 20, fontWeight: 700 }}>
                   {u.subscription.plan}
