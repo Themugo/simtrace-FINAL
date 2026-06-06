@@ -1,7 +1,7 @@
 // scripts/seed-users.ts - Seed test users for live testing
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { User } from '../db/index.js';
+import { User } from '../db/index.ts';
 
 const users = [
   {
