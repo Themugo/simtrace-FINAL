@@ -21,7 +21,16 @@ export default function LoginPage() {
     setError(""); setLoading(true);
     try {
       const user = await login(form.email, form.password);
-      router.push(user.role === "admin" ? "/dashboard" : "/devices");
+      // Role-based routing
+      if (user.role === "admin" || user.role === "super_admin") {
+        router.push("/dashboard");
+      } else if (user.role === "telecom") {
+        router.push("/telecom-portal");
+      } else if (user.role === "law_enforcement") {
+        router.push("/law-enforcement");
+      } else {
+        router.push("/devices");
+      }
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
     } finally { setLoading(false); }
