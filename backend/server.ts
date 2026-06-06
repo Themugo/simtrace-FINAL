@@ -26,6 +26,7 @@ import "./sentry.js";
 import authRoutes      from "./routes/auth.js";
 import verificationRoutes from "./routes/verification.js";
 import oauthRoutes     from "./routes/oauth.js";
+import phoneVerificationRoutes from "./routes/phone-verification.js";
 import deviceRoutes    from "./routes/devices.js";
 import imeiRoutes      from "./routes/imei.js";
 import trackRoutes     from "./routes/track.js";
