@@ -21,20 +21,25 @@ export default function CommunityPage() {
   const [submitted, setSubmitted]   = useState(false);
   const [error,     setError]       = useState("");
 
-  const [stats, setStats] = useState({ members:"14,821+", recovered:"891+", sightings:0 });
+  const [stats, setStats] = useState({ members: 0, recovered: 0, sightings: 0 });
 
   useEffect(() => {
     // Load sightings + platform stats
-    api.sightings()
-      .then(d => {
-        setSightings(d.sightings || []);
-        setStats(s => ({ ...s, sightings: d.sightings?.length || 0 }));
+    Promise.all([
+      api.sightings(),
+      api.deviceStats(),
+      api.communityStats(),
+    ])
+      .then(([sightingsData, deviceStats, communityStats]) => {
+        setSightings(sightingsData.sightings || []);
+        setStats({
+          members: communityStats.totalUsers || 0,
+          recovered: deviceStats.recovered || 0,
+          sightings: sightingsData.sightings?.length || 0,
+        });
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-    api.get("/api/devices/stats")
-      .then((s: any) => setStats(prev => ({ ...prev, recovered: (s.recovered || 891).toLocaleString() + "+" })))
-      .catch(() => {});
   }, []);
 
   async function submitSighting(e: React.FormEvent) {
@@ -71,8 +76,8 @@ export default function CommunityPage() {
       {/* Stats bar */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
         {([
-          ["Community members", stats.members, "var(--sky)"],
-          ["Devices recovered", stats.recovered, "var(--emerald)"],
+          ["Community members", stats.members.toLocaleString() + "+", "var(--sky)"],
+          ["Devices recovered", stats.recovered.toLocaleString() + "+", "var(--emerald)"],
           ["Active sightings", sightings.length, "var(--amber)"],
         ] as const).map(([label, value, color]) => (
           <div key={label} className="card" style={{ textAlign: "center" }}>

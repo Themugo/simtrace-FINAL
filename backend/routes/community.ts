@@ -41,9 +41,13 @@ router.get("/sightings", async (req: Request, res: Response, next: NextFunction)
 // GET /api/community/stats — Get community statistics
 router.get("/stats", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const [totalSightings, sightingsLast7Days, sightingsLast30Days] = await Promise.all([
+    const { User } = await import("../db/index.js");
+    
+    const [totalSightings, sightingsLast7Days, sightingsLast30Days, totalUsers, totalRecovered] = await Promise.all([
       Sighting.countDocuments(),
       Sighting.countDocuments({ createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }),
+      Sighting.countDocuments({ createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+      User.countDocuments(),
       Sighting.countDocuments({ createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
     ]);
 
@@ -65,6 +69,8 @@ router.get("/stats", async (req: Request, res: Response, next: NextFunction) => 
       totalSightings,
       sightingsLast7Days,
       sightingsLast30Days,
+      totalUsers,
+      totalRecovered,
       topReportedIMEIs,
       sightingsByLocation,
     });

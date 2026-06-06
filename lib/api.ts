@@ -75,6 +75,7 @@ export const api = {
   // Community
   sightings: () => request('/api/community/sightings'),
   submitSighting: (body: any) => request('/api/community/sightings', { method: 'POST', body: JSON.stringify(body) }),
+  communityStats: () => request('/api/community/stats'),
 
   // Token refresh
   refreshToken: () => request('/api/auth/refresh'),
