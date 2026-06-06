@@ -80,35 +80,36 @@ jobs:
         run: docker build ./backend -t simtrace-backend:ci
 
   # ── Deploy to Railway (main branch only) ─────────────────────────────────
-  deploy:
-    name: Deploy → Railway
-    needs: [backend, frontend, docker]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy backend
-        run: railway up --service simtrace-backend
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Wait for deployment
-        run: sleep 60
-
-      - name: Health check
-        run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.simtrace.site/health)
-          if [ $response -eq 200 ]; then
-            echo "✅ Health check passed"
-          else
-            echo "❌ Health check failed with status $response"
-            exit 1
-          fi
+  # Disabled - backend already deployed on Render, Railway is redundant
+  # deploy:
+  #   name: Deploy → Railway
+  #   needs: [backend, frontend, docker]
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Install Railway CLI
+  #       run: npm install -g @railway/cli
+  #
+  #     - name: Deploy backend
+  #       run: railway up --service simtrace-backend
+  #       env:
+  #         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  #
+  #     - name: Wait for deployment
+  #       run: sleep 60
+  #
+  #     - name: Health check
+  #       run: |
+  #         response=$(curl -s -o /dev/null -w "%{http_code}" https://api.simtrace.site/health)
+  #         if [ $response -eq 200 ]; then
+  #           echo "✅ Health check passed"
+  #         else
+  #           echo "❌ Health check failed with status $response"
+  #           exit 1
+  #         fi
 
   # ── Deploy frontend to Vercel ─────────────────────────────────────────────
   # Disabled - Vercel auto-deploys from GitHub main branch
