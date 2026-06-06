@@ -104,7 +104,7 @@ export default function TelecomPortalPage() {
     setRotating(true);
     try {
       const keyRes = await api.post(`/api/partner/${partner._id}/regenerate-key`, {});
-      setPartner(p => ({ ...p, apiKey: keyRes.apiKey }));
+      setPartner(p => p ? { ...p, apiKey: keyRes.apiKey } : null);
       alert("API key rotated. Copy the new key now — it won't be shown again after you leave this page.");
     } catch (err: any) { alert(err.message); }
     finally { setRotating(false); }
@@ -258,7 +258,7 @@ export default function TelecomPortalPage() {
                   onClick={async () => {
                     setTestingHook(true); setWebhookTest(null);
                     try {
-                      const res = await api.testWebhook(partner.partner!._id);
+                      const res = await api.testWebhook(partner.partner?._id || "");
                       setWebhookTest(res);
                     } catch (err: any) { setWebhookTest({ success: false, message: err.message }); }
                     finally { setTestingHook(false); }
