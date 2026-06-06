@@ -38,6 +38,39 @@ router.get("/sightings", async (req: Request, res: Response, next: NextFunction)
   } catch (err) { next(err); }
 });
 
+// GET /api/community/stats — Get community statistics
+router.get("/stats", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const [totalSightings, sightingsLast7Days, sightingsLast30Days] = await Promise.all([
+      Sighting.countDocuments(),
+      Sighting.countDocuments({ createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }),
+      Sighting.countDocuments({ createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+    ]);
+
+    // Get top IMEIs reported
+    const topReportedIMEIs = await Sighting.aggregate([
+      { $group: { _id: "$imei", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+    ]);
+
+    // Get sightings by location (grouped by first part of location string)
+    const sightingsByLocation = await Sighting.aggregate([
+      { $group: { _id: { $substr: ["$location", 0, 20] }, count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+    ]);
+
+    res.json({
+      totalSightings,
+      sightingsLast7Days,
+      sightingsLast30Days,
+      topReportedIMEIs,
+      sightingsByLocation,
+    });
+  } catch (err) { next(err); }
+});
+
 // POST /api/community/sightings — authenticated
 router.post("/sightings", authenticate, sightingLimiter, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

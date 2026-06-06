@@ -36,11 +36,39 @@ const registerSchema = z.object({
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 router.post("/register", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, email, password, phone } = registerSchema.parse(req.body);
+    const { name, email, password, phone, deviceInfo } = z.object({
+      name: z.string().min(2).max(80).trim(),
+      email: z.string().email().toLowerCase(),
+      password: z.string().min(8).max(128),
+      phone: z.string().optional(),
+      deviceInfo: z.object({
+        imei: z.string().optional(),
+        serialNumber: z.string().optional(),
+        make: z.string().optional(),
+        model: z.string().optional(),
+        deviceDNA: z.string().optional(),
+      }).optional(),
+    }).parse(req.body);
+    
     if (await User.findOne({ email })) return res.status(409).json({ error: "Email already registered" });
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, passwordHash, role: "user", phone });
+    const user = await User.create({ name, email, passwordHash, role: "user", phone, phoneVerified: !!phone });
     await Subscription.create({ user: user._id, plan: "free", status: "active" });
+    
+    // Auto-register device if device info provided from intelligent onboarding
+    if (deviceInfo && deviceInfo.imei) {
+      const { Device } = await import("../db/index.js");
+      await Device.create({
+        imei: deviceInfo.imei,
+        serialNumber: deviceInfo.serialNumber,
+        make: deviceInfo.make,
+        model: deviceInfo.model,
+        owner: user._id,
+        status: "active",
+        deviceKey: deviceInfo.deviceDNA,
+      });
+    }
+    
     res.status(201).json({ token: signToken(user), user: sanitize(user) });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });

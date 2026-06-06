@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+export { PricingConfig } from '../models/PricingConfig.js';
 
 export async function connectDB(): Promise<void> {
   const uri = process.env.MONGO_URI;
