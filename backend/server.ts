@@ -11,7 +11,7 @@ import pinoHttp from "pino-http";
 import { connectDB } from "./db/index.js";
 import { seedPlans } from "./services/billing.js";
 import { initIO } from "./services/socket.js";
-import { authenticateSocket } from "./middleware/auth.js";
+import { authenticate, authenticateSocket } from "./middleware/auth.js";
 import { sanitizeInput } from "./middleware/validation.js";
 import { notFoundHandler } from "./middleware/errorHandler.js";
 import { initializeQueues } from "./queues/index.js";
