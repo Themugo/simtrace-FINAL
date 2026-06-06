@@ -27,6 +27,7 @@ import authRoutes      from "./routes/auth.js";
 import verificationRoutes from "./routes/verification.js";
 import oauthRoutes     from "./routes/oauth.js";
 import phoneVerificationRoutes from "./routes/phone-verification.js";
+import autoRegisterRoutes from "./routes/auto-register.js";
 import deviceRoutes    from "./routes/devices.js";
 import imeiRoutes      from "./routes/imei.js";
 import trackRoutes     from "./routes/track.js";
@@ -88,6 +89,7 @@ import enterpriseRoutes from "./routes/enterprise.js";
 import regulatoryRoutes from "./routes/regulatory.js";
 import configurationManagementRoutes from "./routes/configurationManagement.js";
 import pricingRoutes from "./routes/pricing.js";
+import reportsRoutes from "./routes/reports.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
