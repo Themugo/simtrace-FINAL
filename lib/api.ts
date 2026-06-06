@@ -1,5 +1,5 @@
 // lib/api.ts — centralized API client
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'simtrace-final.vercel.app' ? 'https://simtrace-backend.onrender.com' : 'http://localhost:4000');
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
