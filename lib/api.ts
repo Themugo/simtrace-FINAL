@@ -1,5 +1,5 @@
 // lib/api.ts — centralized API client
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const BASE = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' && (window.location.hostname === 'simtrace-final.vercel.app' || window.location.hostname === 'www.simtrace.site' || window.location.hostname === 'simtrace.site') ? 'https://simtrace-backend.onrender.com' : 'http://localhost:4000');
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -75,6 +75,7 @@ export const api = {
   // Community
   sightings: () => request('/api/community/sightings'),
   submitSighting: (body: any) => request('/api/community/sightings', { method: 'POST', body: JSON.stringify(body) }),
+  communityStats: () => request('/api/community/stats'),
 
   // Token refresh
   refreshToken: () => request('/api/auth/refresh'),

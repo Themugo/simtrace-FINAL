@@ -145,7 +145,7 @@ export default function AdminAdsPage() {
           {/* KPI cards */}
           <div className="grid-4" style={{ marginBottom:"1.5rem" }}>
             {[
-              { label:"MRR (KES)",    value:`KES ${(revenue.monthlyRevKES||0).toLocaleString()}`, color:"var(--emerald)", spark:[revenue.weeklyRevKES*0.5, revenue.weeklyRevKES*0.75, revenue.weeklyRevKES] },
+              { label:"MRR (KES)",    value:`KES ${(revenue.monthlyRevKES||0).toLocaleString()}`, color:"var(--emerald)", spark:[(revenue.weeklyRevKES||0)*0.5, (revenue.weeklyRevKES||0)*0.75, revenue.weeklyRevKES||0] },
               { label:"Ad Revenue",  value:`KES ${(revenue.adRevKES||0).toLocaleString()}`,      color:"var(--amber)",   spark:null },
               { label:"MRR (USD)",   value:`USD ${(revenue.monthlyRevUSD||0).toLocaleString()}`, color:"var(--sky)",     spark:null },
               { label:"Payments",    value:revenue.totalPayments || 0,                           color:"var(--violet)",  spark:null },
@@ -153,7 +153,7 @@ export default function AdminAdsPage() {
               <div key={label} className="stat-card" style={{ "--accent":color }}>
                 <div style={{ fontSize:"0.7rem", color:"var(--muted)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>{label}</div>
                 <div style={{ fontSize:"1.5rem", fontWeight:800, color, letterSpacing:"-0.02em" }}>{value}</div>
-                {spark && <Sparkline data={spark} color={color} />}
+                {spark && <Sparkline data={spark as number[]} color={color} />}
               </div>
             ))}
           </div>
@@ -163,7 +163,7 @@ export default function AdminAdsPage() {
             <div className="card">
               <div style={{ fontSize:"0.72rem", color:"var(--muted)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"0.85rem" }}>Subscription Mix</div>
               {(revenue.subscriptions || []).map(s => {
-                const colors = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
+                const colors: Record<string, string> = { free:"var(--muted)", pro:"var(--sky)", business:"var(--violet)", enterprise:"var(--amber)" };
                 const total  = (revenue.subscriptions || []).reduce((a,b) => a + b.count, 0) || 1;
                 const pct    = Math.round((s.count / total) * 100);
                 return (
@@ -208,7 +208,7 @@ export default function AdminAdsPage() {
           <div style={{ display:"flex", flexDirection:"column", gap:"0.6rem" }}>
             {ads.length === 0 && <p className="text-muted" style={{ padding:"2rem 0", textAlign:"center" }}>No ad campaigns yet.</p>}
             {ads.map(ad => {
-              const ctr = ad.impressions ? ((ad.clicks/ad.impressions)*100).toFixed(2) : "0.00";
+              const ctr = ad.impressions ? (((ad.clicks || 0)/ad.impressions)*100).toFixed(2) : "0.00";
               return (
                 <div key={ad._id} className="card" style={{ borderLeft:`3px solid ${STATUS_COLOR[ad.status] || "var(--muted)"}` }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:"0.75rem", marginBottom:"0.75rem" }}>
@@ -247,10 +247,10 @@ export default function AdminAdsPage() {
                   <div style={{ marginTop:"0.65rem" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", fontSize:"0.72rem", color:"var(--muted)", marginBottom:3 }}>
                       <span>Budget: KES {(ad.budgetKES||0).toLocaleString()}</span>
-                      <span>{ad.budgetKES ? Math.round((ad.spentKES/ad.budgetKES)*100) : 0}% used</span>
+                      <span>{ad.budgetKES ? Math.round(((ad.spentKES || 0)/ad.budgetKES)*100) : 0}% used</span>
                     </div>
                     <div style={{ background:"var(--border)", borderRadius:4, height:4, overflow:"hidden" }}>
-                      <div style={{ width:`${ad.budgetKES ? Math.min(100, (ad.spentKES/ad.budgetKES)*100) : 0}%`, height:"100%", background:"var(--amber)", borderRadius:4, transition:"width 0.5s ease" }} />
+                      <div style={{ width:`${ad.budgetKES ? Math.min(100, ((ad.spentKES || 0)/ad.budgetKES)*100) : 0}%`, height:"100%", background:"var(--amber)", borderRadius:4, transition:"width 0.5s ease" }} />
                     </div>
                   </div>
                 </div>

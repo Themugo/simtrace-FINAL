@@ -259,7 +259,7 @@ export default function DashboardPage() {
     try {
       const { triage } = await api.triageAlerts(40);
       setAlerts(prev => prev.map(a => {
-        const t = triage?.find(x => x.id === a._id);
+        const t = triage?.find((x: any) => x.id === a._id);
         return t ? { ...a, aiUrgency: t.urgency } : a;
       }));
     } catch { /**/ }
@@ -336,8 +336,8 @@ export default function DashboardPage() {
       {tab === "overview" && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:"1rem", alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap:"1rem" }}>
-            <DeviceStatusBar stats={stats} />
-            <RevenueSnapshot revenue={revenue} />
+            {stats && <DeviceStatusBar stats={stats} />}
+            {revenue && <RevenueSnapshot revenue={revenue} />}
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"0.6rem" }}>
               {QUICK_LINKS.map(l => (
                 <Link key={l.label} href={l.href}
@@ -374,7 +374,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Revenue tab ── */}
-      {tab === "revenue" && (
+      {tab === "revenue" && revenue && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"1rem" }}>
           <RevenueSnapshot revenue={revenue} />
           <div className="card">

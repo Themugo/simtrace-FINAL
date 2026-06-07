@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [form,    setForm]    = useState({ email: "", password: "" });
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   function f(key: keyof typeof form) {
     return { value: form[key], onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm(p => ({ ...p, [key]: e.target.value })) };
@@ -21,7 +22,16 @@ export default function LoginPage() {
     setError(""); setLoading(true);
     try {
       const user = await login(form.email, form.password);
-      router.push(user.role === "admin" ? "/dashboard" : "/devices");
+      // Role-based routing
+      if (user.role === "admin" || user.role === "super_admin") {
+        router.push("/dashboard");
+      } else if (user.role === "telecom") {
+        router.push("/telecom-portal");
+      } else if (user.role === "law_enforcement") {
+        router.push("/law-enforcement");
+      } else {
+        router.push("/devices");
+      }
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
     } finally { setLoading(false); }
@@ -48,7 +58,33 @@ export default function LoginPage() {
                 Password
                 <Link href="/forgot-password" style={{ color: "var(--muted)", fontSize: "0.78rem", fontWeight: 400 }}>Forgot password?</Link>
               </label>
-              <input type="password" required placeholder="••••••••" {...f("password")} />
+              <div style={{ position: "relative" }}>
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  placeholder="••••••••" 
+                  {...f("password")} 
+                  style={{ paddingRight: "40px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ 
+                    position: "absolute", 
+                    right: "12px", 
+                    top: "50%", 
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "0",
+                    color: "var(--muted)",
+                    fontSize: "1.2rem"
+                  }}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
             </div>
 
             {error && (

@@ -11,7 +11,7 @@ import pinoHttp from "pino-http";
 import { connectDB } from "./db/index.js";
 import { seedPlans } from "./services/billing.js";
 import { initIO } from "./services/socket.js";
-import { authenticateSocket } from "./middleware/auth.js";
+import { authenticate, authenticateSocket } from "./middleware/auth.js";
 import { sanitizeInput } from "./middleware/validation.js";
 import { notFoundHandler } from "./middleware/errorHandler.js";
 import { initializeQueues } from "./queues/index.js";
@@ -26,6 +26,8 @@ import "./sentry.js";
 import authRoutes      from "./routes/auth.js";
 import verificationRoutes from "./routes/verification.js";
 import oauthRoutes     from "./routes/oauth.js";
+import phoneVerificationRoutes from "./routes/phone-verification.js";
+import autoRegisterRoutes from "./routes/auto-register.js";
 import deviceRoutes    from "./routes/devices.js";
 import imeiRoutes      from "./routes/imei.js";
 import trackRoutes     from "./routes/track.js";
@@ -87,6 +89,7 @@ import enterpriseRoutes from "./routes/enterprise.js";
 import regulatoryRoutes from "./routes/regulatory.js";
 import configurationManagementRoutes from "./routes/configurationManagement.js";
 import pricingRoutes from "./routes/pricing.js";
+import reportsRoutes from "./routes/reports.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
@@ -132,7 +135,8 @@ app.use(ipThrottlingMiddleware);
 app.use(abuseDetectionMiddleware);
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(",").map((s: string) => s.trim());
+const defaultOrigins = "http://localhost:3000,https://simtrace-final.vercel.app,https://www.simtrace.site,https://simtrace.site";
+const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || defaultOrigins).split(",").map((s: string) => s.trim());
 app.use(cors({
   origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
     if (!origin || allowedOrigins.includes(origin)) {

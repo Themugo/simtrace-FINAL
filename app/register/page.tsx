@@ -14,6 +14,8 @@ export default function RegisterPage() {
   const [form,    setForm]    = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -103,7 +105,34 @@ export default function RegisterPage() {
               </button>
               <div>
                 <label className="label">Create password *</label>
-                <input type="password" required autoFocus placeholder="Minimum 8 characters" {...f("password")} />
+                <div style={{ position: "relative" }}>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    autoFocus 
+                    placeholder="Minimum 8 characters" 
+                    {...f("password")} 
+                    style={{ paddingRight: "40px" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ 
+                      position: "absolute", 
+                      right: "12px", 
+                      top: "50%", 
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "0",
+                      color: "var(--muted)",
+                      fontSize: "1.2rem"
+                    }}
+                  >
+                    {showPassword ? "🙈" : "👁️"}
+                  </button>
+                </div>
                 {/* Strength indicator */}
                 {form.password.length > 0 && (
                   <div style={{ display: "flex", gap: 3, marginTop: 6 }}>
@@ -122,7 +151,33 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="label">Confirm password *</label>
-                <input type="password" required placeholder="Same password again" {...f("confirm")} />
+                <div style={{ position: "relative" }}>
+                  <input 
+                    type={showConfirm ? "text" : "password"} 
+                    required 
+                    placeholder="Same password again" 
+                    {...f("confirm")} 
+                    style={{ paddingRight: "40px" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    style={{ 
+                      position: "absolute", 
+                      right: "12px", 
+                      top: "50%", 
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "0",
+                      color: "var(--muted)",
+                      fontSize: "1.2rem"
+                    }}
+                  >
+                    {showConfirm ? "🙈" : "👁️"}
+                  </button>
+                </div>
               </div>
               {error && <div style={{ background: "rgba(251,113,133,0.1)", border: "1px solid rgba(251,113,133,0.2)", borderRadius: "var(--r)", padding: "0.6rem 0.9rem", color: "var(--rose)", fontSize: "0.88rem" }}>{error}</div>}
               <button type="submit" className="btn-primary" disabled={loading} style={{ width: "100%", justifyContent: "center", height: 46 }}>

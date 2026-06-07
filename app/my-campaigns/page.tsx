@@ -28,8 +28,8 @@ interface CampaignCardProps {
 }
 
 function CampaignCard({ ad }: CampaignCardProps) {
-  const ctr        = ad.impressions ? ((ad.clicks / ad.impressions) * 100).toFixed(2) : "0.00";
-  const budgetPct  = ad.budgetKES   ? Math.min(100, Math.round((ad.spentKES / ad.budgetKES) * 100)) : 0;
+  const ctr        = ad.impressions ? ((ad.clicks || 0 / ad.impressions) * 100).toFixed(2) : "0.00";
+  const budgetPct  = ad.budgetKES   ? Math.min(100, Math.round(((ad.spentKES || 0) / ad.budgetKES) * 100)) : 0;
   const remaining  = (ad.budgetKES || 0) - (ad.spentKES || 0);
 
   return (
