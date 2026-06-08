@@ -36,6 +36,9 @@ interface IUser {
   apiKey?: string;
   emailVerified?: boolean;
   phoneVerified?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string;
+  twoFactorBackupCodes?: string[];
   mustChangePassword?: boolean;
   tokenVersion?: number;
   authProvider?: 'local' | 'google';
@@ -48,11 +51,14 @@ const userSchema = new mongoose.Schema<IUser>({
   email: { type: String, required: true, unique: true, lowercase: true },
   passwordHash: { type: String },
   role: { type: String, enum: ['user', 'admin', 'super_admin', 'telecom', 'law_enforcement'], default: 'user' },
-  tokenVersion: { type: Number, default: 0 },
   phone: { type: String },
   apiKey: { type: String, index: true, sparse: true },
   emailVerified: { type: Boolean, default: false },
   phoneVerified: { type: Boolean, default: false },
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorSecret: String,
+  twoFactorBackupCodes: [String],
+  tokenVersion: { type: Number, default: 0 },
   mustChangePassword: { type: Boolean, default: false },
   authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   providerId: { type: String, index: true, sparse: true },

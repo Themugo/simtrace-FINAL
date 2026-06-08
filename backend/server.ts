@@ -90,6 +90,7 @@ import regulatoryRoutes from "./routes/regulatory.js";
 import configurationManagementRoutes from "./routes/configurationManagement.js";
 import pricingRoutes from "./routes/pricing.js";
 import reportsRoutes from "./routes/reports.js";
+import twoFactorAuthRoutes from "./routes/twoFactorAuth.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
@@ -307,6 +308,7 @@ app.use("/api/public-api",            publicApiRoutes);
 app.use("/api/partner-marketplace",   partnerMarketplaceRoutes);
 app.use("/api/pricing",               pricingRoutes);
 app.use("/api/reports",               reportsRoutes);
+app.use("/api/two-factor-auth",       twoFactorAuthRoutes);
 app.use("/api/reseller",              resellerRoutes);
 app.use("/api/seller-reseller",       sellerResellerRoutes);
 app.use("/api/repair-shop",           repairShopRoutes);
