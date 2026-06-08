@@ -33,6 +33,8 @@ interface IUser {
   passwordHash: string;
   role: 'user' | 'admin' | 'super_admin' | 'telecom' | 'law_enforcement';
   phone?: string;
+  address?: string;
+  paymentInfo?: string;
   apiKey?: string;
   emailVerified?: boolean;
   phoneVerified?: boolean;
@@ -52,6 +54,8 @@ const userSchema = new mongoose.Schema<IUser>({
   passwordHash: { type: String },
   role: { type: String, enum: ['user', 'admin', 'super_admin', 'telecom', 'law_enforcement'], default: 'user' },
   phone: { type: String },
+  address: { type: String },
+  paymentInfo: { type: String },
   apiKey: { type: String, index: true, sparse: true },
   emailVerified: { type: Boolean, default: false },
   phoneVerified: { type: Boolean, default: false },
