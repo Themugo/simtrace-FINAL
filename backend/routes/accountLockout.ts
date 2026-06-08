@@ -63,8 +63,8 @@ router.get('/attempts/:userId', authenticate, requireAdmin, async (req: AuthRequ
     }
 
     res.json({
-      loginAttempts: user.loginAttempts || 0,
-      lockedUntil: user.lockedUntil,
+      loginAttempts: (user as any).loginAttempts || 0,
+      lockedUntil: (user as any).lockedUntil,
     });
   } catch (err) {
     next(err);

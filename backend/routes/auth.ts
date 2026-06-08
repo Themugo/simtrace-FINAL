@@ -4,6 +4,12 @@ import crypto     from "crypto";
 import { z }      from "zod";
 import { User, Subscription, PasswordReset } from "../db/index.js";
 import { signToken, authenticate }            from "../middleware/auth.js";
+import {
+  isAccountLocked,
+  recordFailedLogin,
+  resetLoginAttempts,
+  getLockoutRemainingTime,
+} from "../services/accountLockout.js";
 
 const router = Router();
 
