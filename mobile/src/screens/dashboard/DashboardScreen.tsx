@@ -113,18 +113,19 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={gradients.dark}
-        style={styles.gradient}
-      >
-        <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-          <ScrollView
-            style={styles.scrollView}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary.main} />
-            }
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary.main} />
+          }
+        >
+          {/* Header */}
+          <LinearGradient
+            colors={gradients.dark}
+            style={styles.headerGradient}
           >
-            {/* Header */}
             <View style={styles.header}>
               <View>
                 <Text style={styles.welcome}>Welcome, {user?.name || 'User'}</Text>
@@ -134,110 +135,105 @@ export default function DashboardScreen() {
                 <Text style={styles.profileIcon}>👤</Text>
               </TouchableOpacity>
             </View>
-      </View>
+          </LinearGradient>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{activeDevices.length}</Text>
-            <Text style={styles.statLabel}>Active</Text>
-          </View>
-          <View style={[styles.statCard, styles.statCardWarning]}>
-            <Text style={styles.statNumber}>{stolenDevices.length}</Text>
-            <Text style={styles.statLabel}>Stolen</Text>
-          </View>
-          <View style={[styles.statCard, styles.statCardSuccess]}>
-            <Text style={styles.statNumber}>{recoveredDevices.length}</Text>
-            <Text style={styles.statLabel}>Recovered</Text>
-          </View>
-        </View>
-
-        {/* Map View */}
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            region={mapRegion}
-            onRegionChangeComplete={setMapRegion}
-          >
-            {devices.map((device) => {
-              if (device.lastLocation) {
-                return (
-                  <Marker
-                    key={device.id}
-                    coordinate={{
-                      latitude: device.lastLocation.latitude,
-                      longitude: device.lastLocation.longitude,
-                    }}
-                    title={device.nickname || device.deviceName}
-                    description={`Status: ${device.status}`}
-                    onPress={() => handleDevicePress(device)}
-                  />
-                );
-              }
-              return null;
-            })}
-          </MapView>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleAddDevice}>
-            <Text style={styles.actionButtonText}>+ Add Device</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.panicButton]}
-            onPress={handlePanicMode}
-          >
-            <Text style={styles.actionButtonText}>🚨 Panic Mode</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Device List */}
-        <View style={styles.devicesSection}>
-          <Text style={styles.sectionTitle}>Your Devices</Text>
-          {devices.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No devices added yet</Text>
-              <TouchableOpacity onPress={handleAddDevice}>
-                <Text style={styles.emptyLink}>Add your first device</Text>
-              </TouchableOpacity>
+          {/* Stats Cards */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{activeDevices.length}</Text>
+              <Text style={styles.statLabel}>Active</Text>
             </View>
-          ) : (
-            devices.map((device) => (
-              <TouchableOpacity
-                key={device.id}
-                style={styles.deviceCard}
-                onPress={() => handleDevicePress(device)}
-              >
-                <View style={styles.deviceInfo}>
-                  <Text style={styles.deviceName}>
-                    {device.nickname || device.deviceName}
-                  </Text>
-                  <Text style={styles.deviceType}>{device.deviceType}</Text>
-                </View>
-                <View style={styles.deviceStatus}>
-                  <View
-                    style={[
-                      styles.statusDot,
-                      device.status === 'active' && styles.statusActive,
-                      device.status === 'stolen' && styles.statusStolen,
-                      device.status === 'recovered' && styles.statusRecovered,
-                    ]}
-                  />
-                  <Text style={styles.statusText}>{device.status}</Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
-      </ScrollView>
-    </View>
+            <View style={[styles.statCard, styles.statCardWarning]}>
+              <Text style={styles.statNumber}>{stolenDevices.length}</Text>
+              <Text style={styles.statLabel}>Stolen</Text>
+            </View>
+            <View style={[styles.statCard, styles.statCardSuccess]}>
+              <Text style={styles.statNumber}>{recoveredDevices.length}</Text>
+              <Text style={styles.statLabel}>Recovered</Text>
+            </View>
+          </View>
+
+          {/* Map View */}
+          <View style={styles.mapContainer}>
+            <MapView
+              style={styles.map}
+              region={mapRegion}
+              onRegionChangeComplete={setMapRegion}
+            >
+              {devices.map((device) => {
+                if (device.lastLocation) {
+                  return (
+                    <Marker
+                      key={device.id}
+                      coordinate={{
+                        latitude: device.lastLocation.latitude,
+                        longitude: device.lastLocation.longitude,
+                      }}
+                      title={device.nickname || device.deviceName}
+                      description={`Status: ${device.status}`}
+                      onPress={() => handleDevicePress(device)}
+                    />
+                  );
+                }
+                return null;
+              })}
+            </MapView>
+          </View>
+
+          {/* Quick Actions */}
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleAddDevice}>
+              <Text style={styles.actionButtonText}>+ Add Device</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.panicButton]}
+              onPress={handlePanicMode}
+            >
+              <Text style={styles.actionButtonText}>🚨 Panic Mode</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Device List */}
+          <View style={styles.devicesSection}>
+            <Text style={styles.sectionTitle}>Your Devices</Text>
+            {devices.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No devices added yet</Text>
+                <TouchableOpacity onPress={handleAddDevice}>
+                  <Text style={styles.emptyLink}>Add your first device</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              devices.map((device) => (
+                <TouchableOpacity
+                  key={device.id}
+                  style={styles.deviceCard}
+                  onPress={() => handleDevicePress(device)}
+                >
+                  <View style={styles.deviceInfo}>
+                    <Text style={styles.deviceName}>
+                      {device.nickname || device.deviceName}
+                    </Text>
+                    <Text style={styles.deviceType}>{device.deviceType}</Text>
+                  </View>
+                  <View style={styles.deviceStatus}>
+                    <View
+                      style={[
+                        styles.statusDot,
+                        device.status === 'active' && styles.statusActive,
+                        device.status === 'stolen' && styles.statusStolen,
+                        device.status === 'recovered' && styles.statusRecovered,
+                      ]}
+                    />
+                    <Text style={styles.statusText}>{device.status}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </SafeAreaView>
   );
 }
 
@@ -268,7 +264,7 @@ const styles = StyleSheet.create({
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    margin: 16,
   },
   statCard: {
     flex: 1,
@@ -335,7 +331,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   devicesSection: {
-    marginBottom: 16,
+    margin: 16,
   },
   sectionTitle: {
     fontSize: 18,
