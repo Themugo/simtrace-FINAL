@@ -87,9 +87,44 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction) =>
   try {
     const { email, password } = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(req.body);
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    
+    if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+
+    // Check if account is locked
+    const locked = await isAccountLocked(user._id.toString());
+    if (locked) {
+      const remainingTime = await getLockoutRemainingTime(user._id.toString());
+      const minutes = Math.ceil((remainingTime || 0) / 60000);
+      return res.status(423).json({ 
+        error: "Account locked due to too many failed login attempts",
+        locked: true,
+        remainingMinutes: minutes,
+      });
+    }
+
+    if (!(await bcrypt.compare(password, user.passwordHash))) {
+      // Record failed attempt
+      const result = await recordFailedLogin(user._id.toString());
+      
+      if (result.locked) {
+        return res.status(423).json({ 
+          error: "Account locked due to too many failed login attempts",
+          locked: true,
+          remainingMinutes: 15,
+        });
+      }
+
+      return res.status(401).json({ 
+        error: "Invalid credentials",
+        remainingAttempts: result.remainingAttempts,
+      });
+    }
+
+    // Reset login attempts on successful login
+    await resetLoginAttempts(user._id.toString());
+
     res.json({ token: signToken(user), user: sanitize(user) });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
