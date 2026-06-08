@@ -96,6 +96,9 @@ const app: Express = express();
 const server: HttpServer = http.createServer(app);
 const isProd: boolean = process.env.NODE_ENV === "production";
 
+// Export app for testing
+export { app };
+
 // Trust Railway/Heroku/Vercel proxy — required for rate-limiter to see real IPs
 app.set("trust proxy", 1);
 
