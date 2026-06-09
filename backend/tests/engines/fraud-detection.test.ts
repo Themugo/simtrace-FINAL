@@ -1,20 +1,20 @@
 // Fraud Detection Engine Integration Tests
 // Test the fraud detection and threat intelligence functionality
 
-import { describe, it, before, after } from 'mocha';
-import { expect } from 'chai';
-import { connectDB } from '../db/index.js';
-import { Device } from '../db/index.js';
-import { Ping } from '../db/index.js';
-import { Alert } from '../db/index.js';
-import { FraudDetectionEngine } from '../engines/fraud-detection-engine.js';
+import { connectDB } from '../../db/index.js';
+import { Device } from '../../db/index.js';
+import { Ping } from '../../db/index.js';
+import { Alert } from '../../db/index.js';
+import { FraudDetectionEngine } from '../../engines/fraud-detection-engine.js';
 
-describe('Fraud Detection Engine Tests', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Fraud Detection Engine Tests', () => {
   let engine: FraudDetectionEngine;
   let testDevice: any;
   let testImei: string;
 
-  before(async () => {
+  beforeAll(async () => {
     await connectDB();
     engine = new FraudDetectionEngine();
 
@@ -30,7 +30,7 @@ describe('Fraud Detection Engine Tests', () => {
     });
   });
 
-  after(async () => {
+  afterAll(async () => {
     // Cleanup test data
     await Device.deleteOne({ imei: testImei });
     await Ping.deleteMany({ imei: testImei });

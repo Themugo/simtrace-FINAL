@@ -145,7 +145,7 @@ export default function DevicesPage() {
               ⚡ Upgrade plan
             </Link>
           )}
-          <button className={atLimit ? "btn-ghost" : "btn-primary"} onClick={() => setShowForm(s => !s)} disabled={atLimit && !showForm ? true : undefined}>
+          <button className={atLimit ? "btn-ghost" : "btn-primary"} onClick={() => setShowForm(s => !s)} disabled={atLimit && !showForm}>
             {showForm ? "Cancel" : atLimit ? "Limit reached" : "+ Register Device"}
           </button>
         </div>

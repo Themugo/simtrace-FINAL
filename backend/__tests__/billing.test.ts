@@ -4,7 +4,9 @@ import billingRoutes from '../routes/billing.js';
 import { connectDB, User, Subscription, Plan } from '../db/index.js';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-describe('Billing Routes', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Billing Routes', () => {
   let app: express.Application;
   let mongoServer: MongoMemoryServer;
 

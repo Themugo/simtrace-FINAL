@@ -1,19 +1,19 @@
 // Device Intelligence Engine Integration Tests
 // Test the device intelligence analysis functionality
 
-import { describe, it, before, after } from 'mocha';
-import { expect } from 'chai';
-import { connectDB } from '../db/index.js';
-import { Device } from '../db/index.js';
-import { Ping } from '../db/index.js';
-import { DeviceIntelligenceEngine } from '../engines/device-intelligence-engine.js';
+import { connectDB } from '../../db/index.js';
+import { Device } from '../../db/index.js';
+import { Ping } from '../../db/index.js';
+import { DeviceIntelligenceEngine } from '../../engines/device-intelligence-engine.js';
 
-describe('Device Intelligence Engine Tests', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Device Intelligence Engine Tests', () => {
   let engine: DeviceIntelligenceEngine;
   let testDevice: any;
   let testImei: string;
 
-  before(async () => {
+  beforeAll(async () => {
     await connectDB();
     engine = new DeviceIntelligenceEngine();
 
@@ -29,7 +29,7 @@ describe('Device Intelligence Engine Tests', () => {
     });
   });
 
-  after(async () => {
+  afterAll(async () => {
     // Cleanup test data
     await Device.deleteOne({ imei: testImei });
     await Ping.deleteMany({ imei: testImei });

@@ -176,7 +176,7 @@ export async function reportLostOtp(otpId: string, reportedBy: string) {
   if (!otp) throw new Error("Security OTP not found");
   
   // TODO: Notify security team about lost OTP
-  console.log(`Security OTP ${otpId} reported lost by ${reportedBy}`);
+  console.warn(`[DashboardSecurity] Lost OTP notification not implemented — OTP ${otpId} lost by ${reportedBy}`);
   
   return otp;
 }
@@ -220,6 +220,7 @@ export async function initiatePasswordReset(data: any) {
   }
 
   // TODO: Send notification via official channels
+  console.warn(`[DashboardSecurity] Official notification not sent for password reset ${requestId}`);
   getIO().to(`user:${data.userId}`).emit("password_reset_initiated", {
     requestId,
     requesterId: data.requesterId,
@@ -281,6 +282,7 @@ export async function approvePasswordReset(requestId: string, approverId: string
   await resetRequest.save();
 
   // TODO: Notify requester and user
+  console.warn(`[DashboardSecurity] Password reset approved notification not sent for ${requestId}`);
   getIO().to(`user:${(resetRequest as any).userId}`).emit("password_reset_approved", {
     requestId,
     approverId,
@@ -336,6 +338,7 @@ export async function completePasswordReset(requestId: string, newPassword: stri
 
   // TODO: Log the password change in audit log
   // TODO: Notify user via official channels
+  console.warn(`[DashboardSecurity] Password change audit log / notification not sent for ${requestId}`);
   getIO().to(`user:${(resetRequest as any).userId}`).emit("password_reset_completed", {
     requestId,
   });
@@ -381,6 +384,7 @@ export async function initiateNetworkChange(data: any) {
   });
 
   // TODO: Notify required approvers
+  console.warn(`[DashboardSecurity] Network change approver notification not implemented for ${requestId}`);
   getIO().to(`role:admin`).emit("network_change_requested", {
     requestId,
     approvalLevel: data.approvalLevel,
@@ -457,6 +461,7 @@ export async function approveNetworkChange(requestId: string, approverId: string
   await networkChange.save();
 
   // TODO: Notify next approver or requester if all approved
+  console.warn(`[DashboardSecurity] Network change approval notification not implemented for ${requestId}`);
   if (allApproved) {
     getIO().to(`user:${(networkChange as any).requesterId}`).emit("network_change_approved", {
       requestId,
@@ -500,6 +505,7 @@ export async function executeNetworkChange(requestId: string, executedBy: string
 
   // TODO: Execute actual network change
   // TODO: Update system configuration with new network settings
+  console.warn(`[DashboardSecurity] Network change execution not implemented for ${requestId} — marking completed as stub`);
   
   (networkChange as any).executionStatus = "completed";
   (networkChange as any).status = "completed";
@@ -507,6 +513,7 @@ export async function executeNetworkChange(requestId: string, executedBy: string
   await networkChange.save();
 
   // TODO: Notify all stakeholders
+  console.warn(`[DashboardSecurity] Network change stakeholder notification not implemented for ${requestId}`);
   getIO().to(`role:admin`).emit("network_change_completed", {
     requestId,
   });
@@ -527,6 +534,7 @@ export async function rollbackNetworkChange(requestId: string, rollbackReason: s
 
   // TODO: Execute rollback to previous network configuration
   // TODO: Restore previous system settings
+  console.warn(`[DashboardSecurity] Network change rollback execution not implemented for ${requestId}`);
   
   (networkChange as any).rollbackStatus = "completed";
   (networkChange as any).executionStatus = "rolled_back";
@@ -534,6 +542,7 @@ export async function rollbackNetworkChange(requestId: string, rollbackReason: s
   await networkChange.save();
 
   // TODO: Notify all stakeholders
+  console.warn(`[DashboardSecurity] Network change rollback notification not implemented for ${requestId}`);
   getIO().to(`role:admin`).emit("network_change_rolled_back", {
     requestId,
     reason: rollbackReason,
@@ -575,7 +584,7 @@ export async function logDashboardAccess(data: any) {
   // Alert if suspicious activity detected
   if ((accessLog as any).suspiciousActivity) {
     // TODO: Send security alert
-    console.log(`Suspicious activity detected: ${logId} with risk score ${riskScore}`);
+    console.warn(`[DashboardSecurity] Suspicious activity alert not sent — ${logId} risk score ${riskScore}`);
     getIO().to(`role:admin`).emit("suspicious_activity", {
       logId,
       userId: data.userId,

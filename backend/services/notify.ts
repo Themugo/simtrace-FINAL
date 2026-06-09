@@ -164,7 +164,7 @@ export async function sendEmail(to: string | undefined, subject: string, body: s
       body: JSON.stringify({
         personalizations: [{ to: [{ email: to }] }],
         from: {
-          email: process.env.FROM_EMAIL || "alerts@simtrace.site",
+          email: process.env.FROM_EMAIL || "alerts@simtrace.local",
           name: "SimTrace Alerts",
         },
         subject,
@@ -263,7 +263,7 @@ function buildAlertEmail(subject: string, body: string): string {
                 </p>
               </div>
 
-              <a href="${process.env.FRONTEND_URL || "https://simtrace.site"}/dashboard"
+              <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard"
                  style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;text-decoration:none;padding:12px 28px;border-radius:9px;font-weight:700;">
                 View Dashboard →
               </a>

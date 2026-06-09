@@ -71,7 +71,7 @@ router.post("/imei-report", async (req: Request, res: Response, next: NextFuncti
       try {
         const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
         userId = payload.id;
-      } catch { /* anonymous — still allow 1 check */ }
+      } catch { console.warn("[AI] JWT verify failed — anonymous check allowed"); }
     }
 
     if (userId) {
@@ -188,7 +188,7 @@ router.post("/chat", async (req: Request, res: Response, next: NextFunction) => 
           Alert.countDocuments({ read: false }),
         ]);
         userContext = { role: payload.role, deviceCount, alertCount };
-      } catch { /* unauthenticated */ }
+      } catch { console.warn("[AI] Unauthenticated user context fetch"); }
     }
 
     const reply = await securityChat({ messages, userContext });
@@ -232,7 +232,7 @@ router.post("/chat/stream", async (req: Request, res: Response, next: NextFuncti
             return res.status(429).json({ error: "Daily AI chat limit reached" });
           }
         }
-      } catch { /* unauthenticated */ }
+      } catch { console.warn("[AI] Unauthenticated quota check"); }
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -291,7 +291,7 @@ router.post("/chat/stream", async (req: Request, res: Response, next: NextFuncti
           if (evt.type === "message_stop") {
             res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
           }
-        } catch { /* skip malformed chunks */ }
+        } catch { console.warn("[AI] Skipped malformed SSE chunk"); }
       }
     }
 

@@ -197,8 +197,9 @@ export async function verifyPayPalWebhook(headers: any, body: any): Promise<bool
     });
     const data: any = await response.json();
     return data.verification_status === "SUCCESS";
-  } catch {
-    return false; // fail-closed on verification error
+  } catch (err) {
+    console.error("[PayPal] Verification failed:", err);
+    return false;
   }
 }
 

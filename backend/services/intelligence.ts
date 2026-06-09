@@ -178,7 +178,7 @@ export async function runIntelligence({ ping, device }: { ping: any; device: any
     let aiNarrative;
     try {
       aiNarrative = await narrateFraudPattern({ imei: ping.imei, type: a.type, payload: a.payload, pingHistory });
-    } catch { /* AI unavailable — continue without narrative */ }
+    } catch { console.warn("[Intel] AI narrative unavailable — continuing without"); }
 
     const saved = await Alert.create({ imei: ping.imei, ...a, ...(aiNarrative && { narrative: aiNarrative }) });
 

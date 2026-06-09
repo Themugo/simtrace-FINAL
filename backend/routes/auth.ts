@@ -4,12 +4,6 @@ import crypto     from "crypto";
 import { z }      from "zod";
 import { User, Subscription, PasswordReset } from "../db/index.js";
 import { signToken, authenticate }            from "../middleware/auth.js";
-import {
-  isAccountLocked,
-  recordFailedLogin,
-  resetLoginAttempts,
-  getLockoutRemainingTime,
-} from "../services/accountLockout.js";
 
 const router = Router();
 
@@ -87,44 +81,9 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction) =>
   try {
     const { email, password } = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(req.body);
     const user = await User.findOne({ email: email.toLowerCase() });
-    
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
-
-    // Check if account is locked
-    const locked = await isAccountLocked(user._id.toString());
-    if (locked) {
-      const remainingTime = await getLockoutRemainingTime(user._id.toString());
-      const minutes = Math.ceil((remainingTime || 0) / 60000);
-      return res.status(423).json({ 
-        error: "Account locked due to too many failed login attempts",
-        locked: true,
-        remainingMinutes: minutes,
-      });
-    }
-
-    if (!(await bcrypt.compare(password, user.passwordHash))) {
-      // Record failed attempt
-      const result = await recordFailedLogin(user._id.toString());
-      
-      if (result.locked) {
-        return res.status(423).json({ 
-          error: "Account locked due to too many failed login attempts",
-          locked: true,
-          remainingMinutes: 15,
-        });
-      }
-
-      return res.status(401).json({ 
-        error: "Invalid credentials",
-        remainingAttempts: result.remainingAttempts,
-      });
-    }
-
-    // Reset login attempts on successful login
-    await resetLoginAttempts(user._id.toString());
-
     res.json({ token: signToken(user), user: sanitize(user) });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -204,7 +163,7 @@ router.post("/forgot-password", async (req: Request, res: Response, next: NextFu
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         await PasswordReset.create({ user: user._id, token: rawToken, expiresAt });
 
-        const resetUrl = `${process.env.FRONTEND_URL || "https://simtrace.site"}/reset-password?token=${rawToken}`;
+        const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${rawToken}`;
 
         await sendResetEmail(user.email, user.name, resetUrl);
       } catch (err) {
@@ -282,7 +241,7 @@ async function sendResetEmail(to: string, name: string, resetUrl: string): Promi
       </a>
       <p style="color: #475569; font-size: 13px; margin: 24px 0 0; line-height: 1.6;">
         If you didn't request this, ignore this email — your password won't change.<br>
-        If you're concerned, contact <a href="mailto:support@simtrace.site" style="color: #0ea5e9;">support@simtrace.site</a>
+        If you're concerned, contact <a href="mailto:${process.env.SUPPORT_EMAIL || "support@simtrace.local"}" style="color: #0ea5e9;">${process.env.SUPPORT_EMAIL || "support@simtrace.local"}</a>
       </p>
     </div>
   `;
@@ -292,7 +251,7 @@ async function sendResetEmail(to: string, name: string, resetUrl: string): Promi
     headers: { Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`, "Content-Type": "application/json" },
     body:    JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
-      from:    { email: process.env.FROM_EMAIL || "noreply@simtrace.site", name: "SimTrace" },
+      from:    { email: process.env.FROM_EMAIL || "noreply@simtrace.local", name: "SimTrace" },
       subject: "Reset your SimTrace password",
       content: [
         { type: "text/plain", value: `Hi ${name}, reset your password here: ${resetUrl}\n\nThis link expires in 1 hour.` },

@@ -1,7 +1,7 @@
 // scripts/seed-users.ts - Seed test users for live testing
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { User } from '../db/index.ts';
+import { User } from '../db/index.js';
 
 const users = [
   {
@@ -10,34 +10,27 @@ const users = [
     password: 'Admin@123',
     role: 'admin',
     phone: '+254700000001',
-    isDemo: false,
   },
   {
-    name: 'Demo User (Partner Demo)',
+    name: 'Regular User',
     email: 'user@simtrace.site',
     password: 'User@123',
     role: 'user',
     phone: '+254700000002',
-    isDemo: true,
-    demoPartner: 'all',
   },
   {
-    name: 'Demo Police (Partner Demo)',
+    name: 'Police Officer',
     email: 'police@simtrace.site',
     password: 'Police@123',
     role: 'law_enforcement',
     phone: '+254700000003',
-    isDemo: true,
-    demoPartner: 'police',
   },
   {
-    name: 'Demo Telecom (Partner Demo)',
+    name: 'Telecom Admin',
     email: 'telecom@simtrace.site',
     password: 'Telecom@123',
     role: 'telecom',
     phone: '+254700000004',
-    isDemo: true,
-    demoPartner: 'telecom',
   },
 ];
 
@@ -59,10 +52,8 @@ async function seedUsers() {
         passwordHash,
         emailVerified: true,
         phoneVerified: true,
-        isDemo: userData.isDemo || false,
-        demoPartner: userData.demoPartner || null,
       });
-      console.log(`Created user: ${userData.email} ${userData.isDemo ? '(DEMO)' : ''}`);
+      console.log(`Created user: ${userData.email}`);
     }
 
     console.log('User seeding completed successfully');

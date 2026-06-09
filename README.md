@@ -73,10 +73,11 @@ npm run dev
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@simtrace.site | Admin@123 |
-| Regular user | user@simtrace.site | User@123 |
-| Law enforcement | police@simtrace.site | Police@123 |
-| Telecom | telecom@simtrace.site | Telecom@123 |
+| Admin | admin@simtrace.site | Admin@2024! |
+| Pro user | jane@demo.simtrace.site | Demo@2024! |
+| Free user | john@demo.simtrace.site | Demo@2024! |
+| Telecom | api@safaricom-demo.simtrace.site | Telecom@2024! |
+| Law enforcement | dci@demo.simtrace.site | Law@2024! |
 
 ---
 

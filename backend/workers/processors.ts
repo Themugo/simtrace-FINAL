@@ -72,25 +72,28 @@ export async function processExportJob(data: {
 }
 
 async function generatePDFExport(data: any): Promise<any> {
+  const storageUrl = process.env.EXPORT_STORAGE_URL || "http://localhost:3000/exports";
   // Generate PDF export
   return {
-    url: `https://storage.simtrace.com/exports/${Date.now()}.pdf`,
+    url: `${storageUrl}/${Date.now()}.pdf`,
     filename: data.filename || `export_${Date.now()}.pdf`,
   };
 }
 
 async function generateCSVExport(data: any): Promise<any> {
+  const storageUrl = process.env.EXPORT_STORAGE_URL || "http://localhost:3000/exports";
   // Generate CSV export
   return {
-    url: `https://storage.simtrace.com/exports/${Date.now()}.csv`,
+    url: `${storageUrl}/${Date.now()}.csv`,
     filename: data.filename || `export_${Date.now()}.csv`,
   };
 }
 
 async function generateXLSXExport(data: any): Promise<any> {
+  const storageUrl = process.env.EXPORT_STORAGE_URL || "http://localhost:3000/exports";
   // Generate XLSX export
   return {
-    url: `https://storage.simtrace.com/exports/${Date.now()}.xlsx`,
+    url: `${storageUrl}/${Date.now()}.xlsx`,
     filename: data.filename || `export_${Date.now()}.xlsx`,
   };
 }

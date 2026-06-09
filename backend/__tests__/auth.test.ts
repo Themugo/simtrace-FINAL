@@ -4,7 +4,9 @@ import authRoutes from '../routes/auth.js';
 import { connectDB, User } from '../db/index.js';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-describe('Auth Routes', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Auth Routes', () => {
   let app: express.Application;
   let mongoServer: MongoMemoryServer;
 

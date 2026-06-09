@@ -28,7 +28,7 @@
     "zustand": "^5.0.0"
   },
   "engines": {
-    "node": "22.x"
+    "node": "20.x"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",

@@ -256,8 +256,8 @@ class SDKEcosystem {
       version: '1.0.0',
       releaseDate: new Date('2024-01-01'),
       changelog: ['Initial release', 'Basic tracking functionality', 'Authentication support'],
-      downloadUrl: 'https://cdn.simtrace.com/sdk/js/1.0.0/simtrace.js',
-      documentationUrl: 'https://docs.simtrace.com/sdk/js/1.0.0',
+      downloadUrl: `${process.env.SDK_CDN_URL || 'https://cdn.simtrace.com'}/sdk/js/1.0.0/simtrace.js`,
+      documentationUrl: `${process.env.SDK_DOCS_URL || 'https://docs.simtrace.com'}/sdk/js/1.0.0`,
     });
 
     this.createVersion({
@@ -265,8 +265,8 @@ class SDKEcosystem {
       version: '1.1.0',
       releaseDate: new Date('2024-02-01'),
       changelog: ['Added recovery API', 'Improved error handling', 'Performance optimizations'],
-      downloadUrl: 'https://cdn.simtrace.com/sdk/js/1.1.0/simtrace.js',
-      documentationUrl: 'https://docs.simtrace.com/sdk/js/1.1.0',
+      downloadUrl: `${process.env.SDK_CDN_URL || 'https://cdn.simtrace.com'}/sdk/js/1.1.0/simtrace.js`,
+      documentationUrl: `${process.env.SDK_DOCS_URL || 'https://docs.simtrace.com'}/sdk/js/1.1.0`,
     });
 
     this.createVersion({
@@ -274,8 +274,8 @@ class SDKEcosystem {
       version: '1.0.0',
       releaseDate: new Date('2024-01-15'),
       changelog: ['Initial release', 'iOS and Android support', 'Background tracking'],
-      downloadUrl: 'https://cdn.simtrace.com/sdk/mobile/1.0.0',
-      documentationUrl: 'https://docs.simtrace.com/sdk/mobile/1.0.0',
+      downloadUrl: `${process.env.SDK_CDN_URL || 'https://cdn.simtrace.com'}/sdk/mobile/1.0.0`,
+      documentationUrl: `${process.env.SDK_DOCS_URL || 'https://docs.simtrace.com'}/sdk/mobile/1.0.0`,
     });
 
     this.createVersion({
@@ -283,8 +283,8 @@ class SDKEcosystem {
       version: '1.0.0',
       releaseDate: new Date('2024-01-20'),
       changelog: ['Initial release', 'REST API client', 'Webhook support'],
-      downloadUrl: 'https://cdn.simtrace.com/sdk/partner/1.0.0',
-      documentationUrl: 'https://docs.simtrace.com/sdk/partner/1.0.0',
+      downloadUrl: `${process.env.SDK_CDN_URL || 'https://cdn.simtrace.com'}/sdk/partner/1.0.0`,
+      documentationUrl: `${process.env.SDK_DOCS_URL || 'https://docs.simtrace.com'}/sdk/partner/1.0.0`,
     });
 
     // Add documentation

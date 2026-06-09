@@ -11,7 +11,7 @@ import pinoHttp from "pino-http";
 import { connectDB } from "./db/index.js";
 import { seedPlans } from "./services/billing.js";
 import { initIO } from "./services/socket.js";
-import { authenticate, authenticateSocket } from "./middleware/auth.js";
+import { authenticateSocket } from "./middleware/auth.js";
 import { sanitizeInput } from "./middleware/validation.js";
 import { notFoundHandler } from "./middleware/errorHandler.js";
 import { initializeQueues } from "./queues/index.js";
@@ -26,8 +26,6 @@ import "./sentry.js";
 import authRoutes      from "./routes/auth.js";
 import verificationRoutes from "./routes/verification.js";
 import oauthRoutes     from "./routes/oauth.js";
-import phoneVerificationRoutes from "./routes/phone-verification.js";
-import autoRegisterRoutes from "./routes/auto-register.js";
 import deviceRoutes    from "./routes/devices.js";
 import imeiRoutes      from "./routes/imei.js";
 import trackRoutes     from "./routes/track.js";
@@ -89,17 +87,11 @@ import enterpriseRoutes from "./routes/enterprise.js";
 import regulatoryRoutes from "./routes/regulatory.js";
 import configurationManagementRoutes from "./routes/configurationManagement.js";
 import pricingRoutes from "./routes/pricing.js";
-import reportsRoutes from "./routes/reports.js";
-import twoFactorAuthRoutes from "./routes/twoFactorAuth.js";
-import accountLockoutRoutes from "./routes/accountLockout.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
 const server: HttpServer = http.createServer(app);
 const isProd: boolean = process.env.NODE_ENV === "production";
-
-// Export app for testing
-export { app };
 
 // Trust Railway/Heroku/Vercel proxy — required for rate-limiter to see real IPs
 app.set("trust proxy", 1);
@@ -140,8 +132,7 @@ app.use(ipThrottlingMiddleware);
 app.use(abuseDetectionMiddleware);
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const defaultOrigins = "http://localhost:3000,https://simtrace-final.vercel.app,https://www.simtrace.site,https://simtrace.site";
-const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || defaultOrigins).split(",").map((s: string) => s.trim());
+const allowedOrigins: string[] = (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(",").map((s: string) => s.trim());
 app.use(cors({
   origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -309,8 +300,6 @@ app.use("/api/public-api",            publicApiRoutes);
 app.use("/api/partner-marketplace",   partnerMarketplaceRoutes);
 app.use("/api/pricing",               pricingRoutes);
 app.use("/api/reports",               reportsRoutes);
-app.use("/api/two-factor-auth",       twoFactorAuthRoutes);
-app.use("/api/account-lockout",       accountLockoutRoutes);
 app.use("/api/reseller",              resellerRoutes);
 app.use("/api/seller-reseller",       sellerResellerRoutes);
 app.use("/api/repair-shop",           repairShopRoutes);
@@ -385,6 +374,16 @@ process.on("SIGTERM", () => {
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
+const REQUIRED_ENV_VARS = ["JWT_SECRET", "MONGO_URI"];
+const missing: string[] = [];
+for (const key of REQUIRED_ENV_VARS) {
+  if (!process.env[key]) missing.push(key);
+}
+if (missing.length > 0) {
+  console.error(`[startup] Missing required env vars: ${missing.join(", ")}`);
+  process.exit(1);
+}
+
 const PORT: number = parseInt(process.env.PORT || "4000", 10);
 connectWithRetry().then(async () => {
   seedPlans();

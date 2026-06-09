@@ -97,7 +97,8 @@ async function processDataExport(request: any) {
   const exportHash = crypto.createHash("sha256").update(exportData).digest("hex");
 
   // Set export URL (in production, upload to secure storage)
-  request.exportUrl = `https://simtrace.com/exports/${exportHash}`;
+  const exportBaseUrl = process.env.EXPORT_STORAGE_URL || "http://localhost:3000/exports";
+  request.exportUrl = `${exportBaseUrl}/${exportHash}`;
   request.exportExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
   request.status = "completed";
   request.updatedAt = new Date();
@@ -123,7 +124,8 @@ async function processDataDeletion(request: any) {
 
   // Anonymize user account
   user.name = "Deleted User";
-  user.email = `deleted_${user._id}@simtrace.com`;
+  const anonymizedDomain = process.env.ANONYMIZED_EMAIL_DOMAIN || "deleted.local";
+  user.email = `deleted_${user._id}@${anonymizedDomain}`;
   user.phone = undefined; // GDPR erasure: clear PII
   await user.save();
 

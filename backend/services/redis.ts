@@ -98,6 +98,7 @@ export async function dequeue<T>(queueName: string): Promise<QueueJob<T> | null>
   try {
     return JSON.parse(result[1]) as QueueJob<T>;
   } catch {
+    console.warn("[Redis] Failed to dequeue: malformed JSON payload");
     return null;
   }
 }
@@ -140,6 +141,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   try {
     return JSON.parse(data) as T;
   } catch {
+    console.warn("[Redis] Failed to parse cached data");
     return null;
   }
 }

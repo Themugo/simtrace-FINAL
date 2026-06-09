@@ -40,10 +40,10 @@ export async function createWhiteLabelInstance(data: any) {
     logo: null,
     primaryColor: "#0ea5e9",
     secondaryColor: "#6366f1",
-    domain: `${instanceId.toLowerCase()}.simtrace.site`,
+    domain: `${instanceId.toLowerCase()}.${process.env.WHITELABEL_DOMAIN || "simtrace.local"}`,
     customDomain: null,
     companyName: name,
-    supportEmail: `support@${instanceId.toLowerCase()}.simtrace.site`,
+    supportEmail: `support@${instanceId.toLowerCase()}.${process.env.WHITELABEL_DOMAIN || "simtrace.local"}`,
     supportPhone: null,
   };
 

@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 export { PricingConfig } from '../models/PricingConfig.js';
-import { PricingConfig } from '../models/PricingConfig.js';
 
 export async function connectDB(): Promise<void> {
   const uri = process.env.MONGO_URI;
@@ -33,20 +32,13 @@ interface IUser {
   passwordHash: string;
   role: 'user' | 'admin' | 'super_admin' | 'telecom' | 'law_enforcement';
   phone?: string;
-  address?: string;
-  paymentInfo?: string;
   apiKey?: string;
   emailVerified?: boolean;
   phoneVerified?: boolean;
-  twoFactorEnabled?: boolean;
-  twoFactorSecret?: string;
-  twoFactorBackupCodes?: string[];
   mustChangePassword?: boolean;
   tokenVersion?: number;
   authProvider?: 'local' | 'google';
   providerId?: string;
-  loginAttempts?: number;
-  lockedUntil?: Date;
   createdAt: Date;
 }
 
@@ -55,21 +47,14 @@ const userSchema = new mongoose.Schema<IUser>({
   email: { type: String, required: true, unique: true, lowercase: true },
   passwordHash: { type: String },
   role: { type: String, enum: ['user', 'admin', 'super_admin', 'telecom', 'law_enforcement'], default: 'user' },
+  tokenVersion: { type: Number, default: 0 },
   phone: { type: String },
-  address: { type: String },
-  paymentInfo: { type: String },
   apiKey: { type: String, index: true, sparse: true },
   emailVerified: { type: Boolean, default: false },
   phoneVerified: { type: Boolean, default: false },
-  twoFactorEnabled: { type: Boolean, default: false },
-  twoFactorSecret: String,
-  twoFactorBackupCodes: [String],
-  tokenVersion: { type: Number, default: 0 },
   mustChangePassword: { type: Boolean, default: false },
   authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   providerId: { type: String, index: true, sparse: true },
-  loginAttempts: { type: Number, default: 0 },
-  lockedUntil: Date,
   createdAt: { type: Date, default: Date.now },
 });
 export const User = mongoose.model<IUser>('User', userSchema);

@@ -268,8 +268,8 @@ export async function disablePolicyRule(policyId: string) {
 
 // ── Configuration Helpers ─────────────────────────────────────────────────────────
 export async function getEffectiveConfig(agencyId: string, countryCode: string) {
-  const agencyConfig = await getAgencyConfig(agencyId).catch(() => null);
-  const countryConfig = await getCountryConfig(countryCode).catch(() => null);
+  const agencyConfig = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] No agency config for ${agencyId}`); return null; });
+  const countryConfig = await getCountryConfig(countryCode).catch(() => { console.warn(`[Config] No country config for ${countryCode}`); return null; });
 
   // Merge configurations (agency config takes precedence)
   const effectiveConfig = {
@@ -295,9 +295,9 @@ export async function getEffectiveConfig(agencyId: string, countryCode: string) 
 }
 
 export async function checkRateLimit(agencyId: string, endpoint: string, userIp: string) {
-  const config = await getAgencyConfig(agencyId).catch(() => null);
-  if (!config || !(config as any).rateLimiting?.enabled) return { allowed: true };
+  const config = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] Rate limit check — no config for ${agencyId}`); return null; });
 
+  if (!config || !(config as any).rateLimiting?.enabled) return { allowed: true };
   // This is a simplified rate limit check
   // In production, use Redis or a dedicated rate limiter
   const rateLimit = (config as any).rateLimiting;
@@ -312,7 +312,7 @@ export async function checkRateLimit(agencyId: string, endpoint: string, userIp:
 }
 
 export async function checkIPAccess(agencyId: string, userIp: string) {
-  const config = await getAgencyConfig(agencyId).catch(() => null);
+  const config = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] IP access check — no config for ${agencyId}`); return null; });
   if (!config) return { allowed: true };
 
   const { ipWhitelist, ipBlacklist } = (config as any).security || {};
@@ -335,7 +335,7 @@ export async function checkIPAccess(agencyId: string, userIp: string) {
 }
 
 export async function checkTimeBasedAccess(agencyId: string) {
-  const config = await getAgencyConfig(agencyId).catch(() => null);
+  const config = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] Time-based access — no config for ${agencyId}`); return null; });
   if (!config || !(config as any).security?.timeBasedAccess?.length) return { allowed: true };
 
   const now = new Date();
@@ -361,7 +361,7 @@ export async function checkTimeBasedAccess(agencyId: string) {
 }
 
 export async function maskData(data: any, agencyId: string) {
-  const config = await getAgencyConfig(agencyId).catch(() => null);
+  const config = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] Mask data — no config for ${agencyId}`); return null; });
   if (!config || !(config as any).dataMasking?.enabled) return data;
 
   const rules = (config as any).dataMasking.rules || [];
@@ -423,7 +423,7 @@ function applyMask(value: any, pattern: string, showFirst: number, showLast: num
 }
 
 export async function validatePassword(password: string, agencyId: string) {
-  const config = await getAgencyConfig(agencyId).catch(() => null);
+  const config = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] Password validation — no config for ${agencyId}`); return null; });
   const policy = (config as any)?.security?.passwordPolicy || {
     minLength: 8,
     requireUppercase: true,
@@ -459,7 +459,7 @@ export async function validatePassword(password: string, agencyId: string) {
 
 // ── Webhook System ───────────────────────────────────────────────────────────────────
 export async function triggerWebhooks(agencyId: string, event: string, payload: any) {
-  const config = await getAgencyConfig(agencyId).catch(() => null);
+  const config = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] Webhook trigger — no config for ${agencyId}`); return null; });
   if (!config || !(config as any).notifications?.webhookEndpoints) return;
 
   const webhooks = (config as any).notifications.webhookEndpoints.filter(
@@ -485,7 +485,7 @@ export async function triggerWebhooks(agencyId: string, event: string, payload: 
 
 // ── Integration Helper ───────────────────────────────────────────────────────────────
 export async function getIntegrationConfig(agencyId: string, provider: string) {
-  const config = await getAgencyConfig(agencyId).catch(() => null);
+  const config = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] Integration config — no config for ${agencyId}`); return null; });
   if (!config) return null;
 
   const integration = (config as any).integrations?.find((i: any) => i.provider === provider && i.enabled);

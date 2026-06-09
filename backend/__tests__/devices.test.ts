@@ -4,7 +4,9 @@ import deviceRoutes from '../routes/devices';
 import { connectDB, User, Device } from '../db/index';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-describe('Device Routes', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Device Routes', () => {
   let app: express.Application;
   let mongoServer: MongoMemoryServer;
   let authToken: string;

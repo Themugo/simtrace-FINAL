@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import crypto from "crypto";
 import jwt    from "jsonwebtoken";
-import { Device, TheftReport, Ping, User } from "../db/index.js";
+import { Device, TheftReport, Ping } from "../db/index.js";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { computeRiskScore } from "../services/intelligence.js";
 import { sendAlert } from "../services/notify.js";
@@ -86,10 +86,6 @@ router.post("/report-stolen", authenticate, async (req: AuthRequest, res: Respon
     });
     const { imei, description, policeRef } = schema.parse(req.body);
 
-    // Check if reporter is a demo account
-    const reporter = await User.findById(req.user!.id);
-    const isDemo = reporter?.isDemo || false;
-
     // Mark device blacklisted
     await Device.findOneAndUpdate({ imei }, { status: "stolen" }, { upsert: true });
 
@@ -97,7 +93,6 @@ router.post("/report-stolen", authenticate, async (req: AuthRequest, res: Respon
     const report = await TheftReport.create({
       imei, description, policeRef,
       reportedBy: req.user!.id,
-      isDemoReport: isDemo,
     });
 
     // Notify device owner and ops team
@@ -108,34 +103,7 @@ router.post("/report-stolen", authenticate, async (req: AuthRequest, res: Respon
       message: `Device ${imei} has been reported stolen. Case #${report._id}`,
     });
 
-    // If demo account, also notify police and telecom partners
-    if (isDemo) {
-      // Find all police and telecom demo partners
-      const policeUsers = await User.find({ role: "law_enforcement", isDemo: true });
-      const telecomUsers = await User.find({ role: "telecom", isDemo: true });
-      
-      // Notify police partners
-      for (const police of policeUsers) {
-        await sendAlert({
-          type: "demo_theft_report",
-          imei,
-          userId: police._id.toString(),
-          message: `DEMO: Device ${imei} reported stolen by demo user. Case #${report._id}`,
-        });
-      }
-      
-      // Notify telecom partners
-      for (const telecom of telecomUsers) {
-        await sendAlert({
-          type: "demo_theft_report",
-          imei,
-          userId: telecom._id.toString(),
-          message: `DEMO: Device ${imei} reported stolen by demo user. Case #${report._id}`,
-        });
-      }
-    }
-
-    res.status(201).json({ reportId: report._id, message: "Device reported stolen and blacklisted", isDemo });
+    res.status(201).json({ reportId: report._id, message: "Device reported stolen and blacklisted" });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
@@ -180,7 +148,7 @@ router.get("/:imei", async (req: Request, res: Response, next: NextFunction) => 
         const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
         callerId   = payload.id;
         callerRole = payload.role;
-      } catch { /* unauthenticated — fine */ }
+      } catch { console.warn("[IMEI] JWT verify failed — unauthenticated lookup"); }
     }
 
     const device    = await Device.findOne({ imei }).lean();   // no populate — PII stays in DB
