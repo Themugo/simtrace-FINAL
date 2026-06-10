@@ -37,6 +37,13 @@ interface Partner {
   apiKey?: string;
 }
 
+interface WebhookTestResult {
+  success: boolean;
+  message: string;
+  statusCode?: number;
+  latencyMs?: number;
+}
+
 interface FormState {
   orgName: string;
   orgType: string;
@@ -67,9 +74,9 @@ export default function TelecomPortalPage() {
   const [saving,  setSaving]  = useState(false);
   const [apiKey,  setApiKey]  = useState("");
   const [testImei,    setTestImei]    = useState("");
-  const [testResult,  setTestResult]  = useState<any>(null);
+  const [testResult,  setTestResult]  = useState<Record<string, unknown> | null>(null);
   const [rotating,    setRotating]    = useState(false);
-  const [webhookTest, setWebhookTest] = useState<any>(null);
+  const [webhookTest, setWebhookTest] = useState<WebhookTestResult | null>(null);
   const [testingHook, setTestingHook] = useState(false);
   const [copiedKey,   setCopiedKey]   = useState(false);
 
@@ -95,7 +102,7 @@ export default function TelecomPortalPage() {
       const res = await api.post("/api/partner/register", form);
       setApiKey(res.apiKey);
       setStep("applied");
-    } catch (err: any) { setError(err.message); }
+    } catch (err: unknown) { setError(err instanceof Error ? err.message : "Unknown error"); }
     finally { setSaving(false); }
   }
 
@@ -104,9 +111,9 @@ export default function TelecomPortalPage() {
     setRotating(true);
     try {
       const keyRes = await api.post(`/api/partner/${partner._id}/regenerate-key`, {});
-      setPartner(p => ({ ...p, apiKey: keyRes.apiKey }));
+      setPartner({ ...partner, apiKey: keyRes.apiKey });
       alert("API key rotated. Copy the new key now — it won't be shown again after you leave this page.");
-    } catch (err: any) { alert(err.message); }
+    } catch (err: unknown) { alert(err instanceof Error ? err.message : "Unknown error"); }
     finally { setRotating(false); }
   }
 
@@ -123,7 +130,8 @@ export default function TelecomPortalPage() {
     try {
       const res = await api.post("/api/partner/imei/bulk", { imeis: [testImei] });
       setTestResult(res.results?.[0] || null);
-    } catch (err: any) { setTestResult({ error: err.message }); }
+    } catch (err: unknown) {
+      setTestResult({ error: err instanceof Error ? err.message : "Unknown error" } as Record<string, unknown>); }
   }
 
   if (authLoading) return <p className="text-muted">Loading…</p>;
@@ -260,7 +268,7 @@ export default function TelecomPortalPage() {
                     try {
                       const res = await api.testWebhook(partner.partner?._id || '');
                       setWebhookTest(res);
-                    } catch (err: any) { setWebhookTest({ success: false, message: err.message }); }
+                    } catch (err: unknown) { setWebhookTest({ success: false, message: err instanceof Error ? err.message : "Unknown error" }); }
                     finally { setTestingHook(false); }
                   }}
                   disabled={testingHook}
