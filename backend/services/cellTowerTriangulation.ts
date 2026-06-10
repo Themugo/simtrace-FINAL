@@ -3,6 +3,57 @@
 
 import { SatellitePing, Device } from "../db/index.js";
 
+// ── Local type definitions ───────────────────────────────────────────────────────
+
+interface CellData {
+  mcc: string;
+  mnc: string;
+  cellTowerId: string;
+  signalStrength: number;
+  lac?: string;
+  cid?: string;
+}
+
+interface TowerInfo {
+  id: string;
+  lat: number;
+  lng: number;
+  provider: string;
+  city: string;
+}
+
+interface PingBase {
+  accuracy: number;
+  latitude: number;
+  longitude: number;
+  altitude?: number;
+  source: string;
+  satelliteProvider?: string;
+  signalStrength?: number;
+  timestamp: Date;
+}
+
+interface SatellitePingData {
+  deviceId: string;
+  imei: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  altitude?: number;
+  source?: string;
+  satelliteProvider?: string;
+  satelliteId?: string;
+  signalStrength?: number;
+  cellTowerId?: string;
+  cellTowerLat?: number;
+  cellTowerLng?: number;
+  mcc?: string;
+  mnc?: string;
+  batteryLevel?: number;
+  isCharging?: boolean;
+  networkType?: string;
+}
+
 // ── Cell Tower Database (Simplified) ───────────────────────────────────────────────
 // In production, this would be a comprehensive database of cell towers
 const CELL_TOWER_DATABASE: Record<string, Record<string, { lat: number; lng: number; provider: string; city: string }>> = {
@@ -174,7 +225,7 @@ const CELL_TOWER_DATABASE: Record<string, Record<string, { lat: number; lng: num
 };
 
 // ── Triangulation Algorithm ───────────────────────────────────────────────────────
-export async function triangulateFromCellTowers(cellData: any) {
+export async function triangulateFromCellTowers(cellData: CellData) {
   const { mcc, mnc, cellTowerId, signalStrength, lac, cid } = cellData;
 
   // Get country code from MCC
@@ -201,7 +252,7 @@ export async function triangulateFromCellTowers(cellData: any) {
     accuracy,
     source: "cell_tower_triangulation",
     towersUsed: towers.length,
-    towers: towers.map((t: any) => ({
+    towers: towers.map((t: TowerInfo) => ({
       id: t.id,
       provider: t.provider,
       city: t.city,
@@ -227,7 +278,7 @@ function getCountryCodeFromMCC(mcc: string): string | null {
   return mccMap[mcc] || null;
 }
 
-function getNearbyTowers(countryCode: string, mnc: string, cellTowerId: string): any[] {
+function getNearbyTowers(countryCode: string, mnc: string, cellTowerId: string): TowerInfo[] {
   const countryTowers = CELL_TOWER_DATABASE[countryCode];
   if (!countryTowers) return [];
 
@@ -239,7 +290,7 @@ function getNearbyTowers(countryCode: string, mnc: string, cellTowerId: string):
   }));
 }
 
-function calculateWeightedPosition(towers: any[], signalStrength: number): { lat: number; lng: number } {
+function calculateWeightedPosition(towers: TowerInfo[], signalStrength: number): { lat: number; lng: number } {
   if (towers.length === 0) return { lat: 0, lng: 0 };
 
   // Simple weighted average based on signal strength
@@ -289,7 +340,7 @@ export async function getSatelliteAssistedLocation(deviceId: string) {
   }
 
   // Get the most accurate location
-  const bestPing = recentPings.reduce((best: any, current: any) => {
+  const bestPing = recentPings.reduce((best: PingBase, current: PingBase) => {
     const currentAccuracy = current.accuracy || 1000;
     const bestAccuracy = best.accuracy || 1000;
     return currentAccuracy < bestAccuracy ? current : best;
@@ -324,12 +375,12 @@ export async function getHybridLocation(deviceId: string) {
   }
 
   // Group by source
-  const bySource: Record<string, any[]> = {
-    gps: recentPings.filter((p: any) => p.source === "gps"),
-    satellite: recentPings.filter((p: any) => p.source === "satellite"),
-    cell_tower: recentPings.filter((p: any) => p.source === "cell_tower"),
-    wifi: recentPings.filter((p: any) => p.source === "wifi"),
-    ip_geolocation: recentPings.filter((p: any) => p.source === "ip_geolocation"),
+  const bySource: Record<string, PingBase[]> = {
+    gps: recentPings.filter((p: PingBase) => p.source === "gps"),
+    satellite: recentPings.filter((p: PingBase) => p.source === "satellite"),
+    cell_tower: recentPings.filter((p: PingBase) => p.source === "cell_tower"),
+    wifi: recentPings.filter((p: PingBase) => p.source === "wifi"),
+    ip_geolocation: recentPings.filter((p: PingBase) => p.source === "ip_geolocation"),
   };
 
   // Prioritize sources: GPS > Satellite > WiFi > Cell Tower > IP
@@ -337,7 +388,7 @@ export async function getHybridLocation(deviceId: string) {
 
   for (const source of sources) {
     if (bySource[source].length > 0) {
-      const best = bySource[source].reduce((best: any, current: any) => {
+      const best = bySource[source].reduce((best: PingBase, current: PingBase) => {
         const currentAccuracy = current.accuracy || 1000;
         const bestAccuracy = best.accuracy || 1000;
         return currentAccuracy < bestAccuracy ? current : best;
@@ -360,7 +411,7 @@ export async function getHybridLocation(deviceId: string) {
 }
 
 // ── Record Satellite Ping ───────────────────────────────────────────────────────
-export async function recordSatellitePing(data: any) {
+export async function recordSatellitePing(data: SatellitePingData) {
   const {
     deviceId,
     imei,

@@ -15,7 +15,7 @@ export interface Rule {
 export interface RuleCondition {
   type: 'risk_threshold' | 'sim_change' | 'location_change' | 'time_window' | 'custom';
   operator: 'eq' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'contains';
-  value: any;
+  value: unknown;
   field?: string;
 }
 
@@ -141,7 +141,7 @@ class AutomationEngine {
   }
 
   // Evaluate rules against event data
-  private evaluateRules(eventType: string, data: any): void {
+  private evaluateRules(eventType: string, data: Record<string, unknown>): void {
     const sortedRules = Array.from(this.rules.values())
       .filter(r => r.enabled)
       .sort((a, b) => a.priority - b.priority);
@@ -155,7 +155,7 @@ class AutomationEngine {
   }
 
   // Evaluate rule conditions
-  private evaluateConditions(conditions: RuleCondition[], eventType: string, data: any): boolean {
+  private evaluateConditions(conditions: RuleCondition[], eventType: string, data: Record<string, unknown>): boolean {
     for (const condition of conditions) {
       if (!this.evaluateCondition(condition, eventType, data)) {
         return false;
@@ -165,10 +165,10 @@ class AutomationEngine {
   }
 
   // Evaluate single condition
-  private evaluateCondition(condition: RuleCondition, eventType: string, data: any): boolean {
+  private evaluateCondition(condition: RuleCondition, eventType: string, data: Record<string, unknown>): boolean {
     switch (condition.type) {
       case 'risk_threshold':
-        const riskScore = data.riskAssessment?.overallScore || 0;
+        const riskScore = (data.riskAssessment as Record<string, unknown> | undefined)?.overallScore as number || 0;
         return this.compareValues(riskScore, condition.operator, condition.value);
 
       case 'sim_change':
@@ -178,13 +178,13 @@ class AutomationEngine {
         return eventType === 'location.detected';
 
       case 'time_window':
-        const timestamp = new Date(data.timestamp);
+        const timestamp = new Date(data.timestamp as string | number | Date);
         const now = new Date();
         const diff = now.getTime() - timestamp.getTime();
         return this.compareValues(diff, condition.operator, condition.value);
 
       case 'custom':
-        return data.type === condition.value || data.reason === condition.value;
+        return (data.type as string) === condition.value || (data.reason as string) === condition.value;
 
       default:
         return false;
@@ -192,18 +192,18 @@ class AutomationEngine {
   }
 
   // Compare values based on operator
-  private compareValues(actual: any, operator: string, expected: any): boolean {
+  private compareValues(actual: unknown, operator: string, expected: unknown): boolean {
     switch (operator) {
       case 'eq':
         return actual === expected;
       case 'gt':
-        return actual > expected;
+        return (actual as number) > (expected as number);
       case 'lt':
-        return actual < expected;
+        return (actual as number) < (expected as number);
       case 'gte':
-        return actual >= expected;
+        return (actual as number) >= (expected as number);
       case 'lte':
-        return actual <= expected;
+        return (actual as number) <= (expected as number);
       case 'in':
         return Array.isArray(expected) && expected.includes(actual);
       case 'contains':
@@ -214,14 +214,14 @@ class AutomationEngine {
   }
 
   // Execute rule actions
-  private async executeActions(actions: RuleAction[], data: any): Promise<void> {
+  private async executeActions(actions: RuleAction[], data: Record<string, unknown>): Promise<void> {
     for (const action of actions) {
       await this.executeAction(action, data);
     }
   }
 
   // Execute single action
-  private async executeAction(action: RuleAction, data: any): Promise<void> {
+  private async executeAction(action: RuleAction, data: Record<string, unknown>): Promise<void> {
     switch (action.type) {
       case 'notify':
         await this.notifyRecipients(action.params, data);
@@ -232,7 +232,7 @@ class AutomationEngine {
         break;
 
       case 'freeze_device':
-        await this.freezeDevice(data.imei, action.params.reason);
+        await this.freezeDevice(data.imei as string, action.params.reason);
         break;
 
       case 'create_case':
@@ -250,7 +250,7 @@ class AutomationEngine {
   }
 
   // Notify recipients
-  private async notifyRecipients(params: Record<string, any>, data: any): Promise<void> {
+  private async notifyRecipients(params: Record<string, any>, data: Record<string, unknown>): Promise<void> {
     emit('automation.notify', {
       recipients: params.recipients,
       message: params.message,
@@ -259,7 +259,7 @@ class AutomationEngine {
   }
 
   // Send alert
-  private async sendAlert(params: Record<string, any>, data: any): Promise<void> {
+  private async sendAlert(params: Record<string, any>, data: Record<string, unknown>): Promise<void> {
     emit('automation.alert', {
       type: params.type,
       severity: params.severity || 'high',
@@ -277,9 +277,9 @@ class AutomationEngine {
   }
 
   // Create case
-  private async createCase(data: any, params: Record<string, any>): Promise<void> {
+  private async createCase(data: Record<string, unknown>, params: Record<string, any>): Promise<void> {
     emit('automation.create_case', {
-      imei: data.imei,
+      imei: data.imei as string,
       priority: params.priority || 'medium',
       data,
       timestamp: new Date(),
@@ -287,9 +287,9 @@ class AutomationEngine {
   }
 
   // Escalate
-  private async escalate(data: any, params: Record<string, any>): Promise<void> {
+  private async escalate(data: Record<string, unknown>, params: Record<string, any>): Promise<void> {
     emit('automation.escalate', {
-      imei: data.imei,
+      imei: data.imei as string,
       level: params.level || 'normal',
       data,
       timestamp: new Date(),
@@ -297,7 +297,7 @@ class AutomationEngine {
   }
 
   // Execute custom action
-  private async executeCustomAction(params: Record<string, any>, data: any): Promise<void> {
+  private async executeCustomAction(params: Record<string, any>, data: Record<string, unknown>): Promise<void> {
     emit('automation.custom', {
       action: params.action,
       params,

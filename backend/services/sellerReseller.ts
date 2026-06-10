@@ -9,14 +9,14 @@ import {
 } from "../db/index.js";
 
 // ── Seller/Reseller Management ─────────────────────────────────────────────────────
-export async function createSellerReseller(data: any) {
+export async function createSellerReseller(data: Record<string, unknown>) {
   const sellerId = `seller_${crypto.randomBytes(16).toString("hex")}`;
 
   const seller = await SellerReseller.create({
     ...data,
     sellerId,
-    createdBy: data.createdBy,
-    updatedBy: data.createdBy,
+    createdBy: data.createdBy as string,
+    updatedBy: data.createdBy as string,
   });
 
   return seller;
@@ -33,7 +33,7 @@ export async function getSellerResellerByEmail(officialEmail: string) {
   return seller;
 }
 
-export async function updateSellerReseller(sellerId: string, updates: any, updatedBy: string) {
+export async function updateSellerReseller(sellerId: string, updates: Record<string, unknown>, updatedBy: string) {
   const seller = await SellerReseller.findOneAndUpdate(
     { sellerId },
     {
@@ -86,16 +86,17 @@ export async function getSellerResellersByRegion(countryCode: string, region: st
 }
 
 // ── Device Registration ────────────────────────────────────────────────────────────
-export async function registerDevice(data: any) {
+export async function registerDevice(data: Record<string, unknown>) {
   const registrationId = `reg_${crypto.randomBytes(16).toString("hex")}`;
 
   // Calculate commission
-  const seller = await SellerReseller.findById(data.sellerId);
+  const d = data as { sellerId: string; salePrice: number; deviceId: string; createdBy: string; [key: string]: unknown };
+  const seller = await SellerReseller.findById(d.sellerId);
   if (!seller) throw new Error("Seller/Reseller not found");
 
   let commissionAmount = 0;
   if ((seller as any).commission.type === "percentage") {
-    commissionAmount = (data.salePrice * (seller as any).commission.value) / 100;
+    commissionAmount = (d.salePrice * (seller as any).commission.value) / 100;
   } else {
     commissionAmount = (seller as any).commission.value;
   }
@@ -104,17 +105,17 @@ export async function registerDevice(data: any) {
     ...data,
     registrationId,
     commissionAmount,
-    createdBy: data.createdBy,
-    updatedBy: data.createdBy,
+    createdBy: d.createdBy,
+    updatedBy: d.createdBy,
   });
 
   // Update seller stats
-  await SellerReseller.findByIdAndUpdate(data.sellerId, {
+  await SellerReseller.findByIdAndUpdate(d.sellerId, {
     $inc: {
-      totalSales: data.salePrice,
+      totalSales: d.salePrice,
       totalCommission: commissionAmount,
     },
-    $push: { devicesSold: data.deviceId },
+    $push: { devicesSold: d.deviceId },
   });
 
   return registration;
@@ -220,7 +221,7 @@ export async function getSellerStatistics(sellerId: string) {
   if (!seller) throw new Error("Seller not found");
 
   const registrations = await DeviceRegistration.find({ sellerId });
-  const activeRegistrations = registrations.filter((r: any) => r.status === "active");
+  const activeRegistrations = registrations.filter((r) => r.status === "active");
 
   return {
     totalSales: (seller as any).totalSales,

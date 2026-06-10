@@ -5,14 +5,14 @@ import { NearbyDeviceDetection, Guardian, ParentChild, PanicMode, Device, User, 
 import { getIO } from "./socket.js";
 
 // ── Nearby Device Detection ───────────────────────────────────────────────────────
-export async function detectNearbyDevices(data: any) {
+export async function detectNearbyDevices(data: Record<string, unknown>) {
   const {
     deviceId,
     userId,
     incidentType,
     incidentDescription,
     location,
-  } = data;
+  } = data as { deviceId: string; userId: string; incidentType: string; incidentDescription: string; location: { lat: number; lng: number } };
 
   const device = await Device.findById(deviceId);
   if (!device) throw new Error("Device not found");
@@ -30,7 +30,7 @@ export async function detectNearbyDevices(data: any) {
     .populate("device")
     .limit(20);
 
-  const nearbyDevices = nearbyPings.map((ping: any) => ({
+  const nearbyDevices = nearbyPings.map((ping) => ({
     imei: ping.device.imei,
     signalStrength: ping.signalStrength || 50,
     distance: calculateDistance(location.lat, location.lng, ping.latitude, ping.longitude),
@@ -87,7 +87,7 @@ export async function getNearbyDetectionsByDevice(deviceId: string) {
   return detections;
 }
 
-export async function addPotentialWitness(detectionId: string, witnessData: any) {
+export async function addPotentialWitness(detectionId: string, witnessData: Record<string, unknown>) {
   const detection = await NearbyDeviceDetection.findById(detectionId);
   if (!detection) throw new Error("Detection not found");
 
@@ -99,7 +99,7 @@ export async function addPotentialWitness(detectionId: string, witnessData: any)
 }
 
 // ── Guardian/Nominee System ─────────────────────────────────────────────────────
-export async function addGuardian(data: any) {
+export async function addGuardian(data: Record<string, unknown>) {
   const {
     userId,
     guardianId,
@@ -110,7 +110,7 @@ export async function addGuardian(data: any) {
     permissions,
     canReportTheft,
     emergencyOnly,
-  } = data;
+  } = data as { userId: string; guardianId: string; name: string; phone: string; email: string; relationship: string; permissions: { type: string; enabled: boolean }[]; canReportTheft: boolean; emergencyOnly: boolean };
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
@@ -160,7 +160,7 @@ export async function removeGuardian(userId: string, guardianId: string) {
   return guardian;
 }
 
-export async function updateGuardianPermissions(userId: string, guardianId: string, permissions: any) {
+export async function updateGuardianPermissions(userId: string, guardianId: string, permissions: Record<string, unknown>) {
   const guardian = await Guardian.findOne({ user: userId, guardian: guardianId });
   if (!guardian) throw new Error("Guardian not found");
 
@@ -199,7 +199,8 @@ export async function guardianReportTheft(guardianId: string, deviceId: string, 
 }
 
 // ── Parent-Child Relationship System ─────────────────────────────────────────────
-export async function addChild(data: any) {
+export async function addChild(data: Record<string, unknown>) {
+  const d = data as { parentId: string; childId: string; childName: string; childAge: number; school: string; canTrack: boolean; canManageDevice: boolean; canReceiveAlerts: boolean; guardianConsent: boolean };
   const {
     parentId,
     childId,
@@ -209,7 +210,7 @@ export async function addChild(data: any) {
     canTrack,
     canManageDevice,
     canReceiveAlerts,
-  } = data;
+  } = d;
 
   const parent = await User.findById(parentId);
   if (!parent) throw new Error("Parent not found");
@@ -226,9 +227,9 @@ export async function addChild(data: any) {
     canTrack: canTrack !== false,
     canManageDevice: canManageDevice !== false,
     canReceiveAlerts: canReceiveAlerts !== false,
-    guardianConsent: data.guardianConsent === true,
-    consentRecordedAt: data.guardianConsent === true ? new Date() : null,
-    dataRetentionUntil: data.guardianConsent === true ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
+    guardianConsent: d.guardianConsent === true,
+    consentRecordedAt: d.guardianConsent === true ? new Date() : null,
+    dataRetentionUntil: d.guardianConsent === true ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
     status: "active",
   });
 
@@ -294,7 +295,7 @@ export async function disableLiveTracking(parentChildId: string) {
   return parentChild;
 }
 
-export async function addGeofence(parentChildId: string, geofenceData: any) {
+export async function addGeofence(parentChildId: string, geofenceData: Record<string, unknown>) {
   const parentChild = await ParentChild.findById(parentChildId);
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
@@ -317,7 +318,7 @@ export async function removeGeofence(parentChildId: string, geofenceIndex: numbe
 }
 
 // ── Panic Mode System ───────────────────────────────────────────────────────────
-export async function activatePanicMode(data: any) {
+export async function activatePanicMode(data: Record<string, unknown>) {
   const {
     userId,
     deviceId,
@@ -325,7 +326,7 @@ export async function activatePanicMode(data: any) {
     description,
     location,
     authorizedTrackers,
-  } = data;
+  } = data as { userId: string; deviceId: string; panicType: string; description: string; location: unknown; authorizedTrackers: { userId: string }[] };
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");

@@ -205,16 +205,16 @@ export async function queryMpesaSTK(checkoutRequestId: string) {
     }),
   });
 
-  const data = await res.json();
+  const data = await res.json() as Record<string, unknown>;
   return data;
 }
 
 // ── M-Pesa callback ───────────────────────────────────────────────────────────
-export async function processMpesaCallback(body: any): Promise<void> {
-  const stk = body?.Body?.stkCallback;
+export async function processMpesaCallback(body: Record<string, unknown>): Promise<void> {
+  const stk = (body?.Body as Record<string, unknown>)?.stkCallback as Record<string, unknown> | undefined;
   if (!stk) return;
 
-  const checkoutId = stk.CheckoutRequestID;
+  const checkoutId = stk.CheckoutRequestID as string | undefined;
   if (!checkoutId) return;
 
   const payment = await Payment.findOne({ reference: checkoutId });
@@ -231,7 +231,7 @@ export async function processMpesaCallback(body: any): Promise<void> {
   // the STK query before crediting. Fail-closed in production if it can't be verified.
   let verifiedSuccess = false;
   try {
-    const q: any = await queryMpesaSTK(checkoutId);
+    const q = await queryMpesaSTK(checkoutId);
     verifiedSuccess = String(q?.ResultCode) === "0";
   } catch (err) {
     if (process.env.NODE_ENV === "production") {
@@ -242,15 +242,15 @@ export async function processMpesaCallback(body: any): Promise<void> {
   }
 
   if (verifiedSuccess) {
-    const items = stk.CallbackMetadata?.Item || [];
-    const receipt = items.find((i: any) => i.Name === "MpesaReceiptNumber")?.Value;
+    const items = (stk.CallbackMetadata as Record<string, unknown>)?.Item as Array<Record<string, unknown>> | undefined || [];
+    const receipt = items.find((i) => i.Name === "MpesaReceiptNumber")?.Value;
 
     payment.status = "completed";
-    payment.mpesaReceipt = receipt;
+    payment.mpesaReceipt = receipt as string;
     payment.paidAt = new Date();
     await payment.save();
 
-    await activateSubscriptionAfterPayment(payment);
+    await activateSubscriptionAfterPayment(payment as unknown as Record<string, unknown>);
   } else if (stk.ResultCode !== 0) {
     // Only mark failed when the callback itself reports a non-zero result; if the
     // callback claims success but we couldn't verify, leave it pending for retry.
@@ -259,7 +259,7 @@ export async function processMpesaCallback(body: any): Promise<void> {
   }
 }
 
-async function activateSubscriptionAfterPayment(payment: any): Promise<void> {
+async function activateSubscriptionAfterPayment(payment: Record<string, unknown>): Promise<void> {
   if (payment.type === "subscription") {
     const period = new Date();
     period.setMonth(period.getMonth() + 1);

@@ -103,7 +103,7 @@ router.post("/webhook", async (req: Request, res: Response, next: NextFunction) 
     if (eventId) {
       const { ProcessedWebhookEvent } = await import("../db/index.js");
       try { await ProcessedWebhookEvent.create({ provider: "paypal", eventId, eventType: event?.event_type }); }
-      catch (e: any) { if (e?.code === 11000) return res.json({ received: true, duplicate: true }); throw e; }
+      catch (e: unknown) { if ((e as Record<string, unknown>)?.code === 11000) return res.json({ received: true, duplicate: true }); throw e; }
     }
     const result = await handlePayPalWebhook(event);
     res.json(result);

@@ -3,35 +3,53 @@
 
 import { RiskPrediction, AnomalyDetection, Device, Ping } from "../db/index.js";
 
+// ── Local type definitions ──────────────────────────────────────────────────────
+// Fields from the Ping model that this service consumes (subset of PingRecord)
+interface PingRecord {
+  lat: number;
+  lng: number;
+  ts: Date;
+  simIccid?: string;
+  networkOp?: string;
+}
+
+interface RiskFactor {
+  type: string;
+  weight: number;
+  description: string;
+}
+
+interface AnomalyResult {
+  type: string;
+  severity: "critical" | "high" | "medium";
+  baseline: Record<string, unknown>;
+  observed: Record<string, unknown>;
+  deviation: number;
+}
+
 // ── Risk Prediction ───────────────────────────────────────────────────────────────
 export async function generateRiskPrediction(deviceId: string) {
   const device = await Device.findById(deviceId);
   if (!device) throw new Error("Device not found");
 
-  // Collect device data
   const pings = await Ping.find({ device: deviceId })
-    .sort({ timestamp: -1 })
+    .sort({ ts: -1 })
     .limit(100);
 
-  // Calculate risk factors
   const factors = await calculateRiskFactors(device, pings);
 
-  // Calculate overall risk score
   const riskScore = calculateRiskScore(factors);
   const riskLevel = getRiskLevel(riskScore);
 
-  // Predict event
   const prediction = predictEvent(riskScore, factors);
 
-  // Generate recommendations
   const recommendations = generateRecommendations(riskLevel, factors);
 
-  // Valid for 24 hours
   const validUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   const riskPrediction = await RiskPrediction.create({
     device: deviceId,
-    imei: (device as any).imei,
+    imei: device.imei,
     riskScore,
     riskLevel,
     factors,
@@ -44,11 +62,10 @@ export async function generateRiskPrediction(deviceId: string) {
   return riskPrediction;
 }
 
-async function calculateRiskFactors(device: any, pings: any[]): Promise<any[]> {
-  const factors: any[] = [];
+async function calculateRiskFactors(device: { status?: string }, pings: PingRecord[]): Promise<RiskFactor[]> {
+  const factors: RiskFactor[] = [];
 
-  // Factor 1: Device status
-  if (device.stolen) {
+  if (device.status === "stolen") {
     factors.push({
       type: "device_status",
       weight: 0.9,
@@ -64,10 +81,9 @@ async function calculateRiskFactors(device: any, pings: any[]): Promise<any[]> {
     });
   }
 
-  // Factor 2: Location patterns
   if (pings.length >= 10) {
     const locationVariance = calculateLocationVariance(pings);
-    if (locationVariance > 1000) { // High variance
+    if (locationVariance > 1000) {
       factors.push({
         type: "location_pattern",
         weight: 0.6,
@@ -76,7 +92,6 @@ async function calculateRiskFactors(device: any, pings: any[]): Promise<any[]> {
     }
   }
 
-  // Factor 3: Time patterns
   const timePattern = analyzeTimePattern(pings);
   if (timePattern.unusual) {
     factors.push({
@@ -86,7 +101,6 @@ async function calculateRiskFactors(device: any, pings: any[]): Promise<any[]> {
     });
   }
 
-  // Factor 4: Network changes
   const networkChanges = countNetworkChanges(pings);
   if (networkChanges > 5) {
     factors.push({
@@ -96,7 +110,6 @@ async function calculateRiskFactors(device: any, pings: any[]): Promise<any[]> {
     });
   }
 
-  // Factor 5: SIM swaps
   const simSwaps = countSimSwaps(pings);
   if (simSwaps > 0) {
     factors.push({
@@ -109,7 +122,7 @@ async function calculateRiskFactors(device: any, pings: any[]): Promise<any[]> {
   return factors;
 }
 
-function calculateLocationVariance(pings: any[]): number {
+function calculateLocationVariance(pings: PingRecord[]): number {
   if (pings.length < 2) return 0;
 
   let totalDistance = 0;
@@ -127,7 +140,7 @@ function calculateLocationVariance(pings: any[]): number {
 }
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -137,10 +150,10 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-function analyzeTimePattern(pings: any[]): { unusual: boolean; nightRatio?: number } {
+function analyzeTimePattern(pings: PingRecord[]): { unusual: boolean; nightRatio?: number } {
   if (pings.length < 5) return { unusual: false };
 
-  const hours = pings.map((p: any) => new Date(p.timestamp).getHours());
+  const hours = pings.map((p) => new Date(p.ts).getHours());
   const nightActivity = hours.filter((h: number) => h >= 0 && h < 6).length;
   const nightRatio = nightActivity / hours.length;
 
@@ -150,42 +163,42 @@ function analyzeTimePattern(pings: any[]): { unusual: boolean; nightRatio?: numb
   };
 }
 
-function countNetworkChanges(pings: any[]): number {
+function countNetworkChanges(pings: PingRecord[]): number {
   if (pings.length < 2) return 0;
 
   let changes = 0;
-  let lastCarrier = pings[0].carrier;
+  let lastCarrier = pings[0].networkOp;
 
   for (let i = 1; i < pings.length; i++) {
-    if (pings[i].carrier !== lastCarrier) {
+    if (pings[i].networkOp !== lastCarrier) {
       changes++;
-      lastCarrier = pings[i].carrier;
+      lastCarrier = pings[i].networkOp;
     }
   }
 
   return changes;
 }
 
-function countSimSwaps(pings: any[]): number {
+function countSimSwaps(pings: PingRecord[]): number {
   if (pings.length < 2) return 0;
 
   let swaps = 0;
-  let lastSim = pings[0].simSerial;
+  let lastSim = pings[0].simIccid;
 
   for (let i = 1; i < pings.length; i++) {
-    if (pings[i].simSerial !== lastSim) {
+    if (pings[i].simIccid !== lastSim) {
       swaps++;
-      lastSim = pings[i].simSerial;
+      lastSim = pings[i].simIccid;
     }
   }
 
   return swaps;
 }
 
-function calculateRiskScore(factors: any[]): number {
-  if (factors.length === 0) return 10; // Low risk baseline
+function calculateRiskScore(factors: RiskFactor[]): number {
+  if (factors.length === 0) return 10;
 
-  const totalWeight = factors.reduce((sum: number, f: any) => sum + f.weight, 0);
+  const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
   const maxWeight = factors.length * 0.9;
   const normalizedScore = (totalWeight / maxWeight) * 100;
 
@@ -199,7 +212,7 @@ function getRiskLevel(riskScore: number): string {
   return "low";
 }
 
-function predictEvent(riskScore: number, factors: any[]): { event: string; confidence: number } {
+function predictEvent(riskScore: number, factors: RiskFactor[]): { event: string; confidence: number } {
   if (riskScore >= 75) {
     return { event: "theft", confidence: 0.8 };
   }
@@ -212,7 +225,7 @@ function predictEvent(riskScore: number, factors: any[]): { event: string; confi
   return { event: "none", confidence: 0.9 };
 }
 
-function generateRecommendations(riskLevel: string, factors: any[]): string[] {
+function generateRecommendations(riskLevel: string, factors: RiskFactor[]): string[] {
   const recommendations: string[] = [];
 
   if (riskLevel === "critical") {
@@ -232,7 +245,7 @@ function generateRecommendations(riskLevel: string, factors: any[]): string[] {
     recommendations.push("Review security settings");
   }
 
-  const simSwapFactor = factors.find((f: any) => f.type === "sim_swap");
+  const simSwapFactor = factors.find((f) => f.type === "sim_swap");
   if (simSwapFactor) {
     recommendations.push("Contact your mobile carrier immediately");
   }
@@ -241,45 +254,40 @@ function generateRecommendations(riskLevel: string, factors: any[]): string[] {
 }
 
 // ── Anomaly Detection ───────────────────────────────────────────────────────────
-export async function detectAnomaly(deviceId: string, pingData: any) {
+export async function detectAnomaly(deviceId: string, pingData: PingRecord) {
   const device = await Device.findById(deviceId);
   if (!device) throw new Error("Device not found");
 
-  // Get recent pings for baseline
   const recentPings = await Ping.find({ device: deviceId })
-    .sort({ timestamp: -1 })
+    .sort({ ts: -1 })
     .limit(50);
 
   if (recentPings.length < 5) {
-    return null; // Not enough data for anomaly detection
+    return null;
   }
 
-  const anomalies: any[] = [];
+  const anomalies: AnomalyResult[] = [];
 
-  // Check for impossible travel
   const travelAnomaly = checkImpossibleTravel(recentPings, pingData);
   if (travelAnomaly) {
     anomalies.push(travelAnomaly);
   }
 
-  // Check for SIM swap
   const simSwapAnomaly = checkSimSwap(recentPings, pingData);
   if (simSwapAnomaly) {
     anomalies.push(simSwapAnomaly);
   }
 
-  // Check for unusual hours
   const hoursAnomaly = checkUnusualHours(recentPings, pingData);
   if (hoursAnomaly) {
     anomalies.push(hoursAnomaly);
   }
 
-  // Create anomaly records
-  const anomalyRecords: any[] = [];
+  const anomalyRecords: Array<unknown>[] = [];
   for (const anomaly of anomalies) {
     const record = await AnomalyDetection.create({
       device: deviceId,
-      imei: (device as any).imei,
+      imei: device.imei,
       anomalyType: anomaly.type,
       severity: anomaly.severity,
       baselineData: anomaly.baseline,
@@ -298,9 +306,9 @@ export async function detectAnomaly(deviceId: string, pingData: any) {
   return anomalyRecords;
 }
 
-function checkImpossibleTravel(recentPings: any[], newPing: any): any | null {
+function checkImpossibleTravel(recentPings: PingRecord[], newPing: PingRecord): AnomalyResult | null {
   const lastPing = recentPings[0];
-  const timeDiff = (new Date(newPing.timestamp).getTime() - new Date(lastPing.timestamp).getTime()) / (1000 * 60 * 60); // hours
+  const timeDiff = (new Date(newPing.ts).getTime() - new Date(lastPing.ts).getTime()) / (1000 * 60 * 60);
   const distance = haversineDistance(
     lastPing.lat,
     lastPing.lng,
@@ -308,7 +316,6 @@ function checkImpossibleTravel(recentPings: any[], newPing: any): any | null {
     newPing.lng
   );
 
-  // Impossible if distance > 1000km in < 1 hour
   if (distance > 1000 && timeDiff < 1) {
     return {
       type: "impossible_travel",
@@ -322,15 +329,15 @@ function checkImpossibleTravel(recentPings: any[], newPing: any): any | null {
   return null;
 }
 
-function checkSimSwap(recentPings: any[], newPing: any): any | null {
+function checkSimSwap(recentPings: PingRecord[], newPing: PingRecord): AnomalyResult | null {
   const lastPing = recentPings[0];
 
-  if (newPing.simSerial && lastPing.simSerial && newPing.simSerial !== lastPing.simSerial) {
+  if (newPing.simIccid && lastPing.simIccid && newPing.simIccid !== lastPing.simIccid) {
     return {
       type: "sim_swap",
       severity: "high",
-      baseline: { lastSim: lastPing.simSerial },
-      observed: { newSim: newPing.simSerial },
+      baseline: { lastSim: lastPing.simIccid },
+      observed: { newSim: newPing.simIccid },
       deviation: 1.0,
     };
   }
@@ -338,14 +345,13 @@ function checkSimSwap(recentPings: any[], newPing: any): any | null {
   return null;
 }
 
-function checkUnusualHours(recentPings: any[], newPing: any): any | null {
-  const hours = recentPings.map((p: any) => new Date(p.timestamp).getHours());
-  const newHour = new Date(newPing.timestamp).getHours();
+function checkUnusualHours(recentPings: PingRecord[], newPing: PingRecord): AnomalyResult | null {
+  const hours = recentPings.map((p) => new Date(p.ts).getHours());
+  const newHour = new Date(newPing.ts).getHours();
 
   const nightActivity = hours.filter((h: number) => h >= 0 && h < 6).length;
   const nightRatio = nightActivity / hours.length;
 
-  // Unusual if new activity is at night and baseline is low night activity
   if (newHour >= 0 && newHour < 6 && nightRatio < 0.2) {
     return {
       type: "unusual_hours",
@@ -400,9 +406,9 @@ export async function resolveAnomaly(anomalyId: string, resolution: string) {
   const anomaly = await AnomalyDetection.findById(anomalyId);
   if (!anomaly) throw new Error("Anomaly not found");
 
-  (anomaly as any).resolved = true;
-  (anomaly as any).resolvedAt = new Date();
-  (anomaly as any).resolution = resolution;
+  (anomaly as Record<string, unknown>).resolved = true;
+  (anomaly as Record<string, unknown>).resolvedAt = new Date();
+  (anomaly as Record<string, unknown>).resolution = resolution;
   await anomaly.save();
 
   return anomaly;

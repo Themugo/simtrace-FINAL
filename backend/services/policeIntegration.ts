@@ -16,12 +16,12 @@ import {
 import { getIO } from "./socket.js";
 
 // ── Police Station Management ───────────────────────────────────────────────────────
-export async function createPoliceStation(data: any) {
+export async function createPoliceStation(data: Record<string, unknown>) {
   const station = await PoliceStation.create(data);
   return station;
 }
 
-export async function getPoliceStations(filters: any = {}) {
+export async function getPoliceStations(filters: Record<string, unknown> = {}) {
   const stations = await PoliceStation.find(filters)
     .sort({ stationType: 1, stationName: 1 });
   return stations;
@@ -32,7 +32,7 @@ export async function getPoliceStation(stationId: string) {
   return station;
 }
 
-export async function updatePoliceStation(stationId: string, updates: any) {
+export async function updatePoliceStation(stationId: string, updates: Record<string, unknown>) {
   const station = await PoliceStation.findByIdAndUpdate(
     stationId,
     { ...updates, updatedAt: new Date() },
@@ -55,7 +55,7 @@ export async function getNearbyStations(lat: number, lng: number, radiusKm = 50)
 }
 
 // ── Police Report System ─────────────────────────────────────────────────────────
-export async function createPoliceReport(data: any) {
+export async function createPoliceReport(data: Record<string, unknown>) {
   const {
     deviceId,
     userId,
@@ -136,7 +136,7 @@ export async function confirmPoliceReport(reportId: string, confirmedBy: string,
 
   // Notify all stations
   const allStations = await PoliceStation.find({ status: "active" });
-  allStations.forEach((station: any) => {
+  allStations.forEach((station: { _id: string }) => {
     getIO().to(`station:${station._id}`).emit("device_reported_stolen", {
       deviceId: (report as any).device,
       obNumber: (report as any).obNumber,
@@ -182,7 +182,7 @@ export async function getPoliceReportsByDevice(deviceId: string) {
   return reports;
 }
 
-export async function addEvidenceToReport(reportId: string, evidenceData: any) {
+export async function addEvidenceToReport(reportId: string, evidenceData: Record<string, unknown>) {
   const report = await PoliceReport.findById(reportId);
   if (!report) throw new Error("Police report not found");
 
@@ -197,7 +197,7 @@ export async function addEvidenceToReport(reportId: string, evidenceData: any) {
 }
 
 // ── Nationwide Alert System ───────────────────────────────────────────────────────
-export async function createNationwideAlert(data: any) {
+export async function createNationwideAlert(data: Record<string, unknown>) {
   const {
     deviceId,
     policeReport,
@@ -222,11 +222,11 @@ export async function createNationwideAlert(data: any) {
     uniqueFeatures,
     lastKnownLocation,
     status: "active",
-    notifiedStations: allStations.map((s: any) => s._id),
+    notifiedStations: allStations.map((s: { _id: string }) => s._id),
   });
 
   // Notify all stations
-  allStations.forEach((station: any) => {
+  allStations.forEach((station: { _id: string }) => {
     getIO().to(`station:${station._id}`).emit("nationwide_alert", {
       alertId: alert._id,
       deviceId,
@@ -259,7 +259,7 @@ export async function getActiveNationwideAlerts() {
   return alerts;
 }
 
-export async function reportSighting(alertId: string, sightingData: any) {
+export async function reportSighting(alertId: string, sightingData: Record<string, unknown>) {
   const alert = await NationwideAlert.findById(alertId);
   if (!alert) throw new Error("Alert not found");
 
@@ -305,7 +305,7 @@ export async function deactivateAlert(alertId: string, reason: string) {
 }
 
 // ── Case Transfer System ─────────────────────────────────────────────────────────
-export async function requestCaseTransfer(data: any) {
+export async function requestCaseTransfer(data: Record<string, unknown>) {
   const {
     policeReportId,
     deviceId,
@@ -398,7 +398,7 @@ export async function completeCaseTransfer(transferId: string) {
 }
 
 // ── Recovery Workflow ─────────────────────────────────────────────────────────────
-export async function createRecoveryWorkflow(data: any) {
+export async function createRecoveryWorkflow(data: Record<string, unknown>) {
   const {
     deviceId,
     policeReportId,
@@ -458,7 +458,7 @@ export async function addInvestigator(workflowId: string, investigatorId: string
   return workflow;
 }
 
-export async function locateDevice(workflowId: string, locationData: any, locatedBy: string) {
+export async function locateDevice(workflowId: string, locationData: Record<string, unknown>, locatedBy: string) {
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
@@ -484,7 +484,7 @@ export async function locateDevice(workflowId: string, locationData: any, locate
   return workflow;
 }
 
-export async function recoverDevice(workflowId: string, recoveryData: any, recoveredBy: string) {
+export async function recoverDevice(workflowId: string, recoveryData: { notes?: unknown; evidence?: unknown[] }, recoveredBy: string) {
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
@@ -570,7 +570,7 @@ export async function returnDeviceToOwner(workflowId: string, returnCondition: s
   return workflow;
 }
 
-export async function addArrest(workflowId: string, arrestData: any) {
+export async function addArrest(workflowId: string, arrestData: Record<string, unknown>) {
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
@@ -582,7 +582,7 @@ export async function addArrest(workflowId: string, arrestData: any) {
 }
 
 // ── Court Case Integration ───────────────────────────────────────────────────────
-export async function createCourtCase(data: any) {
+export async function createCourtCase(data: Record<string, unknown>) {
   const {
     policeReportId,
     deviceId,
@@ -621,7 +621,7 @@ export async function createCourtCase(data: any) {
   return courtCase;
 }
 
-export async function updateCourtCase(caseId: string, updates: any) {
+export async function updateCourtCase(caseId: string, updates: Record<string, unknown>) {
   const courtCase = await CourtCase.findByIdAndUpdate(
     caseId,
     { ...updates, updatedAt: new Date() },
@@ -632,7 +632,7 @@ export async function updateCourtCase(caseId: string, updates: any) {
 }
 
 // ── Interpol Integration ─────────────────────────────────────────────────────────
-export async function createInterpolCase(data: any) {
+export async function createInterpolCase(data: Record<string, unknown>) {
   const {
     policeReportId,
     deviceId,
@@ -671,7 +671,7 @@ export async function publishInterpolNotice(caseId: string) {
   return interpolCase;
 }
 
-export async function addInterpolResponse(caseId: string, responseData: any) {
+export async function addInterpolResponse(caseId: string, responseData: Record<string, unknown>) {
   const interpolCase = await InterpolCase.findById(caseId);
   if (!interpolCase) throw new Error("Interpol case not found");
 

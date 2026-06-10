@@ -8,7 +8,7 @@ export interface RiskSignal {
   score: number;
   description: string;
   timestamp: Date;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export interface RiskAssessment {
@@ -184,7 +184,7 @@ export async function detectFingerprintChangeSignal(imei: string): Promise<RiskS
 }
 
 // ── Comprehensive Risk Assessment ───────────────────────────────────────────────
-export async function assessDeviceRisk(imei: string, ipAddress?: string, deviceInfo?: any): Promise<RiskAssessment> {
+export async function assessDeviceRisk(imei: string, ipAddress?: string, deviceInfo?: Record<string, unknown>): Promise<RiskAssessment> {
   const signals: RiskSignal[] = [];
   
   // Run all risk signal detections

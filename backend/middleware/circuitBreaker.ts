@@ -30,7 +30,7 @@ export const aiApiBreaker = new CircuitBreaker(
 );
 
 export const paymentApiBreaker = new CircuitBreaker(
-  async (paymentData: any) => {
+  async (paymentData: Record<string, unknown>) => {
     // Simulate payment API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     return { success: true, transactionId: 'tx_' + Date.now() };
@@ -39,7 +39,7 @@ export const paymentApiBreaker = new CircuitBreaker(
 );
 
 export const webhookBreaker = new CircuitBreaker(
-  async (url: string, payload: any) => {
+  async (url: string, payload: Record<string, unknown>) => {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -113,12 +113,12 @@ const aiFallback = (imei: string, operation: string) => {
   return { imei, riskScore: 50, fallback: true };
 };
 
-const paymentFallback = (paymentData: any) => {
+const paymentFallback = (paymentData: Record<string, unknown>) => {
   console.log('[Fallback] Payment service unavailable');
   return { success: false, error: 'Payment service temporarily unavailable' };
 };
 
-const webhookFallback = (url: string, payload: any) => {
+const webhookFallback = (url: string, payload: Record<string, unknown>) => {
   console.log('[Fallback] Webhook delivery failed, queued for retry');
   return { success: false, queued: true };
 };
@@ -138,7 +138,7 @@ export const circuitBreakers: Record<string, any> = {
 };
 
 // Circuit breaker status check
-export function getCircuitBreakerStatus(breakerName: string): any {
+export function getCircuitBreakerStatus(breakerName: string): Record<string, unknown> {
   const breaker = circuitBreakers[breakerName];
   if (!breaker) {
     return { status: 'unknown', breakerName };
@@ -152,6 +152,6 @@ export function getCircuitBreakerStatus(breakerName: string): any {
 }
 
 // Get all circuit breaker statuses
-export function getAllCircuitBreakerStatuses(): any[] {
+export function getAllCircuitBreakerStatuses(): Record<string, unknown>[] {
   return Object.keys(circuitBreakers).map(name => getCircuitBreakerStatus(name));
 }

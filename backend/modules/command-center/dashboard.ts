@@ -8,7 +8,7 @@ export interface DashboardWidget {
   id: string;
   type: 'incidents' | 'movement' | 'telecom' | 'risk' | 'alerts' | 'stats';
   title: string;
-  data: any;
+  data: unknown;
   lastUpdated: Date;
 }
 
@@ -36,7 +36,7 @@ export interface TelecomFeed {
   operator: string;
   event: 'sim_change' | 'blacklist_detected' | 'network_change';
   timestamp: Date;
-  details: any;
+  details: Record<string, unknown>;
 }
 
 export interface RiskAlert {
@@ -162,26 +162,27 @@ class CommandCenterDashboard {
   }
 
   // Handle device detected event
-  private handleDeviceDetected(data: any): void {
+  private handleDeviceDetected(data: Record<string, unknown>): void {
     const movementStream: MovementStream = {
-      imei: data.imei,
-      location: data.location,
-      timestamp: data.timestamp || new Date(),
+      imei: data.imei as string,
+      location: data.location as { lat: number; lng: number },
+      timestamp: (data.timestamp as Date) || new Date(),
       speed: 0,
       heading: 0,
     };
 
-    this.movementStreams.set(data.imei, movementStream);
+    this.movementStreams.set(data.imei as string, movementStream);
     this.updateWidget('movement-stream', Array.from(this.movementStreams.values()));
   }
 
   // Handle risk calculated event
-  private handleRiskCalculated(data: any): void {
+  private handleRiskCalculated(data: Record<string, unknown>): void {
+    const riskAssessment = data.riskAssessment as Record<string, unknown>;
     const riskAlert: RiskAlert = {
-      imei: data.imei,
-      riskScore: data.riskAssessment.overallScore,
-      threatLevel: data.riskAssessment.threatLevel,
-      riskFactors: data.riskAssessment.riskFactors || [],
+      imei: data.imei as string,
+      riskScore: riskAssessment.overallScore as number,
+      threatLevel: riskAssessment.threatLevel as string,
+      riskFactors: (riskAssessment.riskFactors as string[]) || [],
       timestamp: new Date(),
     };
 
@@ -196,13 +197,14 @@ class CommandCenterDashboard {
   }
 
   // Handle high risk event
-  private handleHighRisk(data: any): void {
+  private handleHighRisk(data: Record<string, unknown>): void {
+    const riskAssessment = data.riskAssessment as Record<string, unknown>;
     const incident: Incident = {
       id: `incident_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'high_risk',
-      severity: data.riskAssessment.threatLevel === 'CRITICAL' ? 'critical' : 'high',
-      imei: data.imei,
-      description: `High risk detected: ${data.riskAssessment.threatLevel}`,
+      severity: (riskAssessment.threatLevel as string) === 'CRITICAL' ? 'critical' : 'high',
+      imei: data.imei as string,
+      description: `High risk detected: ${riskAssessment.threatLevel as string}`,
       timestamp: new Date(),
       status: 'active',
     };
@@ -212,15 +214,15 @@ class CommandCenterDashboard {
   }
 
   // Handle SIM change event
-  private handleSIMChange(data: any): void {
+  private handleSIMChange(data: Record<string, unknown>): void {
     const telecomFeed: TelecomFeed = {
-      imei: data.imei,
+      imei: data.imei as string,
       operator: 'Unknown',
       event: 'sim_change',
-      timestamp: data.timestamp || new Date(),
+      timestamp: (data.timestamp as Date) || new Date(),
       details: {
-        oldSimIccid: data.oldSimIccid,
-        newSimIccid: data.newSimIccid,
+        oldSimIccid: data.oldSimIccid as string,
+        newSimIccid: data.newSimIccid as string,
       },
     };
 
@@ -233,7 +235,7 @@ class CommandCenterDashboard {
       id: `incident_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'sim_swap',
       severity: 'high',
-      imei: data.imei,
+      imei: data.imei as string,
       description: 'SIM card changed',
       timestamp: new Date(),
       status: 'active',
@@ -244,12 +246,13 @@ class CommandCenterDashboard {
   }
 
   // Handle fraud ring detected
-  private handleFraudRingDetected(data: any): void {
+  private handleFraudRingDetected(data: Record<string, unknown>): void {
+    const devices = data.devices as string[];
     const aiDetection: AIDetection = {
       type: 'fraud_ring',
-      description: `Fraud ring detected with ${data.devices.length} devices`,
+      description: `Fraud ring detected with ${devices.length} devices`,
       confidence: 0.8,
-      affectedDevices: data.devices,
+      affectedDevices: devices,
       timestamp: new Date(),
     };
 
@@ -262,8 +265,8 @@ class CommandCenterDashboard {
       id: `incident_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'fraud',
       severity: 'critical',
-      imei: data.devices[0],
-      description: `Fraud ring detected: ${data.pattern}`,
+      imei: devices[0],
+      description: `Fraud ring detected: ${data.pattern as string}`,
       timestamp: new Date(),
       status: 'active',
     };
@@ -273,12 +276,12 @@ class CommandCenterDashboard {
   }
 
   // Handle suspicious relationship
-  private handleSuspiciousRelationship(data: any): void {
+  private handleSuspiciousRelationship(data: Record<string, unknown>): void {
     const aiDetection: AIDetection = {
       type: 'pattern_anomaly',
-      description: `Suspicious device-SIM relationship: ${data.duration} days`,
+      description: `Suspicious device-SIM relationship: ${data.duration as number} days`,
       confidence: 0.7,
-      affectedDevices: [data.imei],
+      affectedDevices: [data.imei as string],
       timestamp: new Date(),
     };
 
@@ -288,12 +291,13 @@ class CommandCenterDashboard {
   }
 
   // Handle recovery opportunity
-  private handleRecoveryOpportunity(data: any): void {
+  private handleRecoveryOpportunity(data: Record<string, unknown>): void {
+    const recoveryLikelihood = data.recoveryLikelihood as number;
     const aiDetection: AIDetection = {
       type: 'pattern_anomaly',
-      description: `Recovery opportunity detected (${(data.recoveryLikelihood * 100).toFixed(0)}% confidence)`,
-      confidence: data.recoveryLikelihood,
-      affectedDevices: [data.imei],
+      description: `Recovery opportunity detected (${(recoveryLikelihood * 100).toFixed(0)}% confidence)`,
+      confidence: recoveryLikelihood,
+      affectedDevices: [data.imei as string],
       timestamp: new Date(),
     };
 
@@ -303,7 +307,7 @@ class CommandCenterDashboard {
   }
 
   // Update widget
-  private updateWidget(widgetId: string, data: any): void {
+  private updateWidget(widgetId: string, data: unknown): void {
     const widget = this.widgets.get(widgetId);
     if (widget) {
       widget.data = data;

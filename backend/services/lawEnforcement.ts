@@ -11,14 +11,14 @@ import {
 } from "../db/index.js";
 
 // ── Law Enforcement Agency Management ───────────────────────────────────────────────────
-export async function createLawEnforcementAgency(data: any) {
+export async function createLawEnforcementAgency(data: Record<string, unknown>) {
   const agencyId = `agency_${crypto.randomBytes(16).toString("hex")}`;
 
   const agency = await LawEnforcementAgency.create({
     ...data,
     agencyId,
-    createdBy: data.createdBy,
-    updatedBy: data.createdBy,
+    createdBy: data.createdBy as string,
+    updatedBy: data.createdBy as string,
   });
 
   return agency;
@@ -35,7 +35,7 @@ export async function getLawEnforcementAgencyByEmail(officialEmail: string) {
   return agency;
 }
 
-export async function updateLawEnforcementAgency(agencyId: string, updates: any, updatedBy: string) {
+export async function updateLawEnforcementAgency(agencyId: string, updates: Record<string, unknown>, updatedBy: string) {
   const agency = await LawEnforcementAgency.findOneAndUpdate(
     { agencyId },
     {
@@ -93,7 +93,7 @@ export async function getLawEnforcementAgenciesByType(agencyType: string) {
 }
 
 // ── API Key Management ─────────────────────────────────────────────────────────────
-export async function generateLawEnforcementApiKey(agencyId: string, permissions: any, expiresAt?: Date) {
+export async function generateLawEnforcementApiKey(agencyId: string, permissions: unknown, expiresAt?: Date) {
   const agency = await LawEnforcementAgency.findOne({ agencyId });
   if (!agency) throw new Error("Law enforcement agency not found");
 
@@ -116,7 +116,7 @@ export async function revokeLawEnforcementApiKey(agencyId: string, apiKey: strin
   const agency = await LawEnforcementAgency.findOne({ agencyId });
   if (!agency) throw new Error("Law enforcement agency not found");
 
-  (agency as any).apiKeys = (agency as any).apiKeys.filter((k: any) => k.key !== apiKey);
+  (agency as any).apiKeys = (agency as any).apiKeys.filter((k: { key: string }) => k.key !== apiKey);
   agency.updatedAt = new Date();
   await agency.save();
 
@@ -131,7 +131,7 @@ export async function validateLawEnforcementApiKey(apiKey: string) {
 
   if (!agency) return { valid: false };
 
-  const keyObj = (agency as any).apiKeys.find((k: any) => k.key === apiKey);
+  const keyObj = (agency as any).apiKeys.find((k: { key: string }) => k.key === apiKey);
   if (!keyObj) return { valid: false };
 
   // Check expiration

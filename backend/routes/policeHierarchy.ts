@@ -195,7 +195,7 @@ router.post("/check-permission", authenticate, async (req: AuthRequest, res: Res
 // ── Immutable Audit Logging ─────────────────────────────────────────────────────────
 router.get("/audit-logs", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (req.query.entityType) filters.entityType = req.query.entityType;
     if (req.query.entityId) filters.entityId = req.query.entityId;
     if (req.query.performedBy) filters.performedBy = req.query.performedBy;

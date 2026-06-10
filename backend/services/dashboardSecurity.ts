@@ -23,8 +23,13 @@ import {
 } from "../db/index.js";
 import { getIO } from "./socket.js";
 
+// Mongoose models use strict: false with no generic type parameter.
+// Document fields are any at the TS level — this type is used for
+// spread-into-create/findOneAndUpdate payloads instead of `any`.
+type DashboardInput = Record<string, unknown>;
+
 // ── Official Email Management ───────────────────────────────────────────────────────
-export async function createOfficialEmail(data: any) {
+export async function createOfficialEmail(data: DashboardInput) {
   const emailId = `email_${crypto.randomBytes(16).toString("hex")}`;
   const verificationToken = crypto.randomBytes(32).toString("hex");
   const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -40,7 +45,7 @@ export async function createOfficialEmail(data: any) {
 
   // Deliver the verification token to the official email (SendGrid). Dev fallback
   // logs it only when SENDGRID_API_KEY is unset, so local testing still works.
-  await sendEmail(data.officialEmail, "SimTrace — verify your official email",
+  await sendEmail(String(data.officialEmail), "SimTrace — verify your official email",
     `Your SimTrace official-email verification token is: ${verificationToken}\nIf you did not request this, ignore this message.`);
   if (process.env.NODE_ENV !== "production" && !process.env.SENDGRID_API_KEY) console.log(`[dev] OfficialEmail ${data.officialEmail} verification token: ${verificationToken}`);
 
@@ -76,7 +81,7 @@ export async function getOfficialEmailByUser(userId: string) {
   return email;
 }
 
-export async function updateOfficialEmail(emailId: string, updates: any, updatedBy: string) {
+export async function updateOfficialEmail(emailId: string, updates: DashboardInput, updatedBy: string) {
   const email = await OfficialEmail.findOneAndUpdate(
     { emailId },
     {
@@ -105,7 +110,7 @@ export async function revokeOfficialEmail(emailId: string, revokedBy: string) {
 }
 
 // ── Security OTP Management ─────────────────────────────────────────────────────────
-export async function createSecurityOtp(data: any) {
+export async function createSecurityOtp(data: DashboardInput) {
   const otpId = `otp_${crypto.randomBytes(16).toString("hex")}`;
   const otpNumber = generateOtpNumber();
 
@@ -119,8 +124,8 @@ export async function createSecurityOtp(data: any) {
 
   // Deliver the OTP over the holder's secure channels (SMS + official email).
   const otpMsg = `SimTrace security OTP: ${otpNumber}. Do not share this code.`;
-  if (data.phoneNumber)   await sendSMS(data.phoneNumber, otpMsg);
-  if (data.officialEmail) await sendEmail(data.officialEmail, "SimTrace — security OTP", otpMsg);
+  if (data.phoneNumber)   await sendSMS(String(data.phoneNumber), otpMsg);
+  if (data.officialEmail) await sendEmail(String(data.officialEmail), "SimTrace — security OTP", otpMsg);
   if (process.env.NODE_ENV !== "production" && !process.env.AT_API_KEY && !process.env.SENDGRID_API_KEY) console.log(`[dev] Security OTP for ${data.holderName}: ${otpNumber}`);
 
   return securityOtp;
@@ -149,7 +154,7 @@ export async function getSecurityOtpByUser(userId: string) {
   return otp;
 }
 
-export async function updateSecurityOtp(otpId: string, updates: any, updatedBy: string) {
+export async function updateSecurityOtp(otpId: string, updates: DashboardInput, updatedBy: string) {
   const otp = await SecurityOtp.findOneAndUpdate(
     { otpId },
     {
@@ -187,7 +192,7 @@ function generateOtpNumber(): string {
 }
 
 // ── Password Reset Workflow ─────────────────────────────────────────────────────────
-export async function initiatePasswordReset(data: any) {
+export async function initiatePasswordReset(data: DashboardInput) {
   const requestId = `pr_${crypto.randomBytes(16).toString("hex")}`;
   const verificationCode = crypto.randomBytes(6).toString("hex").toUpperCase();
   const verificationExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
@@ -358,7 +363,7 @@ export async function getPasswordResetRequestsByUser(userId: string) {
 }
 
 // ── Network Change Workflow ────────────────────────────────────────────────────────
-export async function initiateNetworkChange(data: any) {
+export async function initiateNetworkChange(data: DashboardInput) {
   const requestId = `nc_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify requester has official email or OTP
@@ -370,7 +375,7 @@ export async function initiateNetworkChange(data: any) {
   }
 
   // Determine required approval levels based on change scope
-  const requiredApprovals = determineRequiredApprovals(data.approvalLevel);
+  const requiredApprovals = determineRequiredApprovals(String(data.approvalLevel ?? ''));
 
   const networkChangeRequest = await NetworkChangeRequest.create({
     ...data,
@@ -448,8 +453,8 @@ export async function approveNetworkChange(requestId: string, approverId: string
 
   // Check if all required approvals are received
   const approvedLevels = (networkChange as any).approvals
-    .filter((a: any) => a.status === "approved")
-    .map((a: any) => getApproverLevel(a.approverId));
+    .filter((a: { status: string; approverId: string }) => a.status === "approved")
+    .map((a: { status: string; approverId: string }) => getApproverLevel(a.approverId));
   
   const allApproved = (networkChange as any).requiredApprovals.every((level: string) => approvedLevels.includes(level));
 
@@ -568,7 +573,7 @@ function getApproverLevel(approverId: string): string {
 }
 
 // ── Dashboard Access Logging ────────────────────────────────────────────────────────
-export async function logDashboardAccess(data: any) {
+export async function logDashboardAccess(data: DashboardInput) {
   const logId = `log_${crypto.randomBytes(16).toString("hex")}`;
 
   // Calculate risk score based on various factors
@@ -595,7 +600,7 @@ export async function logDashboardAccess(data: any) {
   return accessLog;
 }
 
-function calculateRiskScore(data: any): number {
+function calculateRiskScore(data: { accessType?: string; location?: { country?: string }; countryCode?: string }): number {
   let score = 0;
 
   // Check for unusual access patterns
@@ -637,7 +642,7 @@ export async function getSuspiciousActivityLogs(limit = 50) {
 }
 
 // ── Dashboard Configuration Management ─────────────────────────────────────────────
-export async function createMinisterDashboard(data: any) {
+export async function createMinisterDashboard(data: DashboardInput) {
   const dashboardId = `md_${crypto.randomBytes(16).toString("hex")}`;
 
   const dashboard = await MinisterDashboard.create({
@@ -656,7 +661,7 @@ export async function getMinisterDashboard(ministerId: string) {
   return dashboard;
 }
 
-export async function updateMinisterDashboard(dashboardId: string, updates: any, updatedBy: string) {
+export async function updateMinisterDashboard(dashboardId: string, updates: DashboardInput, updatedBy: string) {
   const dashboard = await MinisterDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -670,7 +675,7 @@ export async function updateMinisterDashboard(dashboardId: string, updates: any,
   return dashboard;
 }
 
-export async function createPoliceGeneralDashboard(data: any) {
+export async function createPoliceGeneralDashboard(data: DashboardInput) {
   const dashboardId = `pgd_${crypto.randomBytes(16).toString("hex")}`;
 
   const dashboard = await PoliceGeneralDashboard.create({
@@ -689,7 +694,7 @@ export async function getPoliceGeneralDashboard(policeGeneralId: string) {
   return dashboard;
 }
 
-export async function updatePoliceGeneralDashboard(dashboardId: string, updates: any, updatedBy: string) {
+export async function updatePoliceGeneralDashboard(dashboardId: string, updates: DashboardInput, updatedBy: string) {
   const dashboard = await PoliceGeneralDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -703,7 +708,7 @@ export async function updatePoliceGeneralDashboard(dashboardId: string, updates:
   return dashboard;
 }
 
-export async function createStationAdminDashboard(data: any) {
+export async function createStationAdminDashboard(data: DashboardInput) {
   const dashboardId = `sad_${crypto.randomBytes(16).toString("hex")}`;
 
   const dashboard = await StationAdminDashboard.create({
@@ -722,7 +727,7 @@ export async function getStationAdminDashboard(stationAdminId: string) {
   return dashboard;
 }
 
-export async function updateStationAdminDashboard(dashboardId: string, updates: any, updatedBy: string) {
+export async function updateStationAdminDashboard(dashboardId: string, updates: DashboardInput, updatedBy: string) {
   const dashboard = await StationAdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -736,7 +741,7 @@ export async function updateStationAdminDashboard(dashboardId: string, updates: 
   return dashboard;
 }
 
-export async function createUserDashboard(data: any) {
+export async function createUserDashboard(data: DashboardInput) {
   const dashboardId = `ud_${crypto.randomBytes(16).toString("hex")}`;
 
   const dashboard = await UserDashboard.create({
@@ -755,7 +760,7 @@ export async function getUserDashboard(userId: string) {
   return dashboard;
 }
 
-export async function updateUserDashboard(dashboardId: string, updates: any, updatedBy: string) {
+export async function updateUserDashboard(dashboardId: string, updates: DashboardInput, updatedBy: string) {
   const dashboard = await UserDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -808,7 +813,7 @@ export async function checkDashboardAccess(userId: string, dashboardLevel: strin
     const dayOfWeek = now.getDay();
     const currentTime = now.getHours() * 60 + now.getMinutes();
 
-    const timeAllowed = (dashboard as any).allowedTimeRanges.some((rule: any) => {
+    const timeAllowed = (dashboard as any).allowedTimeRanges.some((rule: { dayOfWeek: number[]; startTime: string; endTime: string }) => {
       if (rule.dayOfWeek.includes(dayOfWeek)) {
         const [startHour, startMin] = rule.startTime.split(":").map(Number);
         const [endHour, endMin] = rule.endTime.split(":").map(Number);

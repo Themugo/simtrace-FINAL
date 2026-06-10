@@ -16,7 +16,7 @@ function hashApiKey(apiKey: string): string {
 }
 
 // ── API Key Management ───────────────────────────────────────────────────────────
-export async function createApiKey(data: any) {
+export async function createApiKey(data: Record<string, unknown>) {
   const {
     userId,
     organizationId,
@@ -24,7 +24,14 @@ export async function createApiKey(data: any) {
     scopes,
     rateLimit,
     expiresAt,
-  } = data;
+  } = data as {
+    userId: string;
+    organizationId?: string;
+    keyName: string;
+    scopes?: string[];
+    rateLimit?: number;
+    expiresAt?: Date;
+  };
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
@@ -81,14 +88,14 @@ export async function getApiKeysByOrganization(organizationId: string) {
   return keys;
 }
 
-export async function updateApiKey(keyId: string, updates: any) {
+export async function updateApiKey(keyId: string, updates: Record<string, unknown>) {
   const key = await PublicApiKey.findById(keyId);
   if (!key) throw new Error("API key not found");
 
-  const allowedUpdates = ["keyName", "scopes", "rateLimit", "expiresAt", "active"];
+  const allowedUpdates = ["keyName", "scopes", "rateLimit", "expiresAt", "active"] as const;
   for (const field of allowedUpdates) {
     if (updates[field] !== undefined) {
-      (key as any)[field] = updates[field];
+      (key as Record<string, unknown>)[field] = updates[field];
     }
   }
 
@@ -193,7 +200,7 @@ export async function getApiKeyStatistics() {
     activeKeys,
     expiredKeys,
     totalRequests: totalRequests[0]?.total || 0,
-    keysByScope: keysByScope.map((k: any) => ({ scope: k._id, count: k.count })),
+    keysByScope: keysByScope.map(k => ({ scope: k._id, count: k.count })),
   };
 }
 

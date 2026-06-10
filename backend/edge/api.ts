@@ -42,7 +42,7 @@ export interface DDoSRule {
 
 export interface EdgeCacheEntry {
   key: string;
-  value: any;
+  value: unknown;
   ttl: number;
   createdAt: Date;
   hits: number;
@@ -53,7 +53,7 @@ export interface EdgeRequest {
   method: string;
   path: string;
   headers: Record<string, string>;
-  body?: any;
+  body?: unknown;
   clientIP: string;
   country?: string;
   timestamp: Date;
@@ -64,7 +64,7 @@ export interface EdgeResponse {
   requestId: string;
   statusCode: number;
   headers: Record<string, string>;
-  body?: any;
+  body?: unknown;
   cached: boolean;
   duration: number;
   region: string;
@@ -238,7 +238,7 @@ class EdgeAPI {
   }
 
   // Set cache
-  setCache(key: string, value: any, ttl: number): EdgeCacheEntry {
+  setCache(key: string, value: unknown, ttl: number): EdgeCacheEntry {
     const entry: EdgeCacheEntry = {
       key,
       value,
@@ -365,7 +365,7 @@ class EdgeAPI {
   }
 
   // Forward to origin
-  private async forwardToOrigin(request: EdgeRequest, route: EdgeRoute, region?: RegionalConfig): Promise<{ statusCode: number; headers: Record<string, string>; body?: any }> {
+  private async forwardToOrigin(request: EdgeRequest, route: EdgeRoute, region?: RegionalConfig): Promise<{ statusCode: number; headers: Record<string, string>; body?: unknown }> {
     // Simulate origin request
     const endpoint = region?.endpoint || route.origin;
     const url = `${endpoint}${request.path}`;

@@ -63,7 +63,7 @@ router.get("/agents", authenticate, async (req: AuthRequest, res: Response, next
   try {
     const { location, capabilities, type, maxLoad } = req.query;
     
-    const criteria: any = {};
+    const criteria: Record<string, unknown> = {};
     if (location) criteria.location = JSON.parse(location as string);
     if (capabilities) criteria.capabilities = JSON.parse(capabilities as string);
     if (type) criteria.type = type;

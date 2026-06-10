@@ -17,11 +17,11 @@ export interface TwoFactorVerifyResult {
 /**
  * Generate a new TOTP secret for a user
  */
-export function generateSecret(user: any): TwoFactorSetup {
+export function generateSecret(user: Record<string, unknown>): TwoFactorSetup {
   const secret = speakeasy.generateSecret({
     name: 'SimTrace',
     issuer: 'SimTrace',
-    user: user.email,
+    user: user.email as string,
   });
 
   return {

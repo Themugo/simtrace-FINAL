@@ -21,7 +21,7 @@ export async function computeRiskScore(imei: string): Promise<number> {
   if (recentPings.length === 0) return Math.min(score, 100);
 
   // SIM swaps in last 24h
-  const simSet = new Set(recentPings.map((p: any) => p.simIccid).filter(Boolean));
+  const simSet = new Set(recentPings.map((p) => p.simIccid).filter(Boolean));
   const simChanges = simSet.size > 1 ? simSet.size - 1 : 0;
   if (simSet.size > 1) score += simSet.size * 15;
 
@@ -35,7 +35,7 @@ export async function computeRiskScore(imei: string): Promise<number> {
   }
 
   // Carrier-hop anomaly
-  const opSet = new Set(recentPings.map((p: any) => p.networkOp).filter(Boolean));
+  const opSet = new Set(recentPings.map((p) => p.networkOp).filter(Boolean));
   if (opSet.size > 2) score += 10;
 
   // Integrate ML predictions for enhanced risk scoring
@@ -73,10 +73,24 @@ export async function computeRiskScore(imei: string): Promise<number> {
 }
 
 // ── Main intelligence runner — called after every ping ────────────────────────
-export async function runIntelligence({ ping, device }: { ping: any; device: any }): Promise<void> {
+interface IntelPing {
+  imei: string;
+  lat: number;
+  lng: number;
+  ts: Date;
+  simIccid?: string;
+  fingerprint?: Record<string, unknown>;
+  networkOp?: string;
+}
+
+interface IntelDevice {
+  status: string;
+}
+
+export async function runIntelligence({ ping, device }: { ping: IntelPing; device: IntelDevice }): Promise<void> {
   if (!device) return;
 
-  const alerts: any[] = [];
+  const alerts: Array<{ type: string; payload: Record<string, unknown> }> = [];
 
   // 1. Blacklist hit
   if (device.status === "stolen" || device.status === "blacklisted") {
@@ -164,7 +178,7 @@ export async function runIntelligence({ ping, device }: { ping: any; device: any
     theft_report:    24 * 60 * 60 * 1000, // once per day
   };
 
-  const deduped: any[] = [];
+  const deduped: Array<{ type: string; payload: Record<string, unknown> }> = [];
   for (const a of alerts) {
     const cooldown  = COOLDOWN_MS[a.type] || 30 * 60 * 1000;
     const since     = new Date(Date.now() - cooldown);
@@ -180,7 +194,7 @@ export async function runIntelligence({ ping, device }: { ping: any; device: any
       aiNarrative = await narrateFraudPattern({ imei: ping.imei, type: a.type, payload: a.payload, pingHistory });
     } catch { console.warn("[Intel] AI narrative unavailable — continuing without"); }
 
-    const saved = await Alert.create({ imei: ping.imei, ...a, ...(aiNarrative && { narrative: aiNarrative }) });
+    const saved = await Alert.create({ imei: ping.imei, ...a, ...(aiNarrative && { narrative: String(aiNarrative) }) });
 
     // Push to subscribed dashboard clients
     getIO().to(`device:${ping.imei}`).emit("alert", saved);
@@ -190,7 +204,7 @@ export async function runIntelligence({ ping, device }: { ping: any; device: any
     await sendAlert({
       type:    a.type,
       imei:    ping.imei,
-      message: aiNarrative || alertMessage(a),
+      message: String(aiNarrative || alertMessage(a)),
     });
   }
 }
@@ -208,12 +222,12 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 const toRad = (d: number) => (d * Math.PI) / 180;
 
-function alertMessage({ type, payload }: { type: string; payload: any }): string {
+function alertMessage({ type, payload }: { type: string; payload: Record<string, unknown> }): string {
   switch (type) {
-    case "blacklist_ping":   return `Blacklisted device pinged at [${payload.lat.toFixed(4)}, ${payload.lng.toFixed(4)}]`;
-    case "sim_swap":         return `SIM swap detected: ${payload.oldSim} → ${payload.newSim}`;
-    case "location_jump":    return `Impossible speed: ${payload.kmh} km/h detected`;
-    case "fraud_pattern":    return `Carrier-hop fraud: ${payload.operators.join(", ")}`;
+    case "blacklist_ping":   return `Blacklisted device pinged at [${(payload.lat as number).toFixed(4)}, ${(payload.lng as number).toFixed(4)}]`;
+    case "sim_swap":         return `SIM swap detected: ${String(payload.oldSim)} → ${String(payload.newSim)}`;
+    case "location_jump":    return `Impossible speed: ${payload.kmh as number} km/h detected`;
+    case "fraud_pattern":    return `Carrier-hop fraud: ${(payload.operators as string[]).join(", ")}`;
     default:                 return "Security alert";
   }
 }

@@ -109,14 +109,14 @@ export async function getQueueLength(queueName: string): Promise<number> {
 }
 
 // ── Socket Scaling (Pub/Sub) ───────────────────────────────────────────────────
-export async function publish(channel: string, message: any): Promise<number> {
+export async function publish(channel: string, message: unknown): Promise<number> {
   const redis = getRedisClient();
   return redis.publish(channel, JSON.stringify(message));
 }
 
 export async function subscribe(
   channel: string,
-  callback: (message: any) => void
+  callback: (message: unknown) => void
 ): Promise<void> {
   const redis = getRedisClient();
   const subscriber = redis.duplicate();

@@ -1,21 +1,28 @@
 // Retry Handler with Exponential Backoff
 // Handles retry logic for failed operations
 
+interface RetryHandlerOptions {
+  maxRetries: number;
+  initialDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+}
+
 export class RetryHandler {
   maxRetries: number;
   initialDelay: number;
   maxDelay: number;
   backoffMultiplier: number;
 
-  constructor(options: any = {}) {
+  constructor(options: Partial<RetryHandlerOptions> = {}) {
     this.maxRetries = options.maxRetries || 3;
     this.initialDelay = options.initialDelay || 1000;
     this.maxDelay = options.maxDelay || 30000;
     this.backoffMultiplier = options.backoffMultiplier || 2;
   }
 
-  async execute(operation: () => Promise<any>, context: any = {}): Promise<any> {
-    let lastError: any;
+  async execute<T>(operation: () => Promise<T>, context: Record<string, unknown> = {}): Promise<T> {
+    let lastError: unknown;
     let delay = this.initialDelay;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -29,14 +36,15 @@ export class RetryHandler {
         return result;
       } catch (error) {
         lastError = error;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         
         if (attempt === this.maxRetries) {
-          console.error(`[Retry] Operation failed after ${this.maxRetries + 1} attempts:`, error.message);
+          console.error(`[Retry] Operation failed after ${this.maxRetries + 1} attempts:`, errorMessage);
           throw error;
         }
 
         const waitTime = Math.min(delay, this.maxDelay);
-        console.log(`[Retry] Attempt ${attempt + 1} failed, retrying in ${waitTime}ms:`, error.message);
+        console.log(`[Retry] Attempt ${attempt + 1} failed, retrying in ${waitTime}ms:`, errorMessage);
         
         await this.sleep(waitTime);
         delay = delay * this.backoffMultiplier;
@@ -50,10 +58,10 @@ export class RetryHandler {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async executeWithTimeout(operation: () => Promise<any>, timeout: number = 5000): Promise<any> {
+  async executeWithTimeout<T>(operation: () => Promise<T>, timeout: number = 5000): Promise<T> {
     return Promise.race([
       this.execute(operation),
-      new Promise((_, reject) => 
+      new Promise<T>((_, reject) => 
         setTimeout(() => reject(new Error('Operation timed out')), timeout)
       )
     ]);
@@ -100,12 +108,12 @@ export const timeoutConfig = {
 };
 
 // Decorator for automatic retry
-export function withRetry(retryType: string = 'externalApi') {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export function withRetry(retryType: keyof typeof retryHandlers = 'externalApi') {
+  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
-    const handler = (retryHandlers as any)[retryType];
+    const handler = retryHandlers[retryType];
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       return handler.execute(() => originalMethod.apply(this, args));
     };
 
@@ -115,10 +123,10 @@ export function withRetry(retryType: string = 'externalApi') {
 
 // Decorator for timeout
 export function withTimeout(timeoutMs: number) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       return Promise.race([
         originalMethod.apply(this, args),
         new Promise((_, reject) => 

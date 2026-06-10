@@ -13,7 +13,7 @@ export function auditLog(action: AuditAction, resourceType?: string) {
     
     // Continue with the request
     const originalSend = res.send;
-    res.send = function(this: Response, ...args: any[]) {
+    res.send = function(this: Response, ...args: unknown[]) {
       // Log after response is sent
       if (res.statusCode >= 200 && res.statusCode < 300 && req.user) {
         const auditData: AuditLogData = {

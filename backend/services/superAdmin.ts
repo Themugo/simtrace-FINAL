@@ -7,8 +7,15 @@ import {
   SecurityOtp,
 } from "../db/index.js";
 
+interface IOfficialEmail {
+  email: string;
+  isPrimary: boolean;
+  isBackup: boolean;
+  verified: boolean;
+}
+
 // ── Super Admin Management ─────────────────────────────────────────────────────────────
-export async function createSuperAdmin(data: any) {
+export async function createSuperAdmin(data: Record<string, unknown>) {
   const superAdminId = `superadmin_${crypto.randomBytes(16).toString("hex")}`;
 
   const superAdmin = await SuperAdmin.create({
@@ -40,12 +47,13 @@ export async function getSuperAdminByOfficialEmail(officialEmail: string) {
   return superAdmin;
 }
 
-export async function updateSuperAdmin(superAdminId: string, updates: any) {
+export async function updateSuperAdmin(superAdminId: string, updates: Record<string, unknown>) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
   // Prevent changing immutable fields
-  if (updates.personalEmail && updates.personalEmail !== superAdmin.personalEmail) {
+  const personalEmail = updates.personalEmail as string;
+  if (personalEmail && personalEmail !== superAdmin.personalEmail) {
     throw new Error("Cannot change personal email - immutable field");
   }
 
@@ -88,31 +96,31 @@ export async function unlockSuperAdmin(superAdminId: string) {
 }
 
 // ── Official Email Management ───────────────────────────────────────────────────────────
-export async function addOfficialEmail(superAdminId: string, emailData: any) {
+export async function addOfficialEmail(superAdminId: string, emailData: Record<string, unknown>) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
   // Check if email already exists
-  const existingEmail = superAdmin.officialEmails.find((e: any) => e.email === emailData.email);
+  const existingEmail = superAdmin.officialEmails.find((e: IOfficialEmail) => e.email === emailData.email);
   if (existingEmail) throw new Error("Official email already exists");
 
   // If this is the first email, make it primary
   const isFirstEmail = superAdmin.officialEmails.length === 0;
-  const isPrimary = emailData.isPrimary || isFirstEmail;
+  const isPrimary = (emailData.isPrimary as boolean) || isFirstEmail;
 
   // If setting as primary, remove primary from others
   if (isPrimary) {
-    superAdmin.officialEmails.forEach((e: any) => {
+    superAdmin.officialEmails.forEach((e: IOfficialEmail) => {
       e.isPrimary = false;
     });
   }
 
   superAdmin.officialEmails.push({
-    email: emailData.email,
+    email: emailData.email as string,
     isPrimary,
-    isBackup: emailData.isBackup || false,
-    officialEmailId: emailData.officialEmailId,
-    securityOtpId: emailData.securityOtpId,
+    isBackup: (emailData.isBackup as boolean) || false,
+    officialEmailId: emailData.officialEmailId as string,
+    securityOtpId: emailData.securityOtpId as string,
     verified: false,
     createdAt: new Date(),
   });
@@ -127,7 +135,7 @@ export async function removeOfficialEmail(superAdminId: string, email: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
-  const emailIndex = superAdmin.officialEmails.findIndex((e: any) => e.email === email);
+  const emailIndex = superAdmin.officialEmails.findIndex((e: IOfficialEmail) => e.email === email);
   if (emailIndex === -1) throw new Error("Official email not found");
 
   // Prevent removing the only official email
@@ -151,11 +159,11 @@ export async function setPrimaryOfficialEmail(superAdminId: string, email: strin
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
-  const emailObj = superAdmin.officialEmails.find((e: any) => e.email === email);
+  const emailObj = superAdmin.officialEmails.find((e: IOfficialEmail) => e.email === email);
   if (!emailObj) throw new Error("Official email not found");
 
   // Remove primary from all
-  superAdmin.officialEmails.forEach((e: any) => {
+  superAdmin.officialEmails.forEach((e: IOfficialEmail) => {
     e.isPrimary = false;
   });
 
@@ -171,11 +179,11 @@ export async function setBackupOfficialEmail(superAdminId: string, email: string
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
-  const emailObj = superAdmin.officialEmails.find((e: any) => e.email === email);
+  const emailObj = superAdmin.officialEmails.find((e: IOfficialEmail) => e.email === email);
   if (!emailObj) throw new Error("Official email not found");
 
   // Remove backup from all
-  superAdmin.officialEmails.forEach((e: any) => {
+  superAdmin.officialEmails.forEach((e: IOfficialEmail) => {
     e.isBackup = false;
   });
 
@@ -191,7 +199,7 @@ export async function verifyOfficialEmail(superAdminId: string, email: string) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
-  const emailObj = superAdmin.officialEmails.find((e: any) => e.email === email);
+  const emailObj = superAdmin.officialEmails.find((e: IOfficialEmail) => e.email === email);
   if (!emailObj) throw new Error("Official email not found");
 
   emailObj.verified = true;
@@ -202,7 +210,7 @@ export async function verifyOfficialEmail(superAdminId: string, email: string) {
 }
 
 // ── System Settings Management ─────────────────────────────────────────────────────────
-export async function updateSystemSettings(superAdminId: string, settings: any) {
+export async function updateSystemSettings(superAdminId: string, settings: Record<string, unknown>) {
   const superAdmin = await SuperAdmin.findOne({ superAdminId });
   if (!superAdmin) throw new Error("Super admin not found");
 
@@ -254,10 +262,10 @@ export async function getAdminStatistics(superAdminId: string) {
     total: totalAdmins,
     active: activeAdmins,
     suspended: suspendedAdmins,
-    byRole: adminsByRole.reduce((acc: any, item: any) => {
+    byRole: adminsByRole.reduce((acc: Record<string, number>, item: { _id: string; count: number }) => {
       acc[item._id] = item.count;
       return acc;
-    }, {}),
+    }, {} as Record<string, number>),
   };
 }
 

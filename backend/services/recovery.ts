@@ -6,7 +6,7 @@ import { getIO } from "./socket.js";
 import { recordDeviceRecovered } from "./blockchain.js";
 
 // ── Agent Management ───────────────────────────────────────────────────────────────
-export async function registerRecoveryAgent(data: any) {
+export async function registerRecoveryAgent(data: Record<string, unknown>) {
   const {
     name,
     type,
@@ -15,7 +15,7 @@ export async function registerRecoveryAgent(data: any) {
     location,
     capabilities,
     partnerOrg,
-  } = data;
+  } = data as { name: string; type: string; email: string; phone: string; location: string; capabilities: string[]; partnerOrg?: string };
 
   const agent = await RecoveryAgent.create({
     name,
@@ -48,13 +48,13 @@ export async function updateAgentMetrics(agentId: string) {
   });
 
   const totalCases = cases.length;
-  const successfulRecoveries = cases.filter((c: any) => c.status === "recovered").length;
+  const successfulRecoveries = cases.filter((c) => c.status === "recovered").length;
   const successRate = totalCases > 0 ? (successfulRecoveries / totalCases) * 100 : 0;
 
   // Calculate average response time
   const responseTimes = cases
-    .filter((c: any) => c.workflowSteps[0]?.completedAt)
-    .map((c: any) => {
+    .filter((c) => c.workflowSteps[0]?.completedAt)
+    .map((c) => {
       const created = new Date(c.createdAt).getTime();
       const firstStep = new Date(c.workflowSteps[0].completedAt).getTime();
       return (firstStep - created) / (1000 * 60 * 60); // hours
@@ -73,15 +73,15 @@ export async function updateAgentMetrics(agentId: string) {
   return agent;
 }
 
-export async function findAvailableAgents(criteria: any = {}) {
+export async function findAvailableAgents(criteria: Record<string, unknown> = {}) {
   const {
     location,
     capabilities,
     type,
     maxLoad = 5,
-  } = criteria;
+  } = criteria as { location?: { lat: number; lng: number }; capabilities?: string[]; type?: string; maxLoad?: number };
 
-  const query: any = {
+  const query: Record<string, unknown> = {
     available: true,
     currentLoad: { $lt: maxLoad },
     verified: true,
@@ -111,14 +111,14 @@ export async function findAvailableAgents(criteria: any = {}) {
 }
 
 // ── Recovery Case Management ───────────────────────────────────────────────────────
-export async function createRecoveryCase(data: any) {
+export async function createRecoveryCase(data: Record<string, unknown>) {
   const {
     imei,
     reportedBy,
     priority = "medium",
     recoveryFee,
     rewardOffered,
-  } = data;
+  } = data as { imei: string; reportedBy: string; priority?: string; recoveryFee?: number; rewardOffered?: number };
 
   const device = await Device.findOne({ imei });
   if (!device) throw new Error("Device not found");
@@ -189,13 +189,13 @@ export async function autoAssignAgents(caseId: string) {
   return recoveryCase;
 }
 
-export async function assignAgentsToCase(caseId: string, agents: any[]) {
+export async function assignAgentsToCase(caseId: string, agents: Array<{ _id: string }>) {
   const recoveryCase = await RecoveryCase.findById(caseId);
   if (!recoveryCase) throw new Error("Recovery case not found");
 
-  const agentIds = agents.map((a: any) => a._id);
-  recoveryCase.assignedAgents = agentIds;
-  recoveryCase.primaryAgent = agents[0]._id;
+  const agentIds = agents.map((a) => a._id);
+  recoveryCase.assignedAgents = agentIds as unknown as typeof recoveryCase.assignedAgents;
+  recoveryCase.primaryAgent = agents[0]._id as unknown as typeof recoveryCase.primaryAgent;
   recoveryCase.status = "assigned";
 
   // Add workflow step
@@ -274,7 +274,7 @@ export async function updateCaseStatus(caseId: string, status: string, notes: st
   return recoveryCase;
 }
 
-export async function addCommunication(caseId: string, communication: any) {
+export async function addCommunication(caseId: string, communication: Record<string, unknown>) {
   const recoveryCase = await RecoveryCase.findById(caseId);
   if (!recoveryCase) throw new Error("Recovery case not found");
 
@@ -287,7 +287,7 @@ export async function addCommunication(caseId: string, communication: any) {
   return recoveryCase;
 }
 
-export async function updateCaseLocation(caseId: string, location: any) {
+export async function updateCaseLocation(caseId: string, location: Record<string, unknown>) {
   const recoveryCase = await RecoveryCase.findById(caseId);
   if (!recoveryCase) throw new Error("Recovery case not found");
 

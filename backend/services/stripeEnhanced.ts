@@ -13,28 +13,27 @@ const SUPPORTED_CURRENCIES = [
 ];
 
 // ── Card Type Detection ───────────────────────────────────────────────────────────
-function getCardType(paymentMethod: any): string {
-  const card = paymentMethod.card;
+function getCardType(paymentMethod: Record<string, unknown>): string {
+  const card = paymentMethod.card as Record<string, unknown> | undefined;
   if (!card) return "unknown";
 
-  if (card.brand === "visa") return "visa";
-  if (card.brand === "mastercard") return "mastercard";
-  if (card.brand === "amex") return "amex";
-  if (card.brand === "discover") return "discover";
+  const brand = card.brand as string;
+  if (brand === "visa") return "visa";
+  if (brand === "mastercard") return "mastercard";
+  if (brand === "amex") return "amex";
+  if (brand === "discover") return "discover";
 
-  return card.brand.toLowerCase();
+  return brand.toLowerCase();
 }
 
 // ── Create Payment Intent with Multi-Currency ─────────────────────────────────────
-export async function createEnhancedPaymentIntent(data: any) {
-  const {
-    userId,
-    amount,
-    currency,
-    description,
-    paymentMethodTypes,
-    metadata,
-  } = data;
+export async function createEnhancedPaymentIntent(data: Record<string, unknown>) {
+  const userId = data.userId as string;
+  const amount = data.amount as number;
+  const currency = data.currency as string;
+  const description = data.description as string | undefined;
+  const paymentMethodTypes = data.paymentMethodTypes as string[] | undefined;
+  const metadata = data.metadata as Record<string, string> | undefined;
 
   if (!stripe) throw new Error("Stripe not configured");
 
@@ -84,12 +83,10 @@ export async function createEnhancedPaymentIntent(data: any) {
 }
 
 // ── Create Payment Method (Save Card) ─────────────────────────────────────────────
-export async function createPaymentMethod(data: any) {
-  const {
-    userId,
-    paymentMethodId,
-    cardholderName,
-  } = data;
+export async function createPaymentMethod(data: Record<string, unknown>) {
+  const userId = data.userId as string;
+  const paymentMethodId = data.paymentMethodId as string;
+  const cardholderName = data.cardholderName as string | undefined;
 
   if (!stripe) throw new Error("Stripe not configured");
 
@@ -142,15 +139,18 @@ export async function getSavedPaymentMethods(userId: string) {
     type: "card",
   });
 
-  return paymentMethods.data.map((pm: any) => ({
-    id: pm.id,
-    cardType: getCardType(pm),
-    last4: pm.card.last4,
-    brand: pm.card.brand,
-    expMonth: pm.card.exp_month,
-    expYear: pm.card.exp_year,
-    isDefault: pm.metadata?.default === "true",
-  }));
+  return paymentMethods.data.map((pm: Record<string, unknown>) => {
+    const card = pm.card as Record<string, unknown>;
+    return {
+      id: pm.id as string,
+      cardType: getCardType(pm),
+      last4: card.last4 as string,
+      brand: card.brand as string,
+      expMonth: card.exp_month as number,
+      expYear: card.exp_year as number,
+      isDefault: (pm.metadata as Record<string, string>)?.default === "true",
+    };
+  });
 }
 
 // ── Delete Payment Method ─────────────────────────────────────────────────────────
@@ -184,15 +184,13 @@ export async function setDefaultPaymentMethod(userId: string, paymentMethodId: s
 }
 
 // ── Charge Saved Payment Method ───────────────────────────────────────────────────
-export async function chargeSavedPaymentMethod(data: any) {
-  const {
-    userId,
-    paymentMethodId,
-    amount,
-    currency,
-    description,
-    metadata,
-  } = data;
+export async function chargeSavedPaymentMethod(data: Record<string, unknown>) {
+  const userId = data.userId as string;
+  const paymentMethodId = data.paymentMethodId as string;
+  const amount = data.amount as number;
+  const currency = data.currency as string;
+  const description = data.description as string | undefined;
+  const metadata = data.metadata as Record<string, string> | undefined;
 
   if (!stripe) throw new Error("Stripe not configured");
 

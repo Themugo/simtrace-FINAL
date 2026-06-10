@@ -24,11 +24,11 @@ export function encryptRequestBody(fields: string[]) {
 export function decryptResponse(fields: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const originalJson = res.json.bind(res);
-    res.json = (data: any) => {
+    res.json = (data: unknown) => {
       if (data && typeof data === 'object') {
         try {
           data = decryptObject(data, fields as any);
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Decryption error:', error);
         }
       }
@@ -60,11 +60,11 @@ export function encryptField(fieldName: string) {
 export function decryptField(fieldName: string) {
   return (req: Request, res: Response, next: NextFunction) => {
     const originalJson = res.json.bind(res);
-    res.json = (data: any) => {
-      if (data && data[fieldName]) {
+    res.json = (data: unknown) => {
+      if (data && typeof data === 'object' && data !== null && fieldName in data) {
         try {
-          data[fieldName] = decrypt(data[fieldName]);
-        } catch (error) {
+          (data as Record<string, unknown>)[fieldName] = decrypt((data as Record<string, unknown>)[fieldName] as string);
+        } catch (error: unknown) {
           console.error(`Error decrypting field ${fieldName}:`, error);
         }
       }

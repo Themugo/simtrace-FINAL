@@ -6,7 +6,7 @@
       "ES2022"
     ],
     "moduleResolution": "bundler",
-    "allowJs": true,
+    "allowJs": false,
     "outDir": "./dist",
     "rootDir": "./",
     "strict": true,
@@ -21,7 +21,7 @@
     "noUnusedParameters": false,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
   "include": [
     "**/*.ts"

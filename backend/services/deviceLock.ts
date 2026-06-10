@@ -7,7 +7,7 @@ import {
 } from "../db/index.js";
 
 // ── Device Lock Management ───────────────────────────────────────────────────────────
-export async function lockDevice(data: any) {
+export async function lockDevice(data: Record<string, unknown>) {
   const lockId = `lock_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify device ownership
@@ -73,7 +73,7 @@ export async function unlockDevice(lockId: string, userId: string) {
   return lock;
 }
 
-export async function recordUnlockAttempt(lockId: string, location: any) {
+export async function recordUnlockAttempt(lockId: string, location: Record<string, unknown>) {
   const lock = await DeviceLock.findOne({ lockId });
   if (!lock) throw new Error("Lock not found");
 

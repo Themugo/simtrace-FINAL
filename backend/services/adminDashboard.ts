@@ -6,7 +6,7 @@ import {
 } from "../db/index.js";
 
 // ── Admin Dashboard Management ───────────────────────────────────────────────────────
-export async function createAdminDashboard(data: any) {
+export async function createAdminDashboard(data: Record<string, unknown>) {
   const dashboardId = `adash_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify admin exists
@@ -33,7 +33,7 @@ export async function getAdminDashboardByAdmin(adminId: string) {
   return dashboard;
 }
 
-export async function updateAdminDashboard(dashboardId: string, updates: any) {
+export async function updateAdminDashboard(dashboardId: string, updates: Record<string, unknown>) {
   const dashboard = await AdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -46,7 +46,7 @@ export async function updateAdminDashboard(dashboardId: string, updates: any) {
   return dashboard;
 }
 
-export async function updateAdminDashboardWidgets(dashboardId: string, widgets: any) {
+export async function updateAdminDashboardWidgets(dashboardId: string, widgets: Record<string, unknown>) {
   const dashboard = await AdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -59,7 +59,7 @@ export async function updateAdminDashboardWidgets(dashboardId: string, widgets: 
   return dashboard;
 }
 
-export async function updateAdminDashboardSettings(dashboardId: string, settings: any) {
+export async function updateAdminDashboardSettings(dashboardId: string, settings: Record<string, unknown>) {
   const dashboard = await AdminDashboard.findOneAndUpdate(
     { dashboardId },
     {

@@ -25,7 +25,7 @@ const LEGAL_FRAMEWORKS = {
 };
 
 // ── Create Cross-Border Request ─────────────────────────────────────────────────────
-export async function createCrossBorderRequest(data: any) {
+export async function createCrossBorderRequest(data: Record<string, unknown>) {
   const {
     imei,
     recoveryCaseId,
@@ -38,7 +38,19 @@ export async function createCrossBorderRequest(data: any) {
     requestingAuthority,
     targetAuthority,
     evidence = [],
-  } = data;
+  } = data as {
+    imei: string;
+    recoveryCaseId?: string;
+    requestingCountry: string;
+    targetCountry: string;
+    requestType: string;
+    treaty?: string;
+    referenceNumber?: string;
+    priority?: string;
+    requestingAuthority?: string;
+    targetAuthority?: string;
+    evidence?: unknown[];
+  };
 
   const device = await Device.findOne({ imei });
   if (!device) throw new Error("Device not found");
@@ -130,7 +142,7 @@ export async function updateRequestStatus(requestId: string, status: string, out
 }
 
 // ── Add Evidence to Request ───────────────────────────────────────────────────────
-export async function addEvidence(requestId: string, evidence: any) {
+export async function addEvidence(requestId: string, evidence: Record<string, unknown>) {
   const request = await CrossBorderRequest.findById(requestId);
   if (!request) throw new Error("Cross-border request not found");
 
@@ -313,15 +325,15 @@ export async function getCrossBorderStatistics() {
     avgProcessingDays: avgProcessingTime[0]?.avgTime 
       ? Math.round(avgProcessingTime[0].avgTime / (1000 * 60 * 60 * 24))
       : 0,
-    requestsByCountry: requestsByCountry.map((r: any) => ({
+    requestsByCountry: requestsByCountry.map((r: { _id: string; count: number }) => ({
       country: r._id,
       count: r.count,
     })),
-    requestsByTreaty: requestsByTreaty.map((r: any) => ({
+    requestsByTreaty: requestsByTreaty.map((r: { _id: string; count: number }) => ({
       treaty: r._id,
       count: r.count,
     })),
-    requestsByType: requestsByType.map((r: any) => ({
+    requestsByType: requestsByType.map((r: { _id: string; count: number }) => ({
       type: r._id,
       count: r.count,
     })),

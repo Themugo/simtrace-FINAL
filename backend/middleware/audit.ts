@@ -8,7 +8,7 @@ export async function auditLog(req: Request, res: Response, next: NextFunction) 
   // Store original res.json to intercept responses
   const originalJson = res.json;
 
-  res.json = function(data: any) {
+  res.json = function(data: Record<string, unknown>) {
     // Log the response after it's sent
     setImmediate(async () => {
       try {
@@ -33,7 +33,7 @@ export async function auditLog(req: Request, res: Response, next: NextFunction) 
           userAgent: req.get("user-agent"),
           statusCode: res.statusCode,
           success: res.statusCode < 400,
-          errorMessage: res.statusCode >= 400 ? (data?.error || data?.message) : undefined,
+          errorMessage: res.statusCode >= 400 ? ((data?.error || data?.message) as string) : undefined,
           metadata: {
             userEmail,
             userRole,
@@ -126,18 +126,16 @@ function isGdprRegion(req: Request): boolean {
 }
 
 // ── Sensitive Action Logging ────────────────────────────────────────────────────
-export async function logSensitiveAction(data: any) {
-  const {
-    userId,
-    userEmail,
-    userRole,
-    action,
-    resource,
-    resourceId,
-    changes,
-    ipAddress,
-    userAgent,
-  } = data;
+export async function logSensitiveAction(data: Record<string, unknown>) {
+  const userId = data.userId as string;
+  const userEmail = data.userEmail as string;
+  const userRole = data.userRole as string;
+  const action = data.action as string;
+  const resource = data.resource as string;
+  const resourceId = data.resourceId as string | undefined;
+  const changes = data.changes as Record<string, unknown> | undefined;
+  const ipAddress = data.ipAddress as string;
+  const userAgent = data.userAgent as string | undefined;
 
   await AuditLog.create({
     userId,
@@ -239,8 +237,8 @@ export async function getAuditStatistics() {
     failureLogs,
     unauthorizedLogs,
     successRate: totalLogs > 0 ? ((successLogs / totalLogs) * 100).toFixed(2) : 0,
-    logsByAction: logsByAction.map((l: any) => ({ action: l._id, count: l.count })),
-    logsByResource: logsByResource.map((l: any) => ({ resource: l._id, count: l.count })),
-    logsByUser: logsByUser.map((l: any) => ({ userId: l._id, count: l.count })),
+    logsByAction: logsByAction.map((l) => ({ action: l._id, count: l.count })),
+    logsByResource: logsByResource.map((l) => ({ resource: l._id, count: l.count })),
+    logsByUser: logsByUser.map((l) => ({ userId: l._id, count: l.count })),
   };
 }

@@ -7,11 +7,11 @@ import {
 } from "../db/index.js";
 
 // ── Super Admin Dashboard Management ───────────────────────────────────────────────────
-export async function createSuperAdminDashboard(data: any) {
+export async function createSuperAdminDashboard(data: Record<string, unknown>) {
   const dashboardId = `sdash_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify super admin exists
-  const superAdmin = await SuperAdmin.findById(data.superAdminId);
+  const superAdmin = await SuperAdmin.findById(data.superAdminId as string);
   if (!superAdmin) throw new Error("Super admin not found");
 
   const dashboard = await SuperAdminDashboard.create({
@@ -34,7 +34,7 @@ export async function getSuperAdminDashboardBySuperAdmin(superAdminId: string) {
   return dashboard;
 }
 
-export async function updateSuperAdminDashboard(dashboardId: string, updates: any) {
+export async function updateSuperAdminDashboard(dashboardId: string, updates: Record<string, unknown>) {
   const dashboard = await SuperAdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -47,7 +47,7 @@ export async function updateSuperAdminDashboard(dashboardId: string, updates: an
   return dashboard;
 }
 
-export async function updateSuperAdminDashboardWidgets(dashboardId: string, widgets: any) {
+export async function updateSuperAdminDashboardWidgets(dashboardId: string, widgets: unknown) {
   const dashboard = await SuperAdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -60,7 +60,7 @@ export async function updateSuperAdminDashboardWidgets(dashboardId: string, widg
   return dashboard;
 }
 
-export async function updateSuperAdminDashboardSettings(dashboardId: string, settings: any) {
+export async function updateSuperAdminDashboardSettings(dashboardId: string, settings: unknown) {
   const dashboard = await SuperAdminDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -115,7 +115,7 @@ export async function getSuperAdminDashboardData(dashboardId: string) {
   return {
     dashboard,
     superAdmin,
-    adminStats: adminStats.reduce((acc: any, item: any) => {
+    adminStats: adminStats.reduce((acc, item) => {
       acc[item._id] = { count: item.count, active: item.active };
       return acc;
     }, {}),

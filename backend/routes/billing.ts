@@ -155,11 +155,11 @@ router.post("/stripe-webhook", express.raw({ type: "application/json" }), async 
   const sig    = req.headers["stripe-signature"];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-  let event: any;
+  let event: Record<string, unknown>;
 
   try {
     if (secret && sig && stripe) {
-      event = stripe.webhooks.constructEvent(req.body, sig, secret);
+      event = stripe.webhooks.constructEvent(req.body, sig, secret) as unknown as Record<string, unknown>;
     } else if (process.env.NODE_ENV === "production") {
       return res.status(400).json({ error: "Webhook signature verification required" });
     } else {
@@ -173,7 +173,7 @@ router.post("/stripe-webhook", express.raw({ type: "application/json" }), async 
     const { ProcessedWebhookEvent } = await import("../db/index.js");
     if (event.id) {
       try { await ProcessedWebhookEvent.create({ provider: "stripe", eventId: event.id, eventType: event.type }); }
-      catch (e: any) { if (e?.code === 11000) return res.json({ received: true, duplicate: true }); throw e; }
+      catch (e: unknown) { if ((e as Record<string, unknown>)?.code === 11000) return res.json({ received: true, duplicate: true }); throw e; }
     }
     if (event.type === "payment_intent.succeeded") {
       const intent  = event.data.object;

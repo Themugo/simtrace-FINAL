@@ -6,19 +6,19 @@ import {
 } from "../db/index.js";
 
 // ── Telecom Dashboard Management ─────────────────────────────────────────────────────
-export async function createTelecomDashboard(data: any) {
+export async function createTelecomDashboard(data: Record<string, unknown>) {
   const dashboardId = `tdash_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify telecom company exists
-  const company = await TelecomCompany.findById(data.companyId);
+  const company = await TelecomCompany.findById(data.companyId as string);
   if (!company) throw new Error("Telecom company not found");
 
   const dashboard = await TelecomDashboard.create({
     ...data,
     dashboardId,
     status: "active",
-    createdBy: data.createdBy,
-    updatedBy: data.createdBy,
+    createdBy: data.createdBy as string,
+    updatedBy: data.createdBy as string,
   });
 
   return dashboard;
@@ -35,7 +35,7 @@ export async function getTelecomDashboardByCompany(companyId: string) {
   return dashboard;
 }
 
-export async function updateTelecomDashboard(dashboardId: string, updates: any, updatedBy: string) {
+export async function updateTelecomDashboard(dashboardId: string, updates: Record<string, unknown>, updatedBy: string) {
   const dashboard = await TelecomDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -49,7 +49,7 @@ export async function updateTelecomDashboard(dashboardId: string, updates: any, 
   return dashboard;
 }
 
-export async function updateDashboardWidgets(dashboardId: string, widgets: any, updatedBy: string) {
+export async function updateDashboardWidgets(dashboardId: string, widgets: Record<string, unknown>, updatedBy: string) {
   const dashboard = await TelecomDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -63,7 +63,7 @@ export async function updateDashboardWidgets(dashboardId: string, widgets: any, 
   return dashboard;
 }
 
-export async function updateDashboardSettings(dashboardId: string, settings: any, updatedBy: string) {
+export async function updateDashboardSettings(dashboardId: string, settings: Record<string, unknown>, updatedBy: string) {
   const dashboard = await TelecomDashboard.findOneAndUpdate(
     { dashboardId },
     {

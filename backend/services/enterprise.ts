@@ -4,8 +4,35 @@
 import { Organization, OrganizationMember, DeviceFleet, Device, User } from "../db/index.js";
 import { getIO } from "./socket.js";
 
+// ── Minimal interfaces for document property access ──────────────────────────
+interface IOrganizationDoc {
+  [key: string]: unknown;
+  plan: string;
+  status: string;
+  trialEndsAt: Date | null;
+  updatedAt: Date;
+  save(): Promise<unknown>;
+}
+interface IMemberDoc {
+  role: string;
+  permissions: string[];
+  joinedAt: Date;
+  updatedAt: Date;
+  status: string;
+  save(): Promise<unknown>;
+}
+interface IFleetDoc {
+  [key: string]: unknown;
+  devices: { status: string; stolen?: boolean }[];
+  deviceLimit?: number;
+  monitoringEnabled: boolean;
+  alertThresholds: Record<string, unknown>;
+  updatedAt: Date;
+  save(): Promise<unknown>;
+}
+
 // ── Organization Management ───────────────────────────────────────────────────────
-export async function createOrganization(data: any) {
+export async function createOrganization(data: Record<string, unknown>) {
   const {
     name,
     slug,
@@ -16,7 +43,7 @@ export async function createOrganization(data: any) {
     size,
     plan,
     ownerId,
-  } = data;
+  } = data as { name: string; slug: string; email: string; phone: string; address: string; industry: string; size: string; plan?: string; ownerId: string };
 
   // Check if slug is unique
   const existing = await Organization.findOne({ slug });
@@ -60,14 +87,15 @@ export async function getOrganizationBySlug(slug: string) {
   return organization;
 }
 
-export async function updateOrganization(organizationId: string, updates: any) {
+export async function updateOrganization(organizationId: string, updates: Record<string, unknown>) {
   const organization = await Organization.findById(organizationId);
   if (!organization) throw new Error("Organization not found");
 
   const allowedUpdates = ["name", "email", "phone", "address", "industry", "size", "plan", "customSla", "status", "accountManager"];
+  const org = organization as unknown as IOrganizationDoc;
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      (organization as any)[key] = updates[key];
+      org[key] = updates[key];
     }
   }
 
@@ -81,9 +109,10 @@ export async function upgradePlan(organizationId: string, newPlan: string) {
   const organization = await Organization.findById(organizationId);
   if (!organization) throw new Error("Organization not found");
 
-  (organization as any).plan = newPlan;
-  (organization as any).status = "active";
-  (organization as any).trialEndsAt = null;
+  const org = organization as unknown as IOrganizationDoc;
+  org.plan = newPlan;
+  org.status = "active";
+  org.trialEndsAt = null;
   organization.updatedAt = new Date();
   await organization.save();
 
@@ -91,14 +120,14 @@ export async function upgradePlan(organizationId: string, newPlan: string) {
 }
 
 // ── Organization Members ─────────────────────────────────────────────────────────
-export async function addOrganizationMember(data: any) {
+export async function addOrganizationMember(data: Record<string, unknown>) {
   const {
     organizationId,
     userId,
     role,
     permissions,
     invitedBy,
-  } = data;
+  } = data as { organizationId: string; userId: string; role?: string; permissions?: string[]; invitedBy: string };
 
   const organization = await Organization.findById(organizationId);
   if (!organization) throw new Error("Organization not found");
@@ -115,9 +144,10 @@ export async function addOrganizationMember(data: any) {
   if (existing) {
     if (existing.status === "removed") {
       existing.status = "active";
-      (existing as any).role = role || (existing as any).role;
-      (existing as any).permissions = permissions || (existing as any).permissions;
-      (existing as any).joinedAt = new Date();
+      const ex = existing as unknown as IMemberDoc;
+      ex.role = role || ex.role;
+      ex.permissions = permissions || ex.permissions;
+      ex.joinedAt = new Date();
       await existing.save();
       return existing;
     }
@@ -152,18 +182,19 @@ export async function removeOrganizationMember(organizationId: string, userId: s
 
   if (!member) throw new Error("Member not found");
 
-  if ((member as any).role === "owner") {
+  const m = member as unknown as IMemberDoc;
+  if (m.role === "owner") {
     throw new Error("Cannot remove organization owner");
   }
 
   member.status = "removed";
-  (member as any).updatedAt = new Date();
+  m.updatedAt = new Date();
   await member.save();
 
   return member;
 }
 
-export async function updateMemberRole(organizationId: string, userId: string, role: string, permissions: any) {
+export async function updateMemberRole(organizationId: string, userId: string, role: string, permissions: string[]) {
   const member = await OrganizationMember.findOne({
     organization: organizationId,
     user: userId,
@@ -171,9 +202,10 @@ export async function updateMemberRole(organizationId: string, userId: string, r
 
   if (!member) throw new Error("Member not found");
 
-  (member as any).role = role;
-  (member as any).permissions = permissions || [];
-  (member as any).updatedAt = new Date();
+  const m = member as unknown as IMemberDoc;
+  m.role = role;
+  m.permissions = permissions || [];
+  m.updatedAt = new Date();
   await member.save();
 
   return member;
@@ -196,11 +228,11 @@ export async function getUserOrganizations(userId: string) {
     .populate("organization")
     .sort({ joinedAt: -1 });
 
-  return memberships.map((m: any) => m.organization);
+  return memberships.map((m) => m.organization);
 }
 
 // ── Device Fleet Management ───────────────────────────────────────────────────────
-export async function createDeviceFleet(data: any) {
+export async function createDeviceFleet(data: Record<string, unknown>) {
   const {
     organizationId,
     name,
@@ -209,7 +241,7 @@ export async function createDeviceFleet(data: any) {
     deviceLimit,
     monitoringEnabled,
     alertThresholds,
-  } = data;
+  } = data as { organizationId: string; name: string; description?: string; autoRegister?: boolean; deviceLimit?: number; monitoringEnabled?: boolean; alertThresholds?: Record<string, unknown> };
 
   const organization = await Organization.findById(organizationId);
   if (!organization) throw new Error("Organization not found");
@@ -251,15 +283,16 @@ export async function addDeviceToFleet(fleetId: string, deviceId: string) {
   const device = await Device.findById(deviceId);
   if (!device) throw new Error("Device not found");
 
-  if ((fleet as any).devices.includes(deviceId)) {
+  const fl = fleet as unknown as IFleetDoc;
+  if ((fl.devices as unknown as string[]).includes(deviceId)) {
     throw new Error("Device already in fleet");
   }
 
-  if ((fleet as any).deviceLimit && (fleet as any).devices.length >= (fleet as any).deviceLimit) {
+  if (fl.deviceLimit && fl.devices.length >= fl.deviceLimit) {
     throw new Error("Fleet device limit reached");
   }
 
-  (fleet as any).devices.push(deviceId);
+  (fl.devices as unknown as string[]).push(deviceId);
   fleet.updatedAt = new Date();
   await fleet.save();
 
@@ -270,21 +303,23 @@ export async function removeDeviceFromFleet(fleetId: string, deviceId: string) {
   const fleet = await DeviceFleet.findById(fleetId);
   if (!fleet) throw new Error("Fleet not found");
 
-  (fleet as any).devices.pull(deviceId);
+  const fl = fleet as unknown as IFleetDoc;
+  (fl.devices as unknown as { pull(id: string): void }).pull(deviceId);
   fleet.updatedAt = new Date();
   await fleet.save();
 
   return fleet;
 }
 
-export async function updateFleetSettings(fleetId: string, updates: any) {
+export async function updateFleetSettings(fleetId: string, updates: Record<string, unknown>) {
   const fleet = await DeviceFleet.findById(fleetId);
   if (!fleet) throw new Error("Fleet not found");
 
   const allowedUpdates = ["name", "description", "autoRegister", "deviceLimit", "monitoringEnabled", "alertThresholds", "status"];
+  const fl = fleet as unknown as IFleetDoc;
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      (fleet as any)[key] = updates[key];
+      fl[key] = updates[key];
     }
   }
 
@@ -301,20 +336,21 @@ export async function getFleetAnalytics(fleetId: string) {
 
   if (!fleet) throw new Error("Fleet not found");
 
-  const devices = (fleet as any).devices || [];
+  const fl = fleet as unknown as IFleetDoc;
+  const devices = fl.devices || [];
 
   const totalDevices = devices.length;
-  const activeDevices = devices.filter((d: any) => d.status === "active").length;
-  const stolenDevices = devices.filter((d: any) => d.stolen).length;
-  const blacklistedDevices = devices.filter((d: any) => d.status === "blacklisted").length;
+  const activeDevices = devices.filter((d) => d.status === "active").length;
+  const stolenDevices = devices.filter((d) => d.stolen).length;
+  const blacklistedDevices = devices.filter((d) => d.status === "blacklisted").length;
 
   return {
     totalDevices,
     activeDevices,
     stolenDevices,
     blacklistedDevices,
-    monitoringEnabled: (fleet as any).monitoringEnabled,
-    alertThresholds: (fleet as any).alertThresholds,
+    monitoringEnabled: fl.monitoringEnabled,
+    alertThresholds: fl.alertThresholds,
   };
 }
 
@@ -356,7 +392,7 @@ export async function getEnterpriseStatistics() {
     totalMembers,
     totalFleets,
     totalFleetDevices: totalFleetDevices[0]?.total || 0,
-    organizationsBySize: organizationsBySize.map((o: any) => ({ size: o._id, count: o.count })),
-    organizationsByPlan: organizationsByPlan.map((o: any) => ({ plan: o._id, count: o.count })),
+    organizationsBySize: organizationsBySize.map((o) => ({ size: o._id, count: o.count })),
+    organizationsByPlan: organizationsByPlan.map((o) => ({ plan: o._id, count: o.count })),
   };
 }

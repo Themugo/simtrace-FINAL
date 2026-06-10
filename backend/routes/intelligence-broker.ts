@@ -291,7 +291,7 @@ router.get("/events/:imei", authenticate, async (req: AuthRequest, res: Response
 
     // In production, this would query a database
     // For now, return empty array
-    const events: any[] = [];
+    const events: unknown[] = [];
 
     return res.json({ imei: imeiStr, events, since });
   } catch (err) {

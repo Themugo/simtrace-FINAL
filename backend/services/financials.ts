@@ -4,7 +4,7 @@
 import { FinancialProjection, User, Device, Subscription, Payment, AdCampaign, AdEvent } from "../db/index.js";
 
 // ── Projection Management ─────────────────────────────────────────────────────────
-export async function createFinancialProjection(data: any) {
+export async function createFinancialProjection(data: Record<string, unknown>) {
   const {
     period,
     startDate,
@@ -90,7 +90,7 @@ export async function getCurrentProjection(period = "monthly") {
   return projection;
 }
 
-export async function updateProjectionMetrics(projectionId: string, metrics: any) {
+export async function updateProjectionMetrics(projectionId: string, metrics: Record<string, unknown>) {
   const projection = await FinancialProjection.findById(projectionId);
   if (!projection) throw new Error("Projection not found");
 
@@ -144,7 +144,7 @@ export async function calculateRevenue(startDate: Date, endDate: Date) {
     type: "subscription",
   });
 
-  const subscriptionRevenue = subscriptionPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+  const subscriptionRevenue = subscriptionPayments.reduce((sum: number, p) => sum + ((p as any).amount || 0), 0);
 
   // Ad revenue
   const adConversions = await AdEvent.find({
@@ -153,7 +153,7 @@ export async function calculateRevenue(startDate: Date, endDate: Date) {
     flagged: false,
   });
 
-  const adRevenue = adConversions.reduce((sum: number, e: any) => sum + (e.revenue || 0), 0);
+  const adRevenue = adConversions.reduce((sum: number, e) => sum + ((e as any).revenue || 0), 0);
 
   // Verification revenue (simplified - would need dedicated tracking)
   const verificationRevenue = 0;
@@ -291,7 +291,7 @@ export async function getFinancialDashboard() {
     .sort({ startDate: -1 })
     .limit(12);
 
-  const revenueTrendData = revenueTrend.map((p: any) => ({
+  const revenueTrendData = revenueTrend.map((p) => ({
     month: p.startDate.toLocaleString("default", { month: "short" }),
     year: p.startDate.getFullYear(),
     revenue: p.totalRevenue,
@@ -323,7 +323,7 @@ export async function getFinancialDashboard() {
 
 // ── Business Plan Projections ───────────────────────────────────────────────────
 export async function generateBusinessPlanProjections() {
-  const projections: any[] = [];
+  const projections: unknown[] = [];
   const baseDate = new Date();
 
   // Generate 12-month projections based on business plan

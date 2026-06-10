@@ -6,10 +6,10 @@ const MODEL = "claude-sonnet-4-20250514";
 
 async function callClaude({ system, messages, maxTokens = 1024, json = false }: {
   system: string;
-  messages: any[];
+  messages: Record<string, unknown>[];
   maxTokens?: number;
   json?: boolean;
-}): Promise<string | any> {
+}): Promise<string | Record<string, unknown>> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
 
@@ -35,8 +35,8 @@ async function callClaude({ system, messages, maxTokens = 1024, json = false }: 
     throw new Error(`Anthropic API error ${res.status}: ${err}`);
   }
 
-  const data: any = await res.json();
-  const text = data.content.map((b: any) => b.text || "").join("");
+  const data = await res.json() as { content?: { text?: string }[] };
+  const text = data.content?.map((b: { text?: string }) => b.text || "").join("") ?? "";
 
   if (json) {
     const clean = text.replace(/```json|```/g, "").trim();
@@ -49,23 +49,23 @@ async function callClaude({ system, messages, maxTokens = 1024, json = false }: 
 // Given device data + ping history, produce a human-readable risk narrative.
 export async function generateImeiReport({ imei, device, riskScore, recentPings, alerts, reports }: {
   imei: string;
-  device?: any;
+  device?: { make?: string; model?: string; status?: string; lastSeen?: string | Date };
   riskScore: number;
-  recentPings?: any[];
-  alerts?: any[];
-  reports?: any[];
+  recentPings?: { ts: Date; lat: number; lng: number; networkOp?: string; simIccid?: string }[];
+  alerts?: { type: string }[];
+  reports?: { status: string }[];
 }) {
   const pingCount = recentPings?.length ?? 0;
-  const simSwaps = alerts?.filter((a: any) => a.type === "sim_swap").length ?? 0;
-  const jumpAlerts = alerts?.filter((a: any) => a.type === "location_jump").length ?? 0;
-  const fraudAlerts = alerts?.filter((a: any) => a.type === "fraud_pattern").length ?? 0;
-  const isStolen = reports?.some((r: any) => ["open", "investigating"].includes(r.status)) ?? false;
+  const simSwaps = alerts?.filter((a) => a.type === "sim_swap").length ?? 0;
+  const jumpAlerts = alerts?.filter((a) => a.type === "location_jump").length ?? 0;
+  const fraudAlerts = alerts?.filter((a) => a.type === "fraud_pattern").length ?? 0;
+  const isStolen = reports?.some((r) => ["open", "investigating"].includes(r.status)) ?? false;
 
   const deviceSummary = device
     ? `${device.make || "Unknown"} ${device.model || "device"}, status: ${device.status}, last seen: ${device.lastSeen ? new Date(device.lastSeen).toISOString() : "never"}`
     : "Not registered in SimTrace";
 
-  const pingSummary = recentPings?.slice(0, 3).map((p: any) =>
+  const pingSummary = recentPings?.slice(0, 3).map((p) =>
     `  • ${new Date(p.ts).toLocaleString()}: [${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}] via ${p.networkOp || "unknown carrier"} SIM:${p.simIccid || "?"}`
   ).join("\n") || "  No recent pings";
 
@@ -96,10 +96,10 @@ Write a security summary a device owner or police officer would find useful.`,
 
 // ── 2. Alert Triage ───────────────────────────────────────────────────────────
 // Classify urgency and recommend action for a batch of unread alerts.
-export async function triageAlerts(alerts: any[]) {
+export async function triageAlerts(alerts: { _id: string; type: string; imei: string; ts: Date; payload: Record<string, unknown> }[]) {
   if (!alerts?.length) return [];
 
-  const summary = alerts.map((a: any) => ({
+  const summary = alerts.map((a) => ({
     id: a._id,
     type: a.type,
     imei: a.imei,
@@ -122,7 +122,7 @@ Return ONLY the JSON array. No preamble, no markdown fences.`,
 
 // ── 3. Anomaly Explanation ────────────────────────────────────────────────────
 // Plain-English explanation of a single alert for a device owner.
-export async function explainAlert(alert: any) {
+export async function explainAlert(alert: { imei: string; type: string; payload: Record<string, unknown>; ts: Date }) {
   const typeLabels: Record<string, string> = {
     blacklist_ping: "Blacklisted device detected",
     sim_swap: "SIM card swap",
@@ -150,7 +150,7 @@ What happened and what should the owner do?`,
 // ── 4. AI Security Chat ───────────────────────────────────────────────────────
 // Multi-turn assistant for the AI Assistant page. Knows about SimTrace context.
 export async function securityChat({ messages, userContext }: {
-  messages: any[];
+  messages: Record<string, unknown>[];
   userContext?: { role: string; deviceCount: number; alertCount: number };
 }) {
   const contextStr = userContext
@@ -179,8 +179,8 @@ Never fabricate device data — only discuss what the user tells you.`,
 export async function narrateFraudPattern({ imei, type, payload, pingHistory }: {
   imei: string;
   type: string;
-  payload: any;
-  pingHistory?: any[];
+  payload: Record<string, unknown>;
+  pingHistory?: Record<string, unknown>[];
 }) {
   return callClaude({
     system: `You are writing internal security event descriptions for SimTrace analysts. 

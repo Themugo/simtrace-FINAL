@@ -1,9 +1,10 @@
 // Telecom Provider Failover and Health Scoring
+import { Redis } from 'ioredis';
 import { getRedisClient } from '../../services/redis.js';
 
 class TelecomProviderManager {
   providers: Map<string, any>;
-  redis: any;
+  redis: Redis;
   healthCheckInterval: number;
 
   constructor() {
@@ -13,7 +14,7 @@ class TelecomProviderManager {
   }
 
   // Register provider
-  registerProvider(providerId: string, config: any) {
+  registerProvider(providerId: string, config: Record<string, unknown>) {
     this.providers.set(providerId, {
       ...config,
       healthScore: 100,
@@ -51,7 +52,7 @@ class TelecomProviderManager {
     provider.lastCheck = Date.now();
 
     // Cache health score
-    this.redis.set(`provider_health:${providerId}`, provider.healthScore, { EX: 300 });
+    this.redis.set(`provider_health:${providerId}`, provider.healthScore, { EX: 300 } as any);
   }
 
   // Get best provider for request
@@ -70,7 +71,7 @@ class TelecomProviderManager {
   }
 
   // Execute request with failover
-  async executeRequest(operation: string, data: any, maxRetries: number = 3): Promise<any> {
+  async executeRequest(operation: string, data: unknown, maxRetries: number = 3): Promise<any> {
     let lastError = null;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -97,7 +98,7 @@ class TelecomProviderManager {
   }
 
   // Call specific provider
-  async callProvider(providerId: string, operation: string, data: any): Promise<any> {
+  async callProvider(providerId: string, operation: string, data: unknown): Promise<any> {
     const provider = this.providers.get(providerId);
     
     // In production, this would call actual telecom provider APIs

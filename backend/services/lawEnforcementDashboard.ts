@@ -6,19 +6,19 @@ import {
 } from "../db/index.js";
 
 // ── Law Enforcement Dashboard Management ───────────────────────────────────────────────
-export async function createLawEnforcementDashboard(data: any) {
+export async function createLawEnforcementDashboard(data: Record<string, unknown>) {
   const dashboardId = `ldash_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify law enforcement agency exists
-  const agency = await LawEnforcementAgency.findById(data.agencyId);
+  const agency = await LawEnforcementAgency.findById(data.agencyId as string);
   if (!agency) throw new Error("Law enforcement agency not found");
 
   const dashboard = await LawEnforcementDashboard.create({
     ...data,
     dashboardId,
     status: "active",
-    createdBy: data.createdBy,
-    updatedBy: data.createdBy,
+    createdBy: data.createdBy as string,
+    updatedBy: data.createdBy as string,
   });
 
   return dashboard;
@@ -35,7 +35,7 @@ export async function getLawEnforcementDashboardByAgency(agencyId: string) {
   return dashboard;
 }
 
-export async function updateLawEnforcementDashboard(dashboardId: string, updates: any, updatedBy: string) {
+export async function updateLawEnforcementDashboard(dashboardId: string, updates: Record<string, unknown>, updatedBy: string) {
   const dashboard = await LawEnforcementDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -49,7 +49,7 @@ export async function updateLawEnforcementDashboard(dashboardId: string, updates
   return dashboard;
 }
 
-export async function updateLawEnforcementDashboardWidgets(dashboardId: string, widgets: any, updatedBy: string) {
+export async function updateLawEnforcementDashboardWidgets(dashboardId: string, widgets: Record<string, unknown>, updatedBy: string) {
   const dashboard = await LawEnforcementDashboard.findOneAndUpdate(
     { dashboardId },
     {
@@ -63,7 +63,7 @@ export async function updateLawEnforcementDashboardWidgets(dashboardId: string, 
   return dashboard;
 }
 
-export async function updateLawEnforcementDashboardSettings(dashboardId: string, settings: any, updatedBy: string) {
+export async function updateLawEnforcementDashboardSettings(dashboardId: string, settings: Record<string, unknown>, updatedBy: string) {
   const dashboard = await LawEnforcementDashboard.findOneAndUpdate(
     { dashboardId },
     {

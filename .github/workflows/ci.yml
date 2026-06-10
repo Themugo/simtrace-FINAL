@@ -9,11 +9,22 @@ on:
 jobs:
   # ── Backend checks ────────────────────────────────────────────────────────
   backend:
-    name: Backend — lint & build
+    name: Backend — typecheck & test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -28,20 +39,16 @@ jobs:
       - name: Install dependencies
         run: npm install --prefer-offline
 
-      - name: Check for syntax errors
-        run: |
-          node --input-type=module -e "import('./server.js').catch(e => { console.error(e); process.exit(1); })" || exit 0
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npx vitest run
         env:
           MONGO_URI: mongodb://localhost:27017/simtrace_test
-          JWT_SECRET: test_secret_for_ci_only_do_not_use
-          ANTHROPIC_API_KEY: test_key
+          JWT_SECRET: test-secret-key-for-ci-only
+          ANTHROPIC_API_KEY: sk-ant-test-key
           NODE_ENV: test
-
-      - name: Verify all route files parse
-        run: |
-          for f in routes/*.ts services/*.ts middleware/*.ts; do
-            node --input-type=module -e "import('./${f}')" 2>&1 | grep -v "^$" || true
-          done
 
   # ── Frontend checks ───────────────────────────────────────────────────────
   frontend:
@@ -125,41 +132,10 @@ jobs:
       - name: Build backend Docker image
         run: docker build ./backend -t simtrace-backend:ci
 
-  # ── Deploy to Railway (main branch only) ─────────────────────────────────
-  deploy:
-    name: Deploy → Railway
-    needs: [backend, frontend, docker]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy backend
-        run: railway up --service simtrace-backend
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Wait for deployment
-        run: sleep 60
-
-      - name: Health check
-        run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://api.simtrace.site/health)
-          if [ $response -eq 200 ]; then
-            echo "✅ Health check passed"
-          else
-            echo "❌ Health check failed with status $response"
-            exit 1
-          fi
-
-  # ── Deploy frontend to Vercel ─────────────────────────────────────────────
+  # ── Deploy to Vercel ─────────────────────────────────────────────────────
   deploy-frontend:
     name: Deploy → Vercel
-    needs: [frontend]
+    needs: [frontend, docker]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
@@ -174,16 +150,3 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./
           vercel-args: '--prod'
-
-      - name: Wait for deployment
-        run: sleep 30
-
-      - name: Health check
-        run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://simtrace.site)
-          if [ $response -eq 200 ]; then
-            echo "✅ Frontend health check passed"
-          else
-            echo "❌ Frontend health check failed with status $response"
-            exit 1
-          fi

@@ -5,7 +5,7 @@ import { InsurancePolicy, InsuranceClaim, Device, User } from "../db/index.js";
 import { getIO } from "./socket.js";
 
 // ── Policy Management ─────────────────────────────────────────────────────────────
-export async function createInsurancePolicy(data: any) {
+export async function createInsurancePolicy(data: Record<string, unknown>) {
   const {
     userId,
     provider,
@@ -18,7 +18,19 @@ export async function createInsurancePolicy(data: any) {
     coverageLimit,
     startDate,
     endDate,
-  } = data;
+  } = data as {
+    userId: string;
+    provider: string;
+    providerId: string;
+    coverageType: string;
+    devices: string[];
+    premium: number;
+    currency: string;
+    deductible: number;
+    coverageLimit: number;
+    startDate: Date;
+    endDate: Date;
+  };
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
@@ -90,7 +102,7 @@ export async function updatePolicyStatus(policyId: string, status: string) {
 }
 
 // ── Claim Management ─────────────────────────────────────────────────────────────
-export async function createInsuranceClaim(data: any) {
+export async function createInsuranceClaim(data: Record<string, unknown>) {
   const {
     policyId,
     userId,
@@ -104,7 +116,20 @@ export async function createInsuranceClaim(data: any) {
     policeStation,
     claimedAmount,
     currency,
-  } = data;
+  } = data as {
+    policyId: string;
+    userId: string;
+    deviceId: string;
+    claimType: string;
+    incidentDate: Date;
+    incidentLocation: string;
+    description: string;
+    evidence?: string[];
+    policeReportNumber?: string;
+    policeStation?: string;
+    claimedAmount: number;
+    currency: string;
+  };
 
   const policy = await InsurancePolicy.findById(policyId);
   if (!policy) throw new Error("Policy not found");
@@ -206,14 +231,14 @@ export async function updateClaimStatus(claimId: string, status: string, assesso
   return claim;
 }
 
-export async function addClaimEvidence(claimId: string, evidence: any) {
+export async function addClaimEvidence(claimId: string, evidence: Record<string, unknown>) {
   const claim = await InsuranceClaim.findById(claimId);
   if (!claim) throw new Error("Claim not found");
 
   claim.evidence.push({
     ...evidence,
     uploadedAt: new Date(),
-  });
+  } as typeof evidence extends Array<infer U> ? U : never);
 
   claim.updatedAt = new Date();
   await claim.save();

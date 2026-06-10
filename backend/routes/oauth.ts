@@ -72,14 +72,14 @@ router.get("/google/callback", async (req: Request, res: Response, next: NextFun
         grant_type: "authorization_code",
       }),
     });
-    const tokens: any = await tokenRes.json();
+    const tokens: Record<string, unknown> = await tokenRes.json();
     if (!tokens.access_token) return res.status(401).json({ error: "Google token exchange failed." });
 
     // Fetch the verified profile.
     const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    const profile: any = await profileRes.json();
+    const profile: Record<string, unknown> = await profileRes.json();
     if (!profile.email) return res.status(401).json({ error: "Could not read Google profile." });
 
     // Find-or-create / link the account.

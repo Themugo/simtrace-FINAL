@@ -17,9 +17,27 @@ export interface StreamConfig {
 export interface StreamMessage {
   topic: string;
   key?: string;
-  value: any;
+  value: unknown;
   headers?: Record<string, string>;
   timestamp?: Date;
+}
+
+interface BatchMessage {
+  topic: string;
+  key?: string;
+  value: string;
+  headers?: Record<string, string>;
+  timestamp: number;
+}
+
+interface StreamEvent {
+  topic: string;
+  partition: number;
+  offset: string;
+  key?: string;
+  value: unknown;
+  headers?: unknown;
+  timestamp: Date;
 }
 
 // Stream topics
@@ -128,7 +146,7 @@ class StreamManager {
         if (!acc[msg.topic]) acc[msg.topic] = [];
         acc[msg.topic].push(msg);
         return acc;
-      }, {} as Record<string, any[]>),
+      }, {} as Record<string, BatchMessage[]>),
     });
   }
 
@@ -136,7 +154,7 @@ class StreamManager {
   async subscribe(
     topic: string,
     groupId: string,
-    handler: (message: any) => void | Promise<void>
+    handler: (message: StreamEvent) => void | Promise<void>
   ): Promise<void> {
     if (!this.kafka) throw new Error('Kafka not connected');
 
@@ -212,7 +230,7 @@ class StreamManager {
   }
 
   // Get topic metadata
-  async getTopicMetadata(topic: string): Promise<any> {
+  async getTopicMetadata(topic: string): Promise<unknown> {
     if (!this.kafka) throw new Error('Kafka not connected');
 
     const admin = this.kafka.admin();
@@ -239,56 +257,56 @@ export function getStreamManager(config?: StreamConfig): StreamManager {
 }
 
 // ── Convenience Functions ───────────────────────────────────────────────────────
-export async function publishTrackingEvent(data: any, key?: string): Promise<void> {
+export async function publishTrackingEvent(data: Record<string, unknown>, key?: string): Promise<void> {
   const manager = getStreamManager();
   await manager.publish({
     topic: STREAM_TOPICS.TRACKING_EVENTS,
-    key: key || data.imei,
+    key: key || (data.imei as string),
     value: data,
   });
 }
 
-export async function publishRiskEvent(data: any, key?: string): Promise<void> {
+export async function publishRiskEvent(data: Record<string, unknown>, key?: string): Promise<void> {
   const manager = getStreamManager();
   await manager.publish({
     topic: STREAM_TOPICS.RISK_EVENTS,
-    key: key || data.imei,
+    key: key || (data.imei as string),
     value: data,
   });
 }
 
-export async function publishAuditEvent(data: any, key?: string): Promise<void> {
+export async function publishAuditEvent(data: Record<string, unknown>, key?: string): Promise<void> {
   const manager = getStreamManager();
   await manager.publish({
     topic: STREAM_TOPICS.AUDIT_EVENTS,
-    key: key || data.userId,
+    key: key || (data.userId as string),
     value: data,
   });
 }
 
-export async function publishNotification(data: any, key?: string): Promise<void> {
+export async function publishNotification(data: Record<string, unknown>, key?: string): Promise<void> {
   const manager = getStreamManager();
   await manager.publish({
     topic: STREAM_TOPICS.NOTIFICATIONS,
-    key: key || data.userId,
+    key: key || (data.userId as string),
     value: data,
   });
 }
 
-export async function publishAnalyticsEvent(data: any, key?: string): Promise<void> {
+export async function publishAnalyticsEvent(data: Record<string, unknown>, key?: string): Promise<void> {
   const manager = getStreamManager();
   await manager.publish({
     topic: STREAM_TOPICS.ANALYTICS_EVENTS,
-    key: key || data.type,
+    key: key || (data.type as string),
     value: data,
   });
 }
 
-export async function publishAIEvent(data: any, key?: string): Promise<void> {
+export async function publishAIEvent(data: Record<string, unknown>, key?: string): Promise<void> {
   const manager = getStreamManager();
   await manager.publish({
     topic: STREAM_TOPICS.AI_EVENTS,
-    key: key || data.type,
+    key: key || (data.type as string),
     value: data,
   });
 }

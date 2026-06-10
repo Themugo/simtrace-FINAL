@@ -4,6 +4,31 @@
 import { PayPalPayment, User } from "../db/index.js";
 import crypto from "crypto";
 
+interface PayPalPaymentDoc {
+  status: string;
+  paypalCaptureId?: string;
+  paypalPayerId?: string;
+  paypalEmail?: string;
+  updatedAt?: Date;
+  save(): Promise<PayPalPaymentDoc>;
+}
+
+interface CurrencyRateDoc {
+  rate: number;
+  save(): Promise<CurrencyRateDoc>;
+}
+
+interface PayPalWebhookEvent {
+  event_type: string;
+  resource: {
+    supplementary_data?: {
+      related_ids?: {
+        order_id?: string;
+      };
+    };
+  };
+}
+
 // ── PayPal Configuration ─────────────────────────────────────────────────────────
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID;
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET;
@@ -26,27 +51,20 @@ async function getPayPalAccessToken(): Promise<string> {
     body: "grant_type=client_credentials",
   });
 
-  const data: any = await response.json();
-  return data.access_token;
+  const data = await response.json() as Record<string, unknown>;
+  return data.access_token as string;
 }
 
 // ── Payment Creation ─────────────────────────────────────────────────────────────
-export async function createPayPalOrder(data: any) {
-  const {
-    userId,
-    amount,
-    currency,
-    description,
-    type,
-    relatedId,
-  } = data;
+export async function createPayPalOrder(data: Record<string, unknown>) {
+  const { userId, amount, currency, description, type, relatedId } = data as { userId: string; amount: number; currency: string; description?: string; type?: string; relatedId?: string };
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
   const accessToken = await getPayPalAccessToken();
 
-  const orderData: any = {
+  const orderData: Record<string, unknown> = {
     intent: "CAPTURE",
     purchase_units: [{
       amount: {
@@ -66,20 +84,20 @@ export async function createPayPalOrder(data: any) {
     body: JSON.stringify(orderData),
   });
 
-  const order: any = await response.json();
+  const order = await response.json() as Record<string, unknown>;
 
   if (response.status !== 201) {
-    throw new Error(`PayPal order creation failed: ${order.message}`);
+    throw new Error(`PayPal order creation failed: ${order.message as string}`);
   }
 
   // Save payment record
   const payment = await PayPalPayment.create({
     user: userId,
-    paymentId: order.id,
+    paymentId: order.id as string,
     amount,
     currency,
     description,
-    paypalOrderId: order.id,
+    paypalOrderId: order.id as string,
     status: "created",
     type,
     relatedId,
@@ -87,8 +105,8 @@ export async function createPayPalOrder(data: any) {
 
   return {
     paymentId: payment._id,
-    paypalOrderId: order.id,
-    approvalUrl: order.links.find((link: any) => link.rel === "approve").href,
+    paypalOrderId: order.id as string,
+    approvalUrl: (order.links as Array<{ rel: string; href: string }>).find((link) => link.rel === "approve")!.href,
   };
 }
 
@@ -104,20 +122,20 @@ export async function capturePayPalPayment(orderId: string) {
     },
   });
 
-  const capture: any = await response.json();
+  const capture = await response.json() as Record<string, unknown>;
 
   if (response.status !== 201) {
-    throw new Error(`PayPal payment capture failed: ${capture.message}`);
+    throw new Error(`PayPal payment capture failed: ${capture.message as string}`);
   }
 
   // Update payment record
   const payment = await PayPalPayment.findOne({ paypalOrderId: orderId });
   if (!payment) throw new Error("Payment not found");
 
-  (payment as any).status = "captured";
-  (payment as any).paypalCaptureId = capture.purchase_units[0].payments.captures[0].id;
-  (payment as any).paypalPayerId = capture.payer.payer_id;
-  (payment as any).paypalEmail = capture.payer.email_address;
+  (payment as unknown as PayPalPaymentDoc).status = "captured";
+  (payment as unknown as PayPalPaymentDoc).paypalCaptureId = (((capture.purchase_units as Array<Record<string, unknown>>)[0].payments as Record<string, unknown>).captures as Array<Record<string, unknown>>)[0].id as string;
+  (payment as unknown as PayPalPaymentDoc).paypalPayerId = (capture.payer as Record<string, unknown>).payer_id as string;
+  (payment as unknown as PayPalPaymentDoc).paypalEmail = (capture.payer as Record<string, unknown>).email_address as string;
   payment.updatedAt = new Date();
   await payment.save();
 
@@ -144,14 +162,14 @@ export async function refundPayPalPayment(paymentId: string, reason: string) {
   const payment = await PayPalPayment.findById(paymentId);
   if (!payment) throw new Error("Payment not found");
 
-  if ((payment as any).status !== "captured") {
+  if ((payment as unknown as PayPalPaymentDoc).status !== "captured") {
     throw new Error("Only captured payments can be refunded");
   }
 
   const accessToken = await getPayPalAccessToken();
 
   const response = await fetch(
-    `${PAYPAL_API_BASE}/v2/payments/captures/${(payment as any).paypalCaptureId}/refund`,
+    `${PAYPAL_API_BASE}/v2/payments/captures/${(payment as unknown as PayPalPaymentDoc).paypalCaptureId}/refund`,
     {
       method: "POST",
       headers: {
@@ -162,13 +180,13 @@ export async function refundPayPalPayment(paymentId: string, reason: string) {
     }
   );
 
-  const refund: any = await response.json();
+  const refund = await response.json() as Record<string, unknown>;
 
   if (response.status !== 201) {
-    throw new Error(`PayPal refund failed: ${refund.message}`);
+    throw new Error(`PayPal refund failed: ${refund.message as string}`);
   }
 
-  (payment as any).status = "refunded";
+  (payment as unknown as PayPalPaymentDoc).status = "refunded";
   payment.updatedAt = new Date();
   await payment.save();
 
@@ -176,7 +194,7 @@ export async function refundPayPalPayment(paymentId: string, reason: string) {
 }
 
 // ── Webhook Handling ────────────────────────────────────────────────────────────
-export async function verifyPayPalWebhook(headers: any, body: any): Promise<boolean> {
+export async function verifyPayPalWebhook(headers: Record<string, unknown>, body: Record<string, unknown>): Promise<boolean> {
   const webhookId = process.env.PAYPAL_WEBHOOK_ID;
   // No webhook id configured: fail-closed in production, allow in dev for local testing
   if (!webhookId) return process.env.NODE_ENV !== "production";
@@ -186,16 +204,16 @@ export async function verifyPayPalWebhook(headers: any, body: any): Promise<bool
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({
-        transmission_id: headers["paypal-transmission-id"],
-        transmission_time: headers["paypal-transmission-time"],
-        cert_url: headers["paypal-cert-url"],
-        auth_algo: headers["paypal-auth-algo"],
-        transmission_sig: headers["paypal-transmission-sig"],
+        transmission_id: headers["paypal-transmission-id"] as string,
+        transmission_time: headers["paypal-transmission-time"] as string,
+        cert_url: headers["paypal-cert-url"] as string,
+        auth_algo: headers["paypal-auth-algo"] as string,
+        transmission_sig: headers["paypal-transmission-sig"] as string,
         webhook_id: webhookId,
         webhook_event: body,
       }),
     });
-    const data: any = await response.json();
+    const data = await response.json() as Record<string, unknown>;
     return data.verification_status === "SUCCESS";
   } catch (err) {
     console.error("[PayPal] Verification failed:", err);
@@ -203,18 +221,18 @@ export async function verifyPayPalWebhook(headers: any, body: any): Promise<bool
   }
 }
 
-export async function handlePayPalWebhook(event: any) {
+export async function handlePayPalWebhook(event: PayPalWebhookEvent) {
   const eventType = event.event_type;
   const resource = event.resource;
 
   switch (eventType) {
     case "PAYMENT.CAPTURE.COMPLETED":
-      await capturePayPalPayment(resource.supplementary_data.related_ids.order_id);
+      await capturePayPalPayment(resource.supplementary_data!.related_ids!.order_id!);
       break;
     case "PAYMENT.CAPTURE.DENIED":
-      const payment = await PayPalPayment.findOne({ paypalOrderId: resource.supplementary_data.related_ids.order_id });
+      const payment = await PayPalPayment.findOne({ paypalOrderId: resource.supplementary_data!.related_ids!.order_id! });
       if (payment) {
-        (payment as any).status = "failed";
+        (payment as unknown as PayPalPaymentDoc).status = "failed";
         payment.updatedAt = new Date();
         await payment.save();
       }
@@ -247,7 +265,7 @@ export async function convertCurrency(amount: number, fromCurrency: string, toCu
     throw new Error(`Currency rate not found for ${fromCurrency} to ${toCurrency}`);
   }
 
-  return amount * (rate as any).rate;
+  return amount * (rate as unknown as CurrencyRateDoc).rate;
 }
 
 export async function setCurrencyRate(fromCurrency: string, toCurrency: string, rate: number, source = "manual") {

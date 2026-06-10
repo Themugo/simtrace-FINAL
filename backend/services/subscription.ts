@@ -9,7 +9,7 @@ import {
 } from "../db/index.js";
 
 // ── Subscription Plan Management ───────────────────────────────────────────────────────
-export async function createSubscriptionPlan(data: any) {
+export async function createSubscriptionPlan(data: Record<string, unknown>) {
   const planId = `plan_${crypto.randomBytes(16).toString("hex")}`;
 
   const plan = await SubscriptionPlan.create({
@@ -37,7 +37,7 @@ export async function getAllSubscriptionPlans() {
   return plans;
 }
 
-export async function updateSubscriptionPlan(planId: string, updates: any) {
+export async function updateSubscriptionPlan(planId: string, updates: Record<string, unknown>) {
   const plan = await SubscriptionPlan.findOneAndUpdate(
     { planId },
     {
@@ -64,7 +64,7 @@ export async function deactivateSubscriptionPlan(planId: string) {
 }
 
 // ── User Subscription Management ───────────────────────────────────────────────────────
-export async function createUserSubscription(data: any) {
+export async function createUserSubscription(data: Record<string, unknown>) {
   const subscriptionId = `sub_${crypto.randomBytes(16).toString("hex")}`;
 
   const subscription = await UserSubscription.create({
@@ -87,7 +87,7 @@ export async function getUserSubscriptionByUserId(userId: string) {
   return subscription;
 }
 
-export async function updateUserSubscription(subscriptionId: string, updates: any) {
+export async function updateUserSubscription(subscriptionId: string, updates: Record<string, unknown>) {
   const subscription = await UserSubscription.findByIdAndUpdate(
     subscriptionId,
     {
@@ -155,7 +155,7 @@ export async function checkSubscriptionLimits(userId: string) {
 }
 
 // ── Payment Transaction Management ───────────────────────────────────────────────────────
-export async function createPaymentTransaction(data: any) {
+export async function createPaymentTransaction(data: Record<string, unknown>) {
   const transactionId = `txn_${crypto.randomBytes(16).toString("hex")}`;
 
   const transaction = await PaymentTransaction.create({
@@ -173,7 +173,7 @@ export async function getPaymentTransaction(transactionId: string) {
   return transaction;
 }
 
-export async function updatePaymentTransaction(transactionId: string, updates: any) {
+export async function updatePaymentTransaction(transactionId: string, updates: Record<string, unknown>) {
   const transaction = await PaymentTransaction.findOneAndUpdate(
     { transactionId },
     {

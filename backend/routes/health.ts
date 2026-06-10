@@ -39,7 +39,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     // 'error' even when Mongo was connected and serving queries).
     try {
       const mongooseModule = await import('mongoose');
-      const mongoose: any = (mongooseModule as any).default ?? mongooseModule;
+      const mongoose: Record<string, unknown> = (mongooseModule as Record<string, unknown>).default as Record<string, unknown> ?? mongooseModule as Record<string, unknown>;
       healthCheck.services.database = mongoose.connection?.readyState === 1 ? 'connected' : 'disconnected';
     } catch (error) {
       healthCheck.services.database = 'error';

@@ -10,7 +10,7 @@ const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
 
 describeMongo('Device Intelligence Engine Tests', () => {
   let engine: DeviceIntelligenceEngine;
-  let testDevice: any;
+  let testDevice: Record<string, unknown>;
   let testImei: string;
 
   beforeAll(async () => {

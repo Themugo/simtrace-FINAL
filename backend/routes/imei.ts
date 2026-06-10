@@ -158,7 +158,7 @@ router.get("/:imei", async (req: Request, res: Response, next: NextFunction) => 
     const isOwner = device?.owner && callerId && device.owner.toString() === callerId;
     const isAdmin = callerRole === "admin" || callerRole === "law_enforcement";
 
-    const response: any = {
+    const response: Record<string, unknown> = {
       imei,
       found:      !!device,
       status:     device?.status ?? "unknown",

@@ -14,7 +14,7 @@ interface AuthRequest extends Request {
 // GET /api/alerts/unread-count  ← MUST be before /:id
 router.get("/unread-count", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const filter: any = { read: false };
+    const filter: Record<string, unknown> = { read: false };
     if (req.user!.role !== "admin") {
       const myDevices = await Device.find({ owner: req.user!.id }).select("imei").lean();
       filter.imei = { $in: myDevices.map(d => d.imei) };
@@ -41,7 +41,7 @@ router.get("/", authenticate, async (req: AuthRequest, res: Response, next: Next
     const type   = req.query.type as string;
     const unread = req.query.unread === "true";
 
-    const filter: any = {};
+    const filter: Record<string, unknown> = {};
     if (req.user!.role !== "admin") {
       // non-admins only see alerts for their own devices
       const myDevices  = await Device.find({ owner: req.user!.id }).select("imei").lean();

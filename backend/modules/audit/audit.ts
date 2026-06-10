@@ -147,7 +147,7 @@ export async function getAllAuditLogs(
     endDate?: Date;
   }
 ): Promise<any[]> {
-  const query: any = {};
+  const query: Record<string, unknown> = {};
   
   if (filters?.userId) query.userId = filters.userId;
   if (filters?.action) query.action = filters.action;

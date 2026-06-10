@@ -2,6 +2,13 @@
 import crypto from "crypto";
 import { Partner, Device, Alert, TheftReport } from "../db/index.js";
 
+type PartnerInfo = {
+  _id: { toString(): string };
+  orgName: string;
+  webhookUrl?: string;
+  webhookSecret?: string;
+};
+
 // ── Generate a secure API key ─────────────────────────────────────────────────
 export function generateApiKey(): string {
   return "st_" + crypto.randomBytes(28).toString("hex");
@@ -41,7 +48,7 @@ export async function bulkImeiCheck(imeis: string[]) {
     .select("imei status lastSeen")
     .lean();
 
-  const map = Object.fromEntries(results.map((d: any) => [d.imei, d]));
+  const map = Object.fromEntries(results.map((d) => [d.imei, d]));
 
   return imeis.map(imei => ({
     imei,
@@ -53,7 +60,7 @@ export async function bulkImeiCheck(imeis: string[]) {
 }
 
 // ── Webhook delivery to partner ───────────────────────────────────────────────
-export async function deliverWebhook(partner: any, event: any) {
+export async function deliverWebhook(partner: PartnerInfo, event: unknown) {
   if (!partner.webhookUrl) return;
 
   const body = JSON.stringify({ event, ts: new Date().toISOString() });
@@ -74,16 +81,16 @@ export async function deliverWebhook(partner: any, event: any) {
       signal: AbortSignal.timeout(8000),
     });
     console.log(`[Webhook] ${partner.orgName} → ${res.status}`);
-  } catch (err) {
-    console.error(`[Webhook] ${partner.orgName} failed:`, (err as Error).message);
+  } catch (err: unknown) {
+    console.error(`[Webhook] ${partner.orgName} failed:`, err instanceof Error ? err.message : String(err));
   }
 }
 
 // ── Broadcast blacklist/recovery events to all active partners ────────────────
-export async function broadcastToPartners(eventType: string, payload: any) {
+export async function broadcastToPartners(eventType: string, payload: Record<string, unknown>) {
   const partners = await Partner.find({ status: "active", webhookUrl: { $exists: true, $ne: "" } });
   await Promise.allSettled(
-    partners.map((p: any) => deliverWebhook(p, { type: eventType, data: payload }))
+    partners.map((p) => deliverWebhook(p, { type: eventType, data: payload }))
   );
 }
 

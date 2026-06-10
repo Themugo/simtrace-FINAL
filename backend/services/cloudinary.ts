@@ -46,6 +46,6 @@ export async function uploadImage(
     body: form,
   });
   if (!res.ok) return null;
-  const json: any = await res.json();
-  return { url: json.secure_url, publicId: json.public_id };
+  const json: Record<string, unknown> = await res.json();
+  return { url: json.secure_url as string, publicId: json.public_id as string };
 }

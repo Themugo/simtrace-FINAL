@@ -16,8 +16,90 @@ import {
 } from "../db/index.js";
 import { getIO } from "./socket.js";
 
+// ── Minimal interfaces for document property access ──────────────────────────
+interface IAssignmentDoc {
+  status: string;
+  revokedBy?: string;
+  revokedAt?: Date;
+  revocationReason?: string;
+  role?: {
+    _id: unknown;
+    permissions: Array<{ resource: string; actions: string[]; scope: string }>;
+  };
+}
+interface IEncryptedDoc {
+  owner: { toString(): string };
+  encryptedData: string;
+  iv?: string;
+  encryptionKey?: string;
+  authTag: string;
+  status: string;
+  caseId?: string | null;
+  accessGrantedAt?: Date | null;
+  accessExpiresAt?: Date | null;
+  authorizedViewers: string[];
+  accessReason?: string | null;
+}
+interface IAccessControlDoc {
+  status: string;
+  approvedBy?: string;
+  approvedAt?: Date;
+  approvalNotes?: string;
+  revokedBy?: string;
+  revokedAt?: Date;
+  revocationReason?: string;
+  entityType: string;
+  entityId: string;
+  accessLog: Array<{
+    timestamp: Date;
+    action: string;
+    performedBy: string;
+    details: string;
+  }>;
+  requestedBy: string;
+  expiresAt: Date;
+  caseId: string;
+  accessReason?: string;
+}
+interface ICooperationAlertDoc {
+  expectedResponseBy: Date;
+  requestingUnit: string;
+  respondingUnit: string;
+  respondedAt?: Date;
+  status: string;
+  isDelayed?: boolean;
+  delayDuration?: number;
+  escalationLevel?: string;
+}
+interface ISeniorConfirmationDoc {
+  confirmedAt?: Date;
+  confirmation: string;
+  confirmationNotes: string;
+  overrideReason: string;
+  status: string;
+  auditTrail: Array<{
+    timestamp: Date;
+    action: string;
+    performedBy: string;
+    notes: string;
+  }>;
+  seniorOfficer: string;
+  seniorUnit: string;
+}
+interface IMissingPersonRuleDoc {
+  immediateDeclarationConditions: string[];
+  childThreshold: number;
+  elderlyThreshold: number;
+  adultThreshold: number;
+}
+interface IEncryptedResult {
+  encryptedData: string;
+  iv: string;
+  authTag: string;
+}
+
 // ── Police Hierarchy Management ───────────────────────────────────────────────────────
-export async function createHierarchyUnit(data: any) {
+export async function createHierarchyUnit(data: Record<string, unknown>) {
   const unit = await PoliceHierarchy.create(data);
   return unit;
 }
@@ -33,8 +115,8 @@ export async function getHierarchyTree(country: string) {
     .sort({ level: 1 });
   
   // Build tree structure
-  const tree: Record<string, any[]> = {};
-  units.forEach((unit: any) => {
+  const tree: Record<string, (typeof units)[number][]> = {};
+  units.forEach((unit) => {
     if (!tree[unit.level]) tree[unit.level] = [];
     tree[unit.level].push(unit);
   });
@@ -69,10 +151,11 @@ export async function revokeUserAssignment(assignmentId: string, revokedBy: stri
   const assignment = await PoliceUserAssignment.findById(assignmentId);
   if (!assignment) throw new Error("Assignment not found");
 
-  (assignment as any).status = "revoked";
-  (assignment as any).revokedBy = revokedBy;
-  (assignment as any).revokedAt = new Date();
-  (assignment as any).revocationReason = reason;
+  const a = assignment as unknown as IAssignmentDoc;
+  a.status = "revoked";
+  a.revokedBy = revokedBy;
+  a.revokedAt = new Date();
+  a.revocationReason = reason;
   assignment.updatedAt = new Date();
   await assignment.save();
 
@@ -89,7 +172,7 @@ export async function revokeUserAssignment(assignmentId: string, revokedBy: stri
 }
 
 // ── RBAC System ─────────────────────────────────────────────────────────────────────
-export async function createRole(data: any) {
+export async function createRole(data: Record<string, unknown>) {
   const role = await PoliceRole.create(data);
   return role;
 }
@@ -108,8 +191,8 @@ export async function checkPermission(userId: string, resource: string, action: 
 
   if (!assignment) return false;
 
-  const role = (assignment as any).role;
-  const permission = (role as any).permissions.find((p: any) => p.resource === resource);
+  const role = (assignment as unknown as IAssignmentDoc).role!;
+  const permission = role.permissions.find((p: { resource: string; actions: string[]; scope: string }) => p.resource === resource);
 
   if (!permission) return false;
   if (!permission.actions.includes(action)) return false;
@@ -127,7 +210,7 @@ export async function getUserAssignments(userId: string) {
 }
 
 // ── Immutable Audit Logging ─────────────────────────────────────────────────────────
-export async function createAuditLog(data: any) {
+export async function createAuditLog(data: Record<string, unknown>) {
   const log = await AuditLog.create({
     ...data,
     timestamp: new Date(),
@@ -136,7 +219,7 @@ export async function createAuditLog(data: any) {
   return log;
 }
 
-export async function getAuditLogs(filters: any = {}) {
+export async function getAuditLogs(filters: Record<string, unknown> = {}) {
   const logs = await AuditLog.find(filters)
     .populate("performedBy", "name email")
     .sort({ timestamp: -1 })
@@ -172,7 +255,7 @@ export function hashData(data: string): string {
   return crypto.createHash("sha256").update(data).digest("hex");
 }
 
-export function encryptData(data: string): any {
+export function encryptData(data: string): IEncryptedResult {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(ALGORITHM, getEncryptionKey(), iv);
   let encrypted = cipher.update(data, "utf8", "hex");
@@ -230,8 +313,9 @@ export async function getDecryptedData(entityType: string, entityId: string, dat
   if (!encrypted) throw new Error("Encrypted data not found");
 
   // Check if requester is owner
-  if ((encrypted as any).owner.toString() === requester.toString()) {
-    const decrypted = decryptData((encrypted as any).encryptedData, ((encrypted as any).iv ?? (encrypted as any).encryptionKey), (encrypted as any).authTag);
+  const enc = encrypted as unknown as IEncryptedDoc;
+  if (enc.owner.toString() === requester.toString()) {
+    const decrypted = decryptData(enc.encryptedData, enc.iv ?? enc.encryptionKey ?? "", enc.authTag);
     return decrypted;
   }
 
@@ -247,10 +331,11 @@ export async function getDecryptedData(entityType: string, entityId: string, dat
 
   if (!accessControl) throw new Error("Access denied");
 
-  const decrypted = decryptData((encrypted as any).encryptedData, ((encrypted as any).iv ?? (encrypted as any).encryptionKey), (encrypted as any).authTag);
+  const decrypted = decryptData(enc.encryptedData, enc.iv ?? enc.encryptionKey ?? "", enc.authTag);
   
   // Log access
-  (accessControl as any).accessLog.push({
+  const ac = accessControl as unknown as IAccessControlDoc;
+  ac.accessLog.push({
     timestamp: new Date(),
     action: "view",
     performedBy: requester,
@@ -262,7 +347,7 @@ export async function getDecryptedData(entityType: string, entityId: string, dat
 }
 
 // ── Time-Bound Data Access Control ─────────────────────────────────────────────────
-export async function requestDataAccess(data: any) {
+export async function requestDataAccess(data: Record<string, unknown>) {
   const {
     entityType,
     entityId,
@@ -273,7 +358,7 @@ export async function requestDataAccess(data: any) {
     accessType,
     accessReason,
     durationHours = 24,
-  } = data;
+  } = data as { entityType: string; entityId: string; requestedBy: string; requestedRole: string; requestedUnit: string; caseId: string; accessType: string; accessReason: string; durationHours?: number };
 
   const accessControl = await DataAccessControl.create({
     entityType,
@@ -305,26 +390,28 @@ export async function approveDataAccess(accessId: string, approvedBy: string, ap
   const accessControl = await DataAccessControl.findById(accessId);
   if (!accessControl) throw new Error("Access request not found");
 
-  (accessControl as any).status = "approved";
-  (accessControl as any).approvedBy = approvedBy;
-  (accessControl as any).approvedAt = new Date();
-  (accessControl as any).approvalNotes = approvalNotes;
+  const ac = accessControl as unknown as IAccessControlDoc;
+  ac.status = "approved";
+  ac.approvedBy = approvedBy;
+  ac.approvedAt = new Date();
+  ac.approvalNotes = approvalNotes;
   accessControl.updatedAt = new Date();
   await accessControl.save();
 
   // Decrypt data for the requester
   const encrypted = await EncryptedData.findOne({
-    entityType: (accessControl as any).entityType,
-    entityId: (accessControl as any).entityId,
+    entityType: ac.entityType,
+    entityId: ac.entityId,
   });
 
   if (encrypted) {
-    (encrypted as any).status = "decrypted";
-    (encrypted as any).caseId = (accessControl as any).caseId;
-    (encrypted as any).accessGrantedAt = new Date();
-    (encrypted as any).accessExpiresAt = (accessControl as any).expiresAt;
-    (encrypted as any).authorizedViewers.push((accessControl as any).requestedBy);
-    (encrypted as any).accessReason = (accessControl as any).accessReason;
+    const enc = encrypted as unknown as IEncryptedDoc;
+    enc.status = "decrypted";
+    enc.caseId = ac.caseId;
+    enc.accessGrantedAt = new Date();
+    enc.accessExpiresAt = ac.expiresAt;
+    enc.authorizedViewers.push(ac.requestedBy);
+    enc.accessReason = ac.accessReason;
     await encrypted.save();
   }
 
@@ -344,26 +431,28 @@ export async function revokeDataAccess(accessId: string, revokedBy: string, reas
   const accessControl = await DataAccessControl.findById(accessId);
   if (!accessControl) throw new Error("Access request not found");
 
-  (accessControl as any).status = "revoked";
-  (accessControl as any).revokedBy = revokedBy;
-  (accessControl as any).revokedAt = new Date();
-  (accessControl as any).revocationReason = reason;
+  const ac = accessControl as unknown as IAccessControlDoc;
+  ac.status = "revoked";
+  ac.revokedBy = revokedBy;
+  ac.revokedAt = new Date();
+  ac.revocationReason = reason;
   accessControl.updatedAt = new Date();
   await accessControl.save();
 
   // Re-encrypt data
   const encrypted = await EncryptedData.findOne({
-    entityType: (accessControl as any).entityType,
-    entityId: (accessControl as any).entityId,
+    entityType: ac.entityType,
+    entityId: ac.entityId,
   });
 
   if (encrypted) {
-    (encrypted as any).status = "encrypted";
-    (encrypted as any).caseId = null;
-    (encrypted as any).accessGrantedAt = null;
-    (encrypted as any).accessExpiresAt = null;
-    (encrypted as any).authorizedViewers = [];
-    (encrypted as any).accessReason = null;
+    const enc = encrypted as unknown as IEncryptedDoc;
+    enc.status = "encrypted";
+    enc.caseId = null;
+    enc.accessGrantedAt = null;
+    enc.accessExpiresAt = null;
+    enc.authorizedViewers = [];
+    enc.accessReason = null;
     await encrypted.save();
   }
 
@@ -371,7 +460,7 @@ export async function revokeDataAccess(accessId: string, revokedBy: string, reas
 }
 
 // ── Agency Cooperation Delay Alerts ─────────────────────────────────────────────────
-export async function createCooperationAlert(data: any) {
+export async function createCooperationAlert(data: Record<string, unknown>) {
   const {
     caseId,
     deviceId,
@@ -379,7 +468,7 @@ export async function createCooperationAlert(data: any) {
     respondingUnit,
     requestType,
     expectedResponseHours = 24,
-  } = data;
+  } = data as { caseId: string; deviceId: string; requestingUnit: string; respondingUnit: string; requestType: string; expectedResponseHours?: number };
 
   const alert = await CooperationAlert.create({
     caseId,
@@ -396,7 +485,7 @@ export async function createCooperationAlert(data: any) {
   getIO().to(`unit:${respondingUnit}`).emit("cooperation_request", {
     alertId: alert._id,
     requestType,
-    expectedResponseBy: (alert as any).expectedResponseBy,
+    expectedResponseBy: (alert as unknown as ICooperationAlertDoc).expectedResponseBy,
   });
 
   return alert;
@@ -406,13 +495,14 @@ export async function respondToCooperationAlert(alertId: string, response: strin
   const alert = await CooperationAlert.findById(alertId);
   if (!alert) throw new Error("Cooperation alert not found");
 
-  (alert as any).respondedAt = new Date();
-  (alert as any).status = "responded";
+  const al = alert as unknown as ICooperationAlertDoc;
+  al.respondedAt = new Date();
+  al.status = "responded";
   alert.updatedAt = new Date();
   await alert.save();
 
   // Notify requesting unit
-  getIO().to(`unit:${(alert as any).requestingUnit}`).emit("cooperation_response", {
+  getIO().to(`unit:${al.requestingUnit}`).emit("cooperation_response", {
     alertId: alert._id,
     response,
   });
@@ -428,32 +518,33 @@ export async function checkDelayedAlerts() {
   });
 
   for (const alert of delayedAlerts) {
-    const delayDuration = Math.floor((+now - (alert as any).expectedResponseBy) / (1000 * 60 * 60));
+    const al = alert as unknown as ICooperationAlertDoc;
+    const delayDuration = Math.floor((+now - +al.expectedResponseBy) / (1000 * 60 * 60));
     
-    (alert as any).isDelayed = true;
-    (alert as any).delayDuration = delayDuration;
+    al.isDelayed = true;
+    al.delayDuration = delayDuration;
     
     if (delayDuration > 48) {
-      (alert as any).escalationLevel = "critical";
+      al.escalationLevel = "critical";
     } else if (delayDuration > 24) {
-      (alert as any).escalationLevel = "warning";
+      al.escalationLevel = "warning";
     }
     
-    (alert as any).status = "escalated";
+    al.status = "escalated";
     alert.updatedAt = new Date();
     await alert.save();
 
     // Notify all relevant parties
-    getIO().to(`unit:${(alert as any).requestingUnit}`).emit("cooperation_delayed", {
+    getIO().to(`unit:${al.requestingUnit}`).emit("cooperation_delayed", {
       alertId: alert._id,
       delayDuration,
-      escalationLevel: (alert as any).escalationLevel,
+      escalationLevel: al.escalationLevel,
     });
 
-    getIO().to(`unit:${(alert as any).respondingUnit}`).emit("cooperation_delay_alert", {
+    getIO().to(`unit:${al.respondingUnit}`).emit("cooperation_delay_alert", {
       alertId: alert._id,
       delayDuration,
-      escalationLevel: (alert as any).escalationLevel,
+      escalationLevel: al.escalationLevel,
     });
   }
 
@@ -461,14 +552,14 @@ export async function checkDelayedAlerts() {
 }
 
 // ── Senior Officer Confirmation Workflow ─────────────────────────────────────────────
-export async function createSeniorConfirmation(data: any) {
+export async function createSeniorConfirmation(data: Record<string, unknown>) {
   const {
     caseId,
     deviceId,
     originalRequest,
     seniorOfficer,
     seniorUnit,
-  } = data;
+  } = data as { caseId: string; deviceId: string; originalRequest: string; seniorOfficer: string; seniorUnit: string };
 
   const confirmation = await SeniorConfirmation.create({
     caseId,
@@ -486,24 +577,25 @@ export async function confirmBySenior(confirmationId: string, confirmation: stri
   const seniorConfirmation = await SeniorConfirmation.findById(confirmationId);
   if (!seniorConfirmation) throw new Error("Senior confirmation not found");
 
-  (seniorConfirmation as any).confirmedAt = new Date();
-  (seniorConfirmation as any).confirmation = confirmation;
-  (seniorConfirmation as any).confirmationNotes = confirmationNotes;
-  (seniorConfirmation as any).overrideReason = overrideReason;
-  (seniorConfirmation as any).status = "confirmed";
+  const sc = seniorConfirmation as unknown as ISeniorConfirmationDoc;
+  sc.confirmedAt = new Date();
+  sc.confirmation = confirmation;
+  sc.confirmationNotes = confirmationNotes;
+  sc.overrideReason = overrideReason;
+  sc.status = "confirmed";
   seniorConfirmation.updatedAt = new Date();
   
-  (seniorConfirmation as any).auditTrail.push({
+  sc.auditTrail.push({
     timestamp: new Date(),
     action: "confirm",
-    performedBy: (seniorConfirmation as any).seniorOfficer,
+    performedBy: sc.seniorOfficer,
     notes: confirmationNotes,
   });
   
   await seniorConfirmation.save();
 
   // Notify relevant parties
-  getIO().to(`unit:${(seniorConfirmation as any).seniorUnit}`).emit("senior_confirmation", {
+  getIO().to(`unit:${sc.seniorUnit}`).emit("senior_confirmation", {
     confirmationId: seniorConfirmation._id,
     confirmation,
   });
@@ -515,15 +607,16 @@ export async function escalateConfirmation(confirmationId: string, escalationNot
   const seniorConfirmation = await SeniorConfirmation.findById(confirmationId);
   if (!seniorConfirmation) throw new Error("Senior confirmation not found");
 
-  (seniorConfirmation as any).confirmation = "escalated";
-  (seniorConfirmation as any).confirmationNotes = escalationNotes;
-  (seniorConfirmation as any).status = "escalated";
+  const sc = seniorConfirmation as unknown as ISeniorConfirmationDoc;
+  sc.confirmation = "escalated";
+  sc.confirmationNotes = escalationNotes;
+  sc.status = "escalated";
   seniorConfirmation.updatedAt = new Date();
   
-  (seniorConfirmation as any).auditTrail.push({
+  sc.auditTrail.push({
     timestamp: new Date(),
     action: "escalate",
-    performedBy: (seniorConfirmation as any).seniorOfficer,
+    performedBy: sc.seniorOfficer,
     notes: escalationNotes,
   });
   
@@ -533,7 +626,7 @@ export async function escalateConfirmation(confirmationId: string, escalationNot
 }
 
 // ── Missing Person Declaration Rules ─────────────────────────────────────────────────
-export async function createMissingPersonRule(data: any) {
+export async function createMissingPersonRule(data: Record<string, unknown>) {
   const rule = await MissingPersonRule.create(data);
   return rule;
 }
@@ -543,7 +636,7 @@ export async function getMissingPersonRule(country: string) {
   return rule;
 }
 
-export async function updateMissingPersonRule(country: string, updates: any, updatedBy: string) {
+export async function updateMissingPersonRule(country: string, updates: Record<string, unknown>, updatedBy: string) {
   const rule = await MissingPersonRule.findOneAndUpdate(
     { country },
     {
@@ -563,17 +656,18 @@ export async function canDeclareMissing(personAge: number, country: string, spec
     return { canDeclare: true, thresholdHours: 24 };
   }
 
+  const ruleDoc = rule as unknown as IMissingPersonRuleDoc;
   let thresholdHours: number;
-  if (specialConditions.some((c: string) => (rule as any).immediateDeclarationConditions.includes(c))) {
+  if (specialConditions.some((c: string) => ruleDoc.immediateDeclarationConditions.includes(c))) {
     return { canDeclare: true, thresholdHours: 0 };
   }
 
   if (personAge < 18) {
-    thresholdHours = (rule as any).childThreshold;
+    thresholdHours = ruleDoc.childThreshold;
   } else if (personAge >= 65) {
-    thresholdHours = (rule as any).elderlyThreshold;
+    thresholdHours = ruleDoc.elderlyThreshold;
   } else {
-    thresholdHours = (rule as any).adultThreshold;
+    thresholdHours = ruleDoc.adultThreshold;
   }
 
   return { canDeclare: true, thresholdHours };

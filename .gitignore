@@ -5,6 +5,7 @@ node_modules/
 .env
 .env.local
 .env.production
+.env.*.local
 
 # logs
 logs/
@@ -17,8 +18,24 @@ frontend/dist/
 .next/
 coverage/
 
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
 # OS files
 .DS_Store
 Thumbs.db
 .vercel
 *.tsbuildinfo
+
+# test artifacts
+playwright-report/
+test-results/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -3,8 +3,20 @@ import {
   AdminRolePermission,
 } from "../db/index.js";
 
+interface LayerPermission {
+  layer: string;
+  permissions: string[];
+}
+
+interface RolePermissionInput {
+  role: string;
+  description?: string;
+  layerPermissions?: LayerPermission[];
+  systemPermissions?: string[];
+}
+
 // ── Admin Role Permission Management ───────────────────────────────────────────────────
-export async function createAdminRolePermission(data: any) {
+export async function createAdminRolePermission(data: RolePermissionInput) {
   const rolePermission = await AdminRolePermission.create({
     ...data,
     status: "active",
@@ -24,7 +36,7 @@ export async function getAllAdminRolePermissions() {
   return rolePermissions;
 }
 
-export async function updateAdminRolePermission(role: string, updates: any) {
+export async function updateAdminRolePermission(role: string, updates: Record<string, unknown>) {
   const rolePermission = await AdminRolePermission.findOneAndUpdate(
     { role },
     {
@@ -41,7 +53,7 @@ export async function updateLayerPermissions(role: string, layer: string, permis
   const rolePermission = await AdminRolePermission.findOne({ role });
   if (!rolePermission) throw new Error("Admin role permission not found");
 
-  const layerPermission = (rolePermission as any).layerPermissions.find((lp: any) => lp.layer === layer);
+  const layerPermission = (rolePermission as any).layerPermissions.find((lp: { layer: string }) => lp.layer === layer);
   if (layerPermission) {
     layerPermission.permissions = permissions;
   } else {
@@ -101,7 +113,7 @@ export async function checkAdminPermission(role: string, layer: string, permissi
   const rolePermission = await AdminRolePermission.findOne({ role, status: "active" });
   if (!rolePermission) return { allowed: false, reason: "Role permission not found or inactive" };
 
-  const layerPermission = (rolePermission as any).layerPermissions.find((lp: any) => lp.layer === layer);
+  const layerPermission = (rolePermission as any).layerPermissions.find((lp: { layer: string }) => lp.layer === layer);
   if (!layerPermission) return { allowed: false, reason: `Layer '${layer}' not accessible for this role` };
 
   if (!layerPermission.permissions.includes(permission)) {
@@ -124,7 +136,7 @@ export async function checkSystemPermission(role: string, permission: string) {
 
 // ── Initialize Default Roles ───────────────────────────────────────────────────────────
 export async function initializeDefaultRoles() {
-  const defaultRoles: any[] = [
+  const defaultRoles: RolePermissionInput[] = [
     {
       role: "finance",
       description: "Financial management and reporting",
@@ -223,7 +235,7 @@ export async function initializeDefaultRoles() {
     },
   ];
 
-  const createdRoles: any[] = [];
+  const createdRoles: unknown[] = [];
   for (const roleData of defaultRoles) {
     const existing = await AdminRolePermission.findOne({ role: roleData.role });
     if (!existing) {

@@ -348,7 +348,7 @@ router.post("/policies", authenticate, requireAdmin, async (req: AuthRequest, re
 
 router.get("/policies", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (req.query.policyType) filters.policyType = req.query.policyType;
     if (req.query.agencyId) filters["scope.agencyId"] = req.query.agencyId;
     if (req.query.countryCode) filters["scope.countryCode"] = req.query.countryCode;

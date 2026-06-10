@@ -4,6 +4,32 @@
 import crypto from "crypto";
 import { WhiteLabelInstance, User, Partner, Device, Subscription } from "../db/index.js";
 
+interface WhiteLabelDoc {
+  instanceId: string;
+  name: string;
+  owner: string;
+  partner?: string | null;
+  branding: Record<string, unknown>;
+  config: {
+    enabledFeatures: string[];
+    disabledFeatures: string[];
+    customPricing: boolean;
+    customIntegrations: unknown[];
+    apiRateLimits: Record<string, unknown>;
+  };
+  status: string;
+  metrics: { totalUsers: number; totalDevices: number; totalApiCalls: number; monthlyRevenue: number };
+  plan: string;
+  billingCycle: string;
+  monthlyFee: number;
+  revenueShare: number;
+  apiKey: string;
+  webhookUrl?: string | null;
+  webhookSecret?: string;
+  updatedAt: Date;
+  save(): Promise<unknown>;
+}
+
 // ── Instance ID Generation ─────────────────────────────────────────────────────────
 function generateInstanceId(): string {
   const prefix = "wl";
@@ -16,16 +42,14 @@ function generateApiKey(): string {
 }
 
 // ── Create White Label Instance ─────────────────────────────────────────────────────
-export async function createWhiteLabelInstance(data: any) {
-  const {
-    name,
-    owner,
-    partner,
-    branding = {},
-    config = {},
-    plan = "starter",
-    billingCycle = "monthly",
-  } = data;
+export async function createWhiteLabelInstance(data: Record<string, unknown>) {
+  const name = data.name as string | undefined;
+  const owner = data.owner as string | undefined;
+  const partner = data.partner as string | undefined;
+  const branding = data.branding as Record<string, unknown> | undefined;
+  const config = data.config as Record<string, unknown> | undefined;
+  const plan = (data.plan as string) ?? "starter";
+  const billingCycle = (data.billingCycle as string) ?? "monthly";
 
   const user = await User.findById(owner);
   if (!user) throw new Error("User not found");
@@ -71,8 +95,8 @@ export async function createWhiteLabelInstance(data: any) {
     name,
     owner,
     partner,
-    branding: { ...defaultBranding, ...branding },
-    config: { ...defaultConfig, ...config },
+    branding: { ...defaultBranding, ...(branding ?? {}) },
+    config: { ...defaultConfig, ...(config ?? {}) },
     status: "pending",
     metrics: {
       totalUsers: 0,
@@ -93,7 +117,7 @@ export async function createWhiteLabelInstance(data: any) {
 }
 
 // ── Update White Label Instance ─────────────────────────────────────────────────────
-export async function updateWhiteLabelInstance(instanceId: string, updates: any) {
+export async function updateWhiteLabelInstance(instanceId: string, updates: Record<string, unknown>) {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
 
@@ -106,7 +130,7 @@ export async function updateWhiteLabelInstance(instanceId: string, updates: any)
     "webhookUrl",
   ];
 
-  const filteredUpdates: any = {};
+  const filteredUpdates: Record<string, unknown> = {};
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
       filteredUpdates[key] = updates[key];
@@ -120,8 +144,8 @@ export async function updateWhiteLabelInstance(instanceId: string, updates: any)
       professional: { monthlyFee: 299, revenueShare: 15 },
       enterprise: { monthlyFee: 999, revenueShare: 20 },
     };
-    filteredUpdates.monthlyFee = pricing[updates.plan].monthlyFee;
-    filteredUpdates.revenueShare = pricing[updates.plan].revenueShare;
+    filteredUpdates.monthlyFee = pricing[updates.plan as string].monthlyFee;
+    filteredUpdates.revenueShare = pricing[updates.plan as string].revenueShare;
   }
 
   Object.assign(instance, filteredUpdates);
@@ -171,7 +195,7 @@ export async function regenerateApiKey(instanceId: string) {
   if (!instance) throw new Error("White label instance not found");
 
   const newApiKey = generateApiKey();
-  (instance as any).apiKey = newApiKey;
+  (instance as unknown as WhiteLabelDoc).apiKey = newApiKey;
   instance.updatedAt = new Date();
   await instance.save();
 
@@ -190,14 +214,15 @@ export async function validateApiKey(apiKey: string) {
 }
 
 // ── Metrics Tracking ─────────────────────────────────────────────────────────────
-export async function updateInstanceMetrics(instanceId: string, metrics: any) {
+export async function updateInstanceMetrics(instanceId: string, metrics: Record<string, unknown>) {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
+  const doc = instance as unknown as WhiteLabelDoc;
 
-  if (metrics.users !== undefined) (instance as any).metrics.totalUsers = metrics.users;
-  if (metrics.devices !== undefined) (instance as any).metrics.totalDevices = metrics.devices;
-  if (metrics.apiCalls !== undefined) (instance as any).metrics.totalApiCalls += metrics.apiCalls;
-  if (metrics.revenue !== undefined) (instance as any).metrics.monthlyRevenue += metrics.revenue;
+  if (metrics.users !== undefined) doc.metrics.totalUsers = metrics.users as number;
+  if (metrics.devices !== undefined) doc.metrics.totalDevices = metrics.devices as number;
+  if (metrics.apiCalls !== undefined) doc.metrics.totalApiCalls += metrics.apiCalls as number;
+  if (metrics.revenue !== undefined) doc.metrics.monthlyRevenue += metrics.revenue as number;
 
   instance.updatedAt = new Date();
   await instance.save();
@@ -250,12 +275,13 @@ export async function getPendingInstances() {
 export async function enableFeature(instanceId: string, feature: string) {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
+  const doc = instance as unknown as WhiteLabelDoc;
 
-  if (!(instance as any).config.enabledFeatures.includes(feature)) {
-    (instance as any).config.enabledFeatures.push(feature);
+  if (!doc.config.enabledFeatures.includes(feature)) {
+    doc.config.enabledFeatures.push(feature);
   }
 
-  (instance as any).config.disabledFeatures = (instance as any).config.disabledFeatures.filter((f: string) => f !== feature);
+  doc.config.disabledFeatures = doc.config.disabledFeatures.filter((f: string) => f !== feature);
   instance.updatedAt = new Date();
   await instance.save();
 
@@ -265,11 +291,12 @@ export async function enableFeature(instanceId: string, feature: string) {
 export async function disableFeature(instanceId: string, feature: string) {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
+  const doc = instance as unknown as WhiteLabelDoc;
 
-  (instance as any).config.enabledFeatures = (instance as any).config.enabledFeatures.filter((f: string) => f !== feature);
+  doc.config.enabledFeatures = doc.config.enabledFeatures.filter((f: string) => f !== feature);
 
-  if (!(instance as any).config.disabledFeatures.includes(feature)) {
-    (instance as any).config.disabledFeatures.push(feature);
+  if (!doc.config.disabledFeatures.includes(feature)) {
+    doc.config.disabledFeatures.push(feature);
   }
 
   instance.updatedAt = new Date();
@@ -278,12 +305,13 @@ export async function disableFeature(instanceId: string, feature: string) {
   return instance;
 }
 
-export async function updateRateLimits(instanceId: string, limits: any) {
+export async function updateRateLimits(instanceId: string, limits: Record<string, unknown>) {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
+  const doc = instance as unknown as WhiteLabelDoc;
 
-  (instance as any).config.apiRateLimits = {
-    ...(instance as any).config.apiRateLimits,
+  doc.config.apiRateLimits = {
+    ...doc.config.apiRateLimits,
     ...limits,
   };
   instance.updatedAt = new Date();
@@ -296,7 +324,7 @@ export async function updateRateLimits(instanceId: string, limits: any) {
 export async function calculateInstanceRevenue(instanceId: string, period = "month") {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
-
+  const doc = instance as unknown as WhiteLabelDoc;
   const now = new Date();
   const startDate = new Date();
 
@@ -314,7 +342,7 @@ export async function calculateInstanceRevenue(instanceId: string, period = "mon
   let subscriptionRevenue = 0;
   for (const sub of subscriptions) {
     const user = await User.findById(sub.user);
-    if (user && (user as any).apiKey) {
+    if (user && (user as unknown as Record<string, unknown>).apiKey) {
       // Check if user belongs to this instance
       // This is a simplified check - in production, you'd have proper user-instance mapping
       subscriptionRevenue += 10; // Placeholder calculation
@@ -322,7 +350,7 @@ export async function calculateInstanceRevenue(instanceId: string, period = "mon
   }
 
   // Calculate platform fee (revenue share)
-  const platformFee = subscriptionRevenue * ((instance as any).revenueShare / 100);
+  const platformFee = subscriptionRevenue * ((doc.revenueShare) / 100);
   const instanceRevenue = subscriptionRevenue - platformFee;
 
   return {
@@ -332,7 +360,7 @@ export async function calculateInstanceRevenue(instanceId: string, period = "mon
     totalRevenue: subscriptionRevenue,
     platformFee,
     instanceRevenue,
-    revenueShare: (instance as any).revenueShare,
+    revenueShare: doc.revenueShare,
   };
 }
 
@@ -377,7 +405,7 @@ export async function getWhiteLabelStatistics() {
     pendingInstances,
     suspendedInstances,
     terminatedInstances,
-    instancesByPlan: instancesByPlan.map((i: any) => ({
+    instancesByPlan: instancesByPlan.map((i: { _id: string; count: number }) => ({
       plan: i._id,
       count: i.count,
     })),
@@ -394,29 +422,31 @@ export async function getWhiteLabelStatistics() {
 export async function updateWebhook(instanceId: string, webhookUrl: string) {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
+  const doc = instance as unknown as WhiteLabelDoc;
 
-  (instance as any).webhookUrl = webhookUrl;
-  (instance as any).webhookSecret = crypto.randomBytes(32).toString("hex");
+  doc.webhookUrl = webhookUrl;
+  doc.webhookSecret = crypto.randomBytes(32).toString("hex");
   instance.updatedAt = new Date();
   await instance.save();
 
   return {
-    webhookUrl: (instance as any).webhookUrl,
-    webhookSecret: (instance as any).webhookSecret,
+    webhookUrl: doc.webhookUrl,
+    webhookSecret: doc.webhookSecret,
   };
 }
 
 export async function testWebhook(instanceId: string) {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
+  const doc = instance as unknown as WhiteLabelDoc;
 
-  if (!(instance as any).webhookUrl) {
+  if (!doc.webhookUrl) {
     throw new Error("No webhook URL configured");
   }
 
   const testPayload = {
     event: "test.ping",
-    instanceId: (instance as any).instanceId,
+    instanceId: doc.instanceId,
     timestamp: new Date().toISOString(),
     data: {
       message: "This is a test webhook from SimTrace Central Shield",
@@ -424,17 +454,17 @@ export async function testWebhook(instanceId: string) {
   };
 
   const signature = crypto
-    .createHmac("sha256", (instance as any).webhookSecret)
+    .createHmac("sha256", doc.webhookSecret ?? "")
     .update(JSON.stringify(testPayload))
     .digest("hex");
 
   try {
-    const response = await fetch((instance as any).webhookUrl, {
+    const response = await fetch(doc.webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-SimTrace-Signature": `sha256=${signature}`,
-        "X-SimTrace-Instance": (instance as any).instanceId,
+        "X-SimTrace-Instance": doc.instanceId,
       },
       body: JSON.stringify(testPayload),
       signal: AbortSignal.timeout(10000),
@@ -445,10 +475,10 @@ export async function testWebhook(instanceId: string) {
       statusCode: response.status,
       message: response.ok ? "Webhook delivered successfully" : `Server returned ${response.status}`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       success: false,
-      message: error.message,
+      message: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -457,15 +487,16 @@ export async function testWebhook(instanceId: string) {
 export async function createInstanceFromTemplate(templateInstanceId: string, newOwner: string, newName: string) {
   const template = await WhiteLabelInstance.findOne({ instanceId: templateInstanceId });
   if (!template) throw new Error("Template instance not found");
+  const doc = template as unknown as WhiteLabelDoc;
 
   const newInstance = await createWhiteLabelInstance({
     name: newName,
     owner: newOwner,
-    partner: (template as any).partner,
-    branding: (template as any).branding,
-    config: (template as any).config,
-    plan: (template as any).plan,
-    billingCycle: (template as any).billingCycle,
+    partner: doc.partner,
+    branding: doc.branding,
+    config: doc.config,
+    plan: doc.plan,
+    billingCycle: doc.billingCycle,
   });
 
   return newInstance;

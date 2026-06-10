@@ -5,7 +5,7 @@ import { RecoveryReward, RecoveryCase, Device, User } from "../db/index.js";
 import { getIO } from "./socket.js";
 
 // ── Reward Creation ───────────────────────────────────────────────────────────────
-export async function createRecoveryReward(data: any) {
+export async function createRecoveryReward(data: Record<string, unknown>) {
   const {
     recoveryCaseId,
     deviceId,
@@ -14,7 +14,15 @@ export async function createRecoveryReward(data: any) {
     currency,
     expiresAt,
     terms,
-  } = data;
+  } = data as {
+    recoveryCaseId: string;
+    deviceId: string;
+    imei: string;
+    rewardAmount: number;
+    currency?: string;
+    expiresAt?: Date;
+    terms?: string;
+  };
 
   const recoveryCase = await RecoveryCase.findById(recoveryCaseId);
   if (!recoveryCase) throw new Error("Recovery case not found");
@@ -137,7 +145,7 @@ export async function payReward(rewardId: string, paymentMethod: string, payment
 }
 
 // ── Reward Management ───────────────────────────────────────────────────────────
-export async function updateReward(rewardId: string, updates: any) {
+export async function updateReward(rewardId: string, updates: Record<string, unknown>) {
   const reward = await RecoveryReward.findById(rewardId);
   if (!reward) throw new Error("Reward not found");
 
@@ -254,7 +262,7 @@ export async function getRewardsByLocation(lat: number, lng: number, radiusKm = 
     .limit(limit);
 
   // Filter by distance (in production, use MongoDB geospatial queries)
-  const filtered = rewards.filter((r: any) => {
+  const filtered = rewards.filter((r) => {
     if (!(r as any).recoveryCase?.lastLocation) return false;
     const distance = haversineDistance(
       lat,

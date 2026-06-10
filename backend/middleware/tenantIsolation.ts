@@ -25,12 +25,12 @@ export function tenantIsolationMiddleware(req: Request, res: Response, next: Nex
 }
 
 // Database query scoping helper
-export function scopeQueryToTenant(query: any, tenantId: string) {
+export function scopeQueryToTenant(query: Record<string, unknown>, tenantId: string) {
   return { ...query, tenantId };
 }
 
 // WebSocket tenant separation
-export function validateSocketTenant(socket: any, tenantId: string): boolean {
+export function validateSocketTenant(socket: Record<string, unknown>, tenantId: string): boolean {
   const socketTenantId = socket.handshake.auth?.tenantId;
   
   if (socketTenantId !== tenantId) {

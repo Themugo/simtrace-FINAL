@@ -92,7 +92,7 @@ router.get("/extensions", authenticate, async (req: AuthRequest, res: Response, 
       extensions = enterpriseMarketplace.getExtensionsByCategory(category);
     } else {
       extensions = Array.from((enterpriseMarketplace as any).extensions.values())
-        .filter((e: any) => e.status === 'published');
+        .filter((e: Record<string, unknown>) => e.status as string === 'published');
     }
 
     res.json({ extensions });

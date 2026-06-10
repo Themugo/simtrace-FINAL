@@ -29,7 +29,7 @@ router.post('/setup', authenticate, async (req: AuthRequest, res: Response, next
       return res.status(400).json({ error: '2FA is already enabled' });
     }
 
-    const setup = generateSecret(user);
+    const setup = generateSecret(user as unknown as Record<string, unknown>);
     const qrCode = await generateQRCode(setup.secret);
 
     res.json({

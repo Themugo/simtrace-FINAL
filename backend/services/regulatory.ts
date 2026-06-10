@@ -5,18 +5,16 @@ import { RegulatoryBlock, Device } from "../db/index.js";
 import { getIO } from "./socket.js";
 
 // ── Block Management ─────────────────────────────────────────────────────────────
-export async function createRegulatoryBlock(data: any) {
-  const {
-    imei,
-    deviceId,
-    authority,
-    authorityId,
-    country,
-    blockType,
-    blockReason,
-    blockReference,
-    expiresAt,
-  } = data;
+export async function createRegulatoryBlock(data: Record<string, unknown>) {
+  const imei = data.imei as string;
+  const deviceId = data.deviceId as string | undefined;
+  const authority = data.authority as string;
+  const authorityId = data.authorityId as string;
+  const country = data.country as string;
+  const blockType = data.blockType as string;
+  const blockReason = data.blockReason as string;
+  const blockReference = data.blockReference as string;
+  const expiresAt = data.expiresAt as Date | undefined;
 
   const device = deviceId ? await Device.findById(deviceId) : null;
   if (deviceId && !device) throw new Error("Device not found");
@@ -65,7 +63,7 @@ export async function getBlocksByImei(imei: string) {
 }
 
 export async function getBlocksByAuthority(authority: string, country?: string) {
-  const query: any = { authority };
+  const query: Record<string, unknown> = { authority };
   if (country) query.country = country;
 
   const blocks = await RegulatoryBlock.find(query)
@@ -236,15 +234,15 @@ export async function getRegulatoryStatistics() {
     expiredBlocks,
     liftedBlocks,
     appealedBlocks,
-    blocksByAuthority: blocksByAuthority.map((b: any) => ({
+    blocksByAuthority: blocksByAuthority.map((b) => ({
       authority: b._id,
       count: b.count,
     })),
-    blocksByType: blocksByType.map((b: any) => ({
+    blocksByType: blocksByType.map((b) => ({
       type: b._id,
       count: b.count,
     })),
-    blocksByCountry: blocksByCountry.map((b: any) => ({
+    blocksByCountry: blocksByCountry.map((b) => ({
       country: b._id,
       count: b.count,
     })),

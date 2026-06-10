@@ -4,7 +4,7 @@
 import { PartnerListing, User, Organization } from "../db/index.js";
 
 // ── Partner Listing Management ───────────────────────────────────────────────────
-export async function createPartnerListing(data: any) {
+export async function createPartnerListing(data: Record<string, unknown>) {
   const {
     userId,
     organizationId,
@@ -19,7 +19,21 @@ export async function createPartnerListing(data: any) {
     website,
     email,
     phone,
-  } = data;
+  } = data as {
+    userId: string;
+    organizationId?: string;
+    name: string;
+    category: string;
+    description: string;
+    services?: string[];
+    countries?: string[];
+    regions?: string[];
+    pricingModel: string;
+    pricingDetails: Record<string, unknown>;
+    website: string;
+    email: string;
+    phone: string;
+  };
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
@@ -65,7 +79,7 @@ export async function getPartnerListingsByUser(userId: string) {
   return listings;
 }
 
-export async function updatePartnerListing(listingId: string, updates: any) {
+export async function updatePartnerListing(listingId: string, updates: Record<string, unknown>) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
@@ -289,7 +303,7 @@ export async function getMarketplaceStatistics() {
     totalViews: totalViews[0]?.total || 0,
     totalClicks: totalClicks[0]?.total || 0,
     totalInquiries: totalInquiries[0]?.total || 0,
-    listingsByCategory: listingsByCategory.map((l: any) => ({ category: l._id, count: l.count })),
-    listingsByCountry: listingsByCountry.map((l: any) => ({ country: l._id, count: l.count })),
+    listingsByCategory: listingsByCategory.map((l) => ({ category: l._id, count: l.count })),
+    listingsByCountry: listingsByCountry.map((l) => ({ country: l._id, count: l.count })),
   };
 }

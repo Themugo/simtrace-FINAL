@@ -1,7 +1,7 @@
 // ── Advanced AI Investigation Graph ───────────────────────────────────────────────────
 // Neo4j-based relationship intelligence for fraud detection and investigation
 
-import neo4j from 'neo4j-driver';
+import neo4j, { type Driver } from 'neo4j-driver';
 
 export interface GraphConfig {
   uri: string;
@@ -29,7 +29,7 @@ export interface GraphQueryResult {
 }
 
 class InvestigationGraph {
-  private driver: any;
+  private driver: Driver;
   private connected = false;
 
   constructor(config: GraphConfig) {
@@ -215,7 +215,7 @@ class InvestigationGraph {
         { iccid }
       );
 
-      return result.records.map((record: any) => record.get('imei'));
+      return result.records.map((record) => record.get('imei'));
     } finally {
       await session.close();
     }
@@ -259,7 +259,7 @@ class InvestigationGraph {
   }
 
   // Detect coordinated theft (devices moving together)
-  async detectCoordinatedTheft(timeWindowHours = 24, distanceKm = 1): Promise<Array<{ devices: string[]; locations: any[] }>> {
+  async detectCoordinatedTheft(timeWindowHours = 24, distanceKm = 1): Promise<Array<{ devices: string[]; locations: Array<{ lat: number; lng: number }> }>> {
     if (!this.connected) await this.connect();
 
     const session = this.driver.session();
@@ -281,7 +281,7 @@ class InvestigationGraph {
         { distanceKm }
       );
 
-      return result.records.map((record: any) => ({
+      return result.records.map((record) => ({
         devices: record.get('devices'),
         locations: record.get('locations'),
       }));
@@ -309,7 +309,7 @@ class InvestigationGraph {
         { minDevices }
       );
 
-      return result.records.map((record: any) => ({
+      return result.records.map((record) => ({
         userId: record.get('userId'),
         deviceCount: record.get('deviceCount'),
         imeis: record.get('imeis'),
@@ -340,7 +340,7 @@ class InvestigationGraph {
         { maxDays }
       );
 
-      return result.records.map((record: any) => ({
+      return result.records.map((record) => ({
         imei: record.get('imei'),
         iccid: record.get('iccid'),
         duration: record.get('duration'),
@@ -418,7 +418,7 @@ class InvestigationGraph {
     const session = this.driver.session();
     try {
       const result = await session.run(cypher, params);
-      return result.records.map((record: any) => record.toObject());
+      return result.records.map((record) => record.toObject());
     } finally {
       await session.close();
     }

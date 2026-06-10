@@ -15,7 +15,7 @@ interface AuthRequest extends Request {
 }
 
 interface PartnerRequest extends Request {
-  partner?: any;
+  partner?: Record<string, unknown>;
 }
 
 // ── Partner API key middleware ─────────────────────────────────────────────────

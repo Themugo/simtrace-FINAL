@@ -8,7 +8,7 @@ import {
 } from "../db/index.js";
 
 // ── SIM Card Tracking ───────────────────────────────────────────────────────────────
-export async function registerSimCard(data: any) {
+export async function registerSimCard(data: Record<string, unknown>) {
   const trackingId = `sim_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify device exists
@@ -35,7 +35,7 @@ export async function registerSimCard(data: any) {
   return tracking;
 }
 
-export async function updateSimCardLocation(trackingId: string, location: any, cellTowerId: string) {
+export async function updateSimCardLocation(trackingId: string, location: Record<string, unknown>, cellTowerId: string) {
   const tracking = await SimCardTracking.findOne({ trackingId });
   if (!tracking) throw new Error("SIM card tracking not found");
 
@@ -117,7 +117,7 @@ export async function getFlaggedSimCardsByCompany(companyId: string) {
 }
 
 // ── Network Activity Tracking ─────────────────────────────────────────────────────────
-export async function recordNetworkActivity(data: any) {
+export async function recordNetworkActivity(data: Record<string, unknown>) {
   const activityId = `activity_${crypto.randomBytes(16).toString("hex")}`;
 
   const activity = await NetworkActivity.create({
@@ -181,9 +181,9 @@ export async function triangulateDeviceLocation(deviceId: string) {
   // This would use cell tower locations and signal strengths
   // to estimate device location
 
-  const locations = activities.map((a: any) => a.location).filter(Boolean);
-  const avgLatitude = locations.reduce((sum: number, l: any) => sum + l.latitude, 0) / locations.length;
-  const avgLongitude = locations.reduce((sum: number, l: any) => sum + l.longitude, 0) / locations.length;
+  const locations = activities.map((a: Record<string, unknown>) => a.location as Record<string, unknown>).filter(Boolean);
+  const avgLatitude = locations.reduce((sum: number, l: Record<string, unknown>) => sum + (l as { latitude: number }).latitude, 0) / locations.length;
+  const avgLongitude = locations.reduce((sum: number, l: Record<string, unknown>) => sum + (l as { longitude: number }).longitude, 0) / locations.length;
 
   return {
     latitude: avgLatitude,

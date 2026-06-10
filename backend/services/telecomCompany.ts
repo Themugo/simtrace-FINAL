@@ -10,7 +10,7 @@ import {
 } from "../db/index.js";
 
 // ── Telecom Company Management ───────────────────────────────────────────────────────
-export async function createTelecomCompany(data: any) {
+export async function createTelecomCompany(data: Record<string, unknown>) {
   const companyId = `telecom_${crypto.randomBytes(16).toString("hex")}`;
 
   const company = await TelecomCompany.create({
@@ -34,7 +34,7 @@ export async function getTelecomCompanyByEmail(officialEmail: string) {
   return company;
 }
 
-export async function updateTelecomCompany(companyId: string, updates: any, updatedBy: string) {
+export async function updateTelecomCompany(companyId: string, updates: Record<string, unknown>, updatedBy: string) {
   const company = await TelecomCompany.findOneAndUpdate(
     { companyId },
     {
@@ -87,7 +87,7 @@ export async function getTelecomCompaniesByRegion(countryCode: string, region: s
 }
 
 // ── API Key Management ─────────────────────────────────────────────────────────────
-export async function generateApiKey(companyId: string, permissions: any, expiresAt?: Date) {
+export async function generateApiKey(companyId: string, permissions: unknown, expiresAt?: Date) {
   const company = await TelecomCompany.findOne({ companyId });
   if (!company) throw new Error("Telecom company not found");
 
@@ -110,7 +110,7 @@ export async function revokeApiKey(companyId: string, apiKey: string) {
   const company = await TelecomCompany.findOne({ companyId });
   if (!company) throw new Error("Telecom company not found");
 
-  (company as any).apiKeys = (company as any).apiKeys.filter((k: any) => k.key !== apiKey);
+  (company as any).apiKeys = (company as any).apiKeys.filter((k: { key: string }) => k.key !== apiKey);
   company.updatedAt = new Date();
   await company.save();
 
@@ -125,7 +125,7 @@ export async function validateApiKey(apiKey: string) {
 
   if (!company) return { valid: false };
 
-  const keyObj = (company as any).apiKeys.find((k: any) => k.key === apiKey);
+  const keyObj = (company as any).apiKeys.find((k: { key: string }) => k.key === apiKey);
   if (!keyObj) return { valid: false };
 
   // Check expiration

@@ -6,14 +6,14 @@ import { EventEmitter } from 'events';
 export interface WorkerJob {
   id: string;
   type: 'ai_processing' | 'export' | 'telemetry_analysis' | 'email_fanout' | 'report' | 'analytics';
-  data: any;
+  data: Record<string, unknown>;
   priority: 'low' | 'medium' | 'high' | 'critical';
   createdAt: Date;
   startedAt?: Date;
   completedAt?: Date;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   error?: string;
-  result?: any;
+  result?: Record<string, unknown>;
 }
 
 export interface WorkerConfig {
@@ -32,7 +32,7 @@ class WorkerManager extends EventEmitter {
   };
 
   // Add a job to the queue
-  addJob(type: WorkerJob['type'], data: any, priority: WorkerJob['priority'] = 'medium'): string {
+  addJob(type: WorkerJob['type'], data: Record<string, unknown>, priority: WorkerJob['priority'] = 'medium'): string {
     const job: WorkerJob = {
       id: this.generateJobId(),
       type,
@@ -105,28 +105,28 @@ class WorkerManager extends EventEmitter {
     while (attempts <= this.config.retryAttempts) {
       try {
         const result = await this.executeJob(job);
-        
+
         job.status = 'completed';
         job.completedAt = new Date();
         job.result = result;
-        
+
         this.processing.delete(job.id);
         this.emit('job:completed', job);
-        
+
         return;
       } catch (error) {
         attempts++;
-        
+
         if (attempts > this.config.retryAttempts) {
           job.status = 'failed';
           job.completedAt = new Date();
           job.error = error instanceof Error ? error.message : String(error);
-          
+
           this.processing.delete(job.id);
           this.emit('job:failed', job);
           return;
         }
-        
+
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
       }
@@ -134,7 +134,7 @@ class WorkerManager extends EventEmitter {
   }
 
   // Execute a job based on its type
-  private async executeJob(job: WorkerJob): Promise<any> {
+  private async executeJob(job: WorkerJob): Promise<Record<string, unknown>> {
     switch (job.type) {
       case 'ai_processing':
         return this.processAIJob(job.data);
@@ -154,32 +154,32 @@ class WorkerManager extends EventEmitter {
   }
 
   // Job processors (to be implemented)
-  private async processAIJob(data: any): Promise<any> {
+  private async processAIJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // AI processing logic
     return { success: true };
   }
 
-  private async processExportJob(data: any): Promise<any> {
+  private async processExportJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Export logic
     return { success: true };
   }
 
-  private async processTelemetryJob(data: any): Promise<any> {
+  private async processTelemetryJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Telemetry analysis logic
     return { success: true };
   }
 
-  private async processEmailJob(data: any): Promise<any> {
+  private async processEmailJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Email fanout logic
     return { success: true };
   }
 
-  private async processReportJob(data: any): Promise<any> {
+  private async processReportJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Report generation logic
     return { success: true };
   }
 
-  private async processAnalyticsJob(data: any): Promise<any> {
+  private async processAnalyticsJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Analytics aggregation logic
     return { success: true };
   }
@@ -214,26 +214,26 @@ class WorkerManager extends EventEmitter {
 export const workerManager = new WorkerManager();
 
 // ── Convenience Functions ───────────────────────────────────────────────────────
-export function addAIJob(data: any, priority?: WorkerJob['priority']): string {
+export function addAIJob(data: Record<string, unknown>, priority?: WorkerJob['priority']): string {
   return workerManager.addJob('ai_processing', data, priority);
 }
 
-export function addExportJob(data: any, priority?: WorkerJob['priority']): string {
+export function addExportJob(data: Record<string, unknown>, priority?: WorkerJob['priority']): string {
   return workerManager.addJob('export', data, priority);
 }
 
-export function addTelemetryJob(data: any, priority?: WorkerJob['priority']): string {
+export function addTelemetryJob(data: Record<string, unknown>, priority?: WorkerJob['priority']): string {
   return workerManager.addJob('telemetry_analysis', data, priority);
 }
 
-export function addEmailJob(data: any, priority?: WorkerJob['priority']): string {
+export function addEmailJob(data: Record<string, unknown>, priority?: WorkerJob['priority']): string {
   return workerManager.addJob('email_fanout', data, priority);
 }
 
-export function addReportJob(data: any, priority?: WorkerJob['priority']): string {
+export function addReportJob(data: Record<string, unknown>, priority?: WorkerJob['priority']): string {
   return workerManager.addJob('report', data, priority);
 }
 
-export function addAnalyticsJob(data: any, priority?: WorkerJob['priority']): string {
+export function addAnalyticsJob(data: Record<string, unknown>, priority?: WorkerJob['priority']): string {
   return workerManager.addJob('analytics', data, priority);
 }

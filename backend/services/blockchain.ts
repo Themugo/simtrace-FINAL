@@ -14,7 +14,14 @@ const BLOCKCHAIN_CONFIG = {
 };
 
 // ── Transaction Hash Generation ───────────────────────────────────────────────────
-function generateTransactionHash(data: any): string {
+function generateTransactionHash(data: {
+  timestamp: Date;
+  eventType: string;
+  imei: string;
+  fromAddress: string | null;
+  toAddress: string | null;
+  eventData: Record<string, unknown>;
+}): string {
   const hash = crypto.createHash("sha256");
   hash.update(JSON.stringify({
     timestamp: data.timestamp,
@@ -34,14 +41,22 @@ function getNextBlockNumber(): number {
 }
 
 // ── Record Event on Blockchain ─────────────────────────────────────────────────────
-export async function recordBlockchainEvent({
-  imei,
-  eventType,
-  eventData = {},
-  fromAddress = null,
-  toAddress = null,
-  initiator = null,
-}: any) {
+export async function recordBlockchainEvent(params: {
+  imei: string;
+  eventType: string;
+  eventData?: Record<string, unknown>;
+  fromAddress?: string | null;
+  toAddress?: string | null;
+  initiator?: string | null;
+}) {
+  const {
+    imei,
+    eventType,
+    eventData = {},
+    fromAddress = null,
+    toAddress = null,
+    initiator = null,
+  } = params;
   const device = await Device.findOne({ imei });
   if (!device) throw new Error("Device not found");
 
@@ -180,7 +195,7 @@ export async function getBlockchainStatistics() {
     ceirSyncRate: totalTransactions > 0 
       ? ((ceirSynced / totalTransactions) * 100).toFixed(2) 
       : 0,
-    eventsByType: eventsByType.map((e: any) => ({
+    eventsByType: eventsByType.map((e: { _id: string; count: number }) => ({
       type: e._id,
       count: e.count,
     })),

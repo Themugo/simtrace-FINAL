@@ -4,12 +4,31 @@
 import { GdprRequest, DataResidency, User, Device, Ping, Alert, TheftReport } from "../db/index.js";
 import crypto from "crypto";
 
+interface GdprRequestDoc {
+  user: string;
+  status: string;
+  processedBy?: string;
+  processedAt?: Date;
+  exportUrl?: string;
+  exportExpiresAt?: Date;
+  updatedAt?: Date;
+  rejectionReason?: string;
+  requestType?: string;
+  save(): Promise<GdprRequestDoc>;
+}
+
+interface DataResidencyDoc {
+  region: string;
+  storageLocations: string[];
+  gdprCompliant: boolean;
+  ccpaCompliant: boolean;
+  updatedAt?: Date;
+  save(): Promise<DataResidencyDoc>;
+}
+
 // ── GDPR Request Management ───────────────────────────────────────────────────────
-export async function createGdprRequest(data: any) {
-  const {
-    userId,
-    requestType,
-  } = data;
+export async function createGdprRequest(data: Record<string, unknown>) {
+  const { userId, requestType } = data as { userId: string; requestType: string };
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
@@ -73,7 +92,7 @@ export async function processGdprRequest(requestId: string, processedBy: string)
   return request;
 }
 
-async function processDataExport(request: any) {
+async function processDataExport(request: GdprRequestDoc) {
   const user = await User.findById(request.user);
   if (!user) throw new Error("User not found");
 
@@ -87,7 +106,7 @@ async function processDataExport(request: any) {
       createdAt: user.createdAt,
     },
     devices: await Device.find({ user: user._id }),
-    pings: await Ping.find({ device: { $in: (await Device.find({ user: user._id })).map((d: any) => d._id) } }),
+    pings: await Ping.find({ device: { $in: (await Device.find({ user: user._id })).map((d: { _id: unknown }) => d._id) } }),
     alerts: await Alert.find({ user: user._id }),
     theftReports: await TheftReport.find({ user: user._id }),
   };
@@ -105,7 +124,7 @@ async function processDataExport(request: any) {
   await request.save();
 }
 
-async function processDataDeletion(request: any) {
+async function processDataDeletion(request: GdprRequestDoc) {
   const user = await User.findById(request.user);
   if (!user) throw new Error("User not found");
 
@@ -113,7 +132,7 @@ async function processDataDeletion(request: any) {
   await Device.deleteMany({ user: user._id });
 
   // Delete user's pings
-  const deviceIds = (await Device.find({ user: user._id })).map((d: any) => d._id);
+  const deviceIds = (await Device.find({ user: user._id })).map((d: { _id: unknown }) => d._id);
   await Ping.deleteMany({ device: { $in: deviceIds } });
 
   // Delete user's alerts
@@ -134,12 +153,12 @@ async function processDataDeletion(request: any) {
   await request.save();
 }
 
-async function processAccessRequest(request: any) {
+async function processAccessRequest(request: GdprRequestDoc) {
   // Similar to data export but for review
   await processDataExport(request);
 }
 
-async function processRectification(request: any) {
+async function processRectification(request: GdprRequestDoc) {
   // User would need to provide corrected data
   request.status = "completed";
   request.updatedAt = new Date();
@@ -159,12 +178,8 @@ export async function rejectGdprRequest(requestId: string, reason: string) {
 }
 
 // ── Data Residency Management ─────────────────────────────────────────────────────
-export async function setDataResidency(data: any) {
-  const {
-    userId,
-    region,
-    storageLocations,
-  } = data;
+export async function setDataResidency(data: Record<string, unknown>) {
+  const { userId, region, storageLocations } = data as { userId: string; region: string; storageLocations?: string[] };
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
@@ -185,14 +200,14 @@ export async function getDataResidency(userId: string) {
   return residency;
 }
 
-export async function updateDataResidency(userId: string, updates: any) {
+export async function updateDataResidency(userId: string, updates: Record<string, unknown>) {
   const residency = await DataResidency.findOne({ user: userId });
   if (!residency) throw new Error("Data residency not found");
 
   const allowedUpdates = ["region", "storageLocations", "gdprCompliant", "ccpaCompliant"];
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      (residency as any)[key] = updates[key];
+      (residency as unknown as Record<string, unknown>)[key] = updates[key];
     }
   }
 
@@ -262,7 +277,7 @@ export async function getGdprStatistics() {
     pendingRequests,
     completedRequests,
     rejectedRequests,
-    requestsByType: requestsByType.map((r: any) => ({ type: r._id, count: r.count })),
+    requestsByType: requestsByType.map((r: { _id: string; count: number }) => ({ type: r._id, count: r.count })),
     euUsers,
     usUsers,
   };

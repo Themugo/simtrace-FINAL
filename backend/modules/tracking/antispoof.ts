@@ -5,7 +5,7 @@ export interface SpoofDetectionResult {
   isSpoofed: boolean;
   confidence: number;
   type: 'fake_gps' | 'impossible_travel' | 'emulator' | 'rooted' | 'vpn_proxy' | 'imei_mismatch';
-  details: any;
+  details: Record<string, unknown>;
 }
 
 // Detect fake GPS signals
@@ -57,9 +57,10 @@ export async function detectFakeGps(imei: string, lat: number, lng: number, accu
 }
 
 // Detect emulator behavior
-export async function detectEmulator(imei: string, deviceInfo: any): Promise<SpoofDetectionResult> {
+export async function detectEmulator(imei: string, deviceInfo: Record<string, unknown>): Promise<SpoofDetectionResult> {
   const suspiciousIndicators: string[] = [];
   let confidence = 0;
+  const di = deviceInfo as { model?: string; buildId?: string; buildTags?: string; hasTelephony?: boolean; hasCamera?: boolean };
   
   // Check for common emulator indicators
   const emulatorIndicators = [
@@ -72,8 +73,8 @@ export async function detectEmulator(imei: string, deviceInfo: any): Promise<Spo
     'virtual',
   ];
   
-  const model = deviceInfo.model?.toLowerCase() || '';
-  const buildId = deviceInfo.buildId?.toLowerCase() || '';
+  const model = di.model?.toLowerCase() || '';
+  const buildId = di.buildId?.toLowerCase() || '';
   
   for (const indicator of emulatorIndicators) {
     if (model.includes(indicator) || buildId.includes(indicator)) {
@@ -83,13 +84,13 @@ export async function detectEmulator(imei: string, deviceInfo: any): Promise<Spo
   }
   
   // Check for suspicious build properties
-  if (deviceInfo.buildTags?.includes('test-keys')) {
+  if (di.buildTags?.includes('test-keys')) {
     suspiciousIndicators.push('test_keys_build');
     confidence += 25;
   }
   
   // Check for missing hardware features
-  if (!deviceInfo.hasTelephony || !deviceInfo.hasCamera) {
+  if (!di.hasTelephony || !di.hasCamera) {
     suspiciousIndicators.push('missing_hardware');
     confidence += 20;
   }
@@ -103,9 +104,10 @@ export async function detectEmulator(imei: string, deviceInfo: any): Promise<Spo
 }
 
 // Detect rooted devices
-export async function detectRooted(imei: string, deviceInfo: any): Promise<SpoofDetectionResult> {
+export async function detectRooted(imei: string, deviceInfo: Record<string, unknown>): Promise<SpoofDetectionResult> {
   const suspiciousIndicators: string[] = [];
   let confidence = 0;
+  const di = deviceInfo as { installedApps?: string[]; canWriteSystemPartition?: boolean; kernelVersion?: string };
   
   // Check for root indicators
   const rootIndicators = [
@@ -118,7 +120,7 @@ export async function detectRooted(imei: string, deviceInfo: any): Promise<Spoof
     'substrate',
   ];
   
-  const installedApps = deviceInfo.installedApps || [];
+  const installedApps = di.installedApps || [];
   
   for (const indicator of rootIndicators) {
     if (installedApps.some((app: string) => app.toLowerCase().includes(indicator))) {
@@ -128,13 +130,13 @@ export async function detectRooted(imei: string, deviceInfo: any): Promise<Spoof
   }
   
   // Check for system partition write access
-  if (deviceInfo.canWriteSystemPartition) {
+  if (di.canWriteSystemPartition) {
     suspiciousIndicators.push('system_write_access');
     confidence += 40;
   }
   
   // Check for unsafe kernel
-  if (deviceInfo.kernelVersion?.includes('test') || deviceInfo.kernelVersion?.includes('debug')) {
+  if (di.kernelVersion?.includes('test') || di.kernelVersion?.includes('debug')) {
     suspiciousIndicators.push('debug_kernel');
     confidence += 25;
   }
@@ -211,7 +213,7 @@ export async function runAntiSpoofCheck(data: {
   lng: number;
   accuracy?: number;
   ipAddress?: string;
-  deviceInfo?: any;
+  deviceInfo?: Record<string, unknown>;
 }) {
   const results = await Promise.all([
     detectFakeGps(data.imei, data.lat, data.lng, data.accuracy),

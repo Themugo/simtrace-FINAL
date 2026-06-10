@@ -22,14 +22,14 @@ export const ErrorCodes = {
 export class AppError extends Error {
   statusCode: number;
   code: string;
-  details: any;
+  details: unknown;
   isOperational: boolean;
 
   constructor(
     message: string,
     statusCode: number = 500,
     code: string = ErrorCodes.INTERNAL_ERROR,
-    details: any = null
+    details: unknown = null
   ) {
     super(message);
     this.statusCode = statusCode;
@@ -51,15 +51,16 @@ export function generateWorkerId(): string {
 }
 
 // Structured error response
-export function formatErrorResponse(error: any, correlationId: string): any {
+export function formatErrorResponse(error: unknown, correlationId: string): Record<string, unknown> {
   const isAppError = error instanceof AppError;
+  const err = error as Error;
   
   return {
     success: false,
     error: {
-      code: isAppError ? error.code : ErrorCodes.INTERNAL_ERROR,
-      message: error.message,
-      ...(error.details && { details: error.details }),
+      code: isAppError ? (error as AppError).code : ErrorCodes.INTERNAL_ERROR,
+      message: err.message,
+      ...(isAppError && (error as AppError).details ? { details: (error as AppError).details } : undefined),
       correlationId,
       timestamp: new Date().toISOString(),
     },
@@ -67,23 +68,24 @@ export function formatErrorResponse(error: any, correlationId: string): any {
 }
 
 // Global error handler middleware
-export function globalErrorHandler(err: any, req: Request, res: Response, next: NextFunction) {
+export function globalErrorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
   const correlationId = (req as any).correlationId || generateCorrelationId();
+  const error = err as Error;
   
   // Log error with correlation ID
   console.error(`[Error] Correlation ID: ${correlationId}`, {
-    error: err.message,
-    stack: err.stack,
+    error: error.message,
+    stack: error.stack,
     path: req.path,
     method: req.method,
-    statusCode: err.statusCode || 500,
+    statusCode: Number((err as Record<string, unknown>).statusCode) || 500,
   });
 
   // Format error response
   const errorResponse = formatErrorResponse(err, correlationId);
   
   // Set status code
-  const statusCode = err.statusCode || 500;
+  const statusCode = Number((err as Record<string, unknown>).statusCode) || 500;
   
   res.status(statusCode).json(errorResponse);
 }
@@ -103,25 +105,26 @@ export function correlationIdMiddleware(req: Request, res: Response, next: NextF
 }
 
 // Async error wrapper
-export function asyncHandler(fn: any) {
+export function asyncHandler(fn: (...args: unknown[]) => unknown) {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
 
 // Worker error handler
-export function workerErrorHandler(error: any, jobId: string, workerName: string): any {
+export function workerErrorHandler(error: unknown, jobId: string, workerName: string): Record<string, unknown> {
   const workerId = generateWorkerId();
+  const err = error as Error;
   
   console.error(`[Worker Error] Worker: ${workerName}, Job: ${jobId}, Worker ID: ${workerId}`, {
-    error: error.message,
-    stack: error.stack,
+    error: err.message,
+    stack: err.stack,
     timestamp: new Date().toISOString(),
   });
   
   return {
     success: false,
-    error: error.message,
+    error: err.message,
     workerId,
     jobId,
     workerName,

@@ -25,7 +25,7 @@ router.get("/", authenticate, requireAdmin, async (req: AuthRequest, res: Respon
     });
     const { userId, action, resource, startDate, endDate, limit } = schema.parse(req.query);
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (userId) query.userId = userId;
     if (action) query.action = action;
     if (resource) query.resource = resource;
@@ -86,9 +86,9 @@ router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, r
       successLogs,
       failureLogs,
       successRate: totalLogs > 0 ? ((successLogs / totalLogs) * 100).toFixed(2) : 0,
-      logsByAction: logsByAction.map((l: any) => ({ action: l._id, count: l.count })),
-      logsByResource: logsByResource.map((l: any) => ({ resource: l._id, count: l.count })),
-      logsByUser: logsByUser.map((l: any) => ({ 
+      logsByAction: logsByAction.map((l) => ({ action: l._id, count: l.count })),
+      logsByResource: logsByResource.map((l) => ({ resource: l._id, count: l.count })),
+      logsByUser: logsByUser.map((l) => ({ 
         userId: l._id, 
         userName: l.user?.name || "Unknown",
         userEmail: l.user?.email || "Unknown",
@@ -107,7 +107,7 @@ router.get("/export", authenticate, requireAdmin, async (req: AuthRequest, res: 
     });
     const { startDate, endDate } = schema.parse(req.query);
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (startDate && endDate) {
       query.timestamp = {
         $gte: new Date(startDate),
@@ -121,7 +121,7 @@ router.get("/export", authenticate, requireAdmin, async (req: AuthRequest, res: 
       .populate("userId", "name email");
 
     const header = "Timestamp,User,Email,Action,Resource,Method,Path,IP,Success,StatusCode\n";
-    const rows = logs.map((log: any) => [
+    const rows = logs.map((log) => [
       new Date(log.timestamp).toISOString(),
       log.userId?.name || "System",
       log.userId?.email || "",

@@ -7,7 +7,7 @@ import {
 } from "../db/index.js";
 
 // ── Device Transfer Management ───────────────────────────────────────────────────────
-export async function initiateDeviceTransfer(data: any) {
+export async function initiateDeviceTransfer(data: Record<string, unknown>) {
   const transferId = `transfer_${crypto.randomBytes(16).toString("hex")}`;
 
   // Verify device ownership

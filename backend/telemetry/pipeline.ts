@@ -32,9 +32,18 @@ export interface TelemetryData {
   networkType?: string;
 }
 
+export interface IpInfo {
+  ip: string;
+  country: string;
+  city: string;
+  isp: string;
+}
+
+type PipelineData = TelemetryData & Record<string, unknown>;
+
 export interface PipelineResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   errors?: string[];
   stage?: string;
 }
@@ -171,8 +180,8 @@ class TelemetryPipeline {
   }
 
   // Stage 4: Enrich - Add additional data
-  private async enrich(data: TelemetryData): Promise<any> {
-    const enriched = { ...data };
+  private async enrich(data: TelemetryData): Promise<PipelineData> {
+    const enriched = { ...data } as PipelineData;
 
     // Enrich geolocation
     if (data.location) {
@@ -194,8 +203,8 @@ class TelemetryPipeline {
   }
 
   // Stage 5: Score - Calculate risk scores
-  private async score(data: any): Promise<any> {
-    const scored = { ...data };
+  private async score(data: PipelineData): Promise<PipelineData> {
+    const scored = { ...data } as PipelineData;
 
     // Perform anti-spoofing detection
     if (data.deviceInfo) {
@@ -215,7 +224,7 @@ class TelemetryPipeline {
   }
 
   // Stage 6: Store - Persist to database
-  private async store(data: any): Promise<PipelineResult> {
+  private async store(data: PipelineData): Promise<PipelineResult> {
     try {
       // Store tracking event
       await TrackingEvent.create({
@@ -230,8 +239,8 @@ class TelemetryPipeline {
         networkType: data.networkType,
         geolocation: data.geolocation,
         ipInfo: data.ipInfo,
-        riskScore: data.risk?.overallScore,
-        threatLevel: data.risk?.threatLevel,
+        riskScore: (data.risk as { overallScore?: number } | undefined)?.overallScore,
+        threatLevel: (data.risk as { threatLevel?: string } | undefined)?.threatLevel,
       });
 
       // Store device location
@@ -260,7 +269,7 @@ class TelemetryPipeline {
   }
 
   // Stage 7: Broadcast - Emit events
-  private async broadcast(data: any): Promise<void> {
+  private async broadcast(data: PipelineData): Promise<void> {
     // Emit location detected event
     if (data.location) {
       emit('location.detected', {
@@ -287,7 +296,7 @@ class TelemetryPipeline {
   }
 
   // Stage 8: Analyze - Perform deeper analysis (async)
-  private async analyze(data: any): Promise<void> {
+  private async analyze(data: PipelineData): Promise<void> {
     // Check for SIM changes
     if (data.simInfo) {
       await this.checkSIMChange(data);
@@ -303,7 +312,7 @@ class TelemetryPipeline {
   }
 
   // Helper: Enrich IP information
-  private async enrichIP(ip: string): Promise<any> {
+  private async enrichIP(ip: string): Promise<IpInfo> {
     // In production, integrate with IP geolocation service
     // For now, return basic info
     return {
@@ -315,11 +324,11 @@ class TelemetryPipeline {
   }
 
   // Helper: Generate device fingerprint
-  private generateDeviceFingerprint(deviceInfo: any): string {
+  private generateDeviceFingerprint(deviceInfo: Record<string, unknown>): string {
     const fingerprintData = {
-      userAgent: deviceInfo.userAgent,
-      platform: deviceInfo.platform,
-      screenResolution: deviceInfo.screenResolution,
+      userAgent: deviceInfo.userAgent as string | undefined,
+      platform: deviceInfo.platform as string | undefined,
+      screenResolution: deviceInfo.screenResolution as string | undefined,
     };
     
     const crypto = require('crypto');
@@ -327,7 +336,7 @@ class TelemetryPipeline {
   }
 
   // Helper: Update device session
-  private async updateDeviceSession(data: any): Promise<void> {
+  private async updateDeviceSession(data: PipelineData): Promise<void> {
     const now = new Date();
     const sessionWindow = 30 * 60 * 1000; // 30 minutes
 
@@ -368,7 +377,7 @@ class TelemetryPipeline {
   }
 
   // Helper: Check for SIM changes
-  private async checkSIMChange(data: any): Promise<void> {
+  private async checkSIMChange(data: PipelineData): Promise<void> {
     // Get previous SIM info for this device
     const previousEvent = await TrackingEvent.findOne({
       imei: data.imei,
@@ -386,7 +395,7 @@ class TelemetryPipeline {
   }
 
   // Helper: Check for impossible travel
-  private async checkImpossibleTravel(data: any): Promise<void> {
+  private async checkImpossibleTravel(data: PipelineData): Promise<void> {
     if (!data.location) return;
 
     // Get previous location
@@ -438,7 +447,7 @@ class TelemetryPipeline {
   }
 
   // Helper: Update analytics
-  private async updateAnalytics(data: any): Promise<void> {
+  private async updateAnalytics(data: PipelineData): Promise<void> {
     // Update analytics counters
     const redis = getRedisClient();
     

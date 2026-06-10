@@ -179,7 +179,7 @@ interface MovementPattern {
   frequency: number;
 }
 
-function extractMovementPatterns(locations: any[]): MovementPattern[] {
+function extractMovementPatterns(locations: Array<{ lat: number; lng: number; timestamp: Date }>): MovementPattern[] {
   const patterns: MovementPattern[] = [];
 
   for (let i = 1; i < locations.length; i++) {
@@ -300,7 +300,7 @@ function calculateCorrelationScore(uniqueDevices: number, totalPoints: number): 
   return uniqueDevices / Math.max(totalPoints, 1);
 }
 
-function detectPattern(locations: any[]): string {
+function detectPattern(locations: Array<{ lat: number; lng: number; timestamp: Date; imei?: string }>): string {
   // Analyze movement pattern
   if (locations.length < 2) return 'insufficient_data';
 

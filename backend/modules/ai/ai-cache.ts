@@ -1,8 +1,16 @@
 // AI Request Caching and Token Monitoring
+import { Redis } from 'ioredis';
 import { getRedisClient } from '../../services/redis.js';
 
+interface TokenRecord {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  timestamp: number;
+}
+
 class AIRequestCache {
-  redis: any;
+  redis: Redis;
   cachePrefix: string;
   metricsPrefix: string;
 
@@ -13,12 +21,12 @@ class AIRequestCache {
   }
 
   // Cache AI response
-  async cacheResponse(requestHash: string, response: any, ttl: number = 3600): Promise<void> {
+  async cacheResponse(requestHash: string, response: unknown, ttl: number = 3600): Promise<void> {
     try {
       await this.redis.set(
         `${this.cachePrefix}${requestHash}`,
         JSON.stringify(response),
-        { EX: ttl }
+        { EX: ttl } as any
       );
     } catch (error) {
       console.error('[AI Cache] Failed to cache response:', error);
@@ -62,13 +70,13 @@ class AIRequestCache {
       
       const cutoff = Date.now() - (hours * 60 * 60 * 1000);
       const recentData = data
-        .map((item: string) => JSON.parse(item))
-        .filter((item: any) => item.timestamp > cutoff);
+        .map((item: string) => JSON.parse(item) as TokenRecord)
+        .filter((item: TokenRecord) => item.timestamp > cutoff);
 
       return {
-        totalTokens: recentData.reduce((sum: number, item: any) => sum + item.totalTokens, 0),
-        inputTokens: recentData.reduce((sum: number, item: any) => sum + item.inputTokens, 0),
-        outputTokens: recentData.reduce((sum: number, item: any) => sum + item.outputTokens, 0),
+        totalTokens: recentData.reduce((sum: number, item: TokenRecord) => sum + item.totalTokens, 0),
+        inputTokens: recentData.reduce((sum: number, item: TokenRecord) => sum + item.inputTokens, 0),
+        outputTokens: recentData.reduce((sum: number, item: TokenRecord) => sum + item.outputTokens, 0),
         requestCount: recentData.length,
       };
     } catch (error) {
@@ -108,11 +116,11 @@ class AIRequestCache {
         
         const cutoff = Date.now() - (hours * 60 * 60 * 1000);
         const recentData = data
-          .map((item: string) => JSON.parse(item))
-          .filter((item: any) => item.timestamp > cutoff);
+          .map((item: string) => JSON.parse(item) as TokenRecord)
+          .filter((item: TokenRecord) => item.timestamp > cutoff);
 
-        const inputTokens = recentData.reduce((sum: number, item: any) => sum + item.inputTokens, 0);
-        const outputTokens = recentData.reduce((sum: number, item: any) => sum + item.outputTokens, 0);
+        const inputTokens = recentData.reduce((sum: number, item: TokenRecord) => sum + item.inputTokens, 0);
+        const outputTokens = recentData.reduce((sum: number, item: TokenRecord) => sum + item.outputTokens, 0);
         
         const cost = this.calculateCost(model, inputTokens, outputTokens);
         totalCost += cost;

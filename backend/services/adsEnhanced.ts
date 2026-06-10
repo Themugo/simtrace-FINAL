@@ -3,19 +3,34 @@
 
 import { AdCampaign, AdEvent, User, WhiteLabelInstance } from "../db/index.js";
 
+// ── Local type definitions ─────────────────────────────────────────────────────────
+
+interface CampaignDoc {
+  targeting: { locations?: string[]; userRoles?: string[]; imeiStatuses?: string[] };
+  metrics: { spend: number; impressions: number; clicks: number; conversions: number; ctr: number; cpa: number; roi: number };
+  budget: { total: number; daily: number; currency?: string };
+  bidding: { currentBid: number; maxBid: number };
+  creatives: unknown[];
+}
+
+interface AdEventDoc {
+  type: string;
+  revenue?: number;
+  flagged?: boolean;
+  timestamp: Date;
+}
+
 // ── Campaign Management ─────────────────────────────────────────────────────────────
-export async function createAdCampaign(data: any) {
-  const {
-    name,
-    advertiser,
-    whiteLabel,
-    budget,
-    bidding,
-    targeting,
-    creatives,
-    placements,
-    schedule,
-  } = data;
+export async function createAdCampaign(data: Record<string, unknown>) {
+  const name = data.name as string | undefined;
+  const advertiser = data.advertiser as string | undefined;
+  const whiteLabel = data.whiteLabel as string | undefined;
+  const budget = data.budget as { total?: number; daily?: number; currency?: string } | undefined;
+  const bidding = data.bidding as { strategy?: string; maxBid?: number; currentBid?: number } | undefined;
+  const targeting = data.targeting as Record<string, unknown> | undefined;
+  const creatives = data.creatives as unknown[] | undefined;
+  const placements = data.placements as unknown[] | undefined;
+  const schedule = data.schedule as Record<string, unknown> | undefined;
 
   const user = await User.findById(advertiser);
   if (!user) throw new Error("Advertiser not found");
@@ -128,17 +143,15 @@ export async function updateCampaignStatus(campaignId: string, status: string) {
 }
 
 // ── Ad Event Tracking ─────────────────────────────────────────────────────────────
-export async function trackAdEvent(data: any) {
-  const {
-    campaignId,
-    creativeId,
-    userId,
-    whiteLabelId,
-    type,
-    context,
-    attribution,
-    revenue,
-  } = data;
+export async function trackAdEvent(data: Record<string, unknown>) {
+  const campaignId = data.campaignId as string | undefined;
+  const creativeId = data.creativeId as string | undefined;
+  const userId = data.userId as string | undefined;
+  const whiteLabelId = data.whiteLabelId as string | undefined;
+  const type = data.type as string;
+  const context = data.context as { ip?: string; userAgent?: string } | undefined;
+  const attribution = data.attribution as Record<string, unknown> | undefined;
+  const revenue = data.revenue as number | undefined;
 
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
@@ -166,13 +179,13 @@ export async function trackAdEvent(data: any) {
 
   // Update campaign metrics (excluding flagged events)
   if (!flagged) {
-    await updateCampaignMetrics(campaignId, type, revenue);
+    await updateCampaignMetrics(campaignId ?? '', type, revenue);
   }
 
   return event;
 }
 
-function calculateFraudScore({ type, context, userId }: any): number {
+function calculateFraudScore({ type, context, userId }: { type: string; context?: { userAgent?: string }; userId?: string }): number {
   let score = 0;
 
   // High frequency from same user
@@ -277,43 +290,30 @@ export async function getCampaignsByPlacement(placementType: string) {
 }
 
 // ── Ad Selection & Delivery ───────────────────────────────────────────────────────
-export async function selectAdForPlacement(context: any) {
+export async function selectAdForPlacement(context: { placement?: string; user?: { role?: string }; location?: { country?: string }; imeiStatus?: string }) {
   const { placement, user, location, imeiStatus } = context;
 
-  // Get active campaigns for this placement
-  const campaigns = await getCampaignsByPlacement(placement);
+  const campaigns = await getCampaignsByPlacement(placement ?? '');
 
-  // Filter by targeting
-  const targetedCampaigns = campaigns.filter((campaign: any) => {
+  const targetedCampaigns = campaigns.filter((campaign: CampaignDoc) => {
     const targeting = campaign.targeting;
 
-    // Location targeting
-    if (targeting.locations?.length > 0) {
-      if (!location || !targeting.locations.includes(location.country)) {
-        return false;
-      }
+    if (targeting.locations?.length && location?.country && !targeting.locations.includes(location.country)) {
+      return false;
     }
 
-    // User role targeting
-    if (targeting.userRoles?.length > 0) {
-      if (!user || !targeting.userRoles.includes(user.role)) {
-        return false;
-      }
+    if (targeting.userRoles?.length && user?.role && !targeting.userRoles.includes(user.role)) {
+      return false;
     }
 
-    // IMEI status targeting
-    if (targeting.imeiStatuses?.length > 0) {
-      if (!imeiStatus || !targeting.imeiStatuses.includes(imeiStatus)) {
-        return false;
-      }
+    if (targeting.imeiStatuses?.length && imeiStatus && !targeting.imeiStatuses.includes(imeiStatus)) {
+      return false;
     }
 
-    // Budget check
     if (campaign.metrics.spend >= campaign.budget.total) {
       return false;
     }
 
-    // Daily budget check
     if (campaign.metrics.spend >= campaign.budget.daily) {
       return false;
     }
@@ -321,14 +321,12 @@ export async function selectAdForPlacement(context: any) {
     return true;
   });
 
-  // Sort by bid (simplified - in production, use more sophisticated auction)
-  targetedCampaigns.sort((a: any, b: any) => b.bidding.currentBid - a.bidding.currentBid);
+  targetedCampaigns.sort((a: CampaignDoc, b: CampaignDoc) => b.bidding.currentBid - a.bidding.currentBid);
 
-  // Return top campaign
   return targetedCampaigns[0] || null;
 }
 
-export async function deliverAd(campaignId: string, context: any) {
+export async function deliverAd(campaignId: string, context: Record<string, unknown>) {
   const campaign = await getCampaign(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
@@ -363,10 +361,10 @@ export async function optimizeCampaign(campaignId: string) {
   const recentEvents = await AdEvent.find({
     campaign: campaignId,
     timestamp: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-  });
+  }).lean() as unknown as AdEventDoc[];
 
-  const impressions = recentEvents.filter((e: any) => e.type === "impression").length;
-  const clicks = recentEvents.filter((e: any) => e.type === "click").length;
+  const impressions = recentEvents.filter((e: AdEventDoc) => e.type === "impression").length;
+  const clicks = recentEvents.filter((e: AdEventDoc) => e.type === "click").length;
   const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
   // Adjust bid based on performance
@@ -420,17 +418,16 @@ export async function getCampaignAnalytics(campaignId: string, period = "7d") {
   const events = await AdEvent.find({
     campaign: campaignId,
     timestamp: { $gte: startDate },
-  });
+  }).lean() as unknown as AdEventDoc[];
 
-  const impressions = events.filter((e: any) => e.type === "impression").length;
-  const clicks = events.filter((e: any) => e.type === "click").length;
-  const conversions = events.filter((e: any) => e.type === "conversion").length;
-  const totalRevenue = events.reduce((sum: number, e: any) => sum + (e.revenue || 0), 0);
-  const flaggedEvents = events.filter((e: any) => e.flagged).length;
+  const impressions = events.filter((e: AdEventDoc) => e.type === "impression").length;
+  const clicks = events.filter((e: AdEventDoc) => e.type === "click").length;
+  const conversions = events.filter((e: AdEventDoc) => e.type === "conversion").length;
+  const totalRevenue = events.reduce((sum: number, e: AdEventDoc) => sum + (e.revenue || 0), 0);
+  const flaggedEvents = events.filter((e: AdEventDoc) => e.flagged).length;
 
-  // Daily breakdown
-  const dailyData: Record<string, any> = {};
-  events.forEach((event: any) => {
+  const dailyData: Record<string, { impressions: number; clicks: number; conversions: number; revenue: number }> = {};
+  events.forEach((event: AdEventDoc) => {
     const date = event.timestamp.toISOString().split("T")[0];
     if (!dailyData[date]) {
       dailyData[date] = { impressions: 0, clicks: 0, conversions: 0, revenue: 0 };
@@ -473,9 +470,9 @@ export async function getPlatformRevenue(period = "month") {
     type: "conversion",
     timestamp: { $gte: startDate },
     flagged: false,
-  });
+  }).lean() as unknown as AdEventDoc[];
 
-  const totalRevenue = events.reduce((sum: number, e: any) => sum + (e.revenue || 0), 0);
+  const totalRevenue = events.reduce((sum: number, e: AdEventDoc) => sum + (e.revenue || 0), 0);
 
   // Revenue by campaign
   const revenueByCampaign = await AdEvent.aggregate([
@@ -533,7 +530,7 @@ export async function getAdBoardStatistics() {
       { $match: { type: "conversion", flagged: false } },
       { $group: { _id: null, total: { $sum: "$revenue" } } },
     ]),
-    AdCampaign.distinct("advertiser").then((ids: any[]) => ids.length),
+    AdCampaign.distinct("advertiser").then((ids: string[]) => ids.length),
   ]);
 
   const avgCtr = totalImpressions > 0 

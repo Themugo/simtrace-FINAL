@@ -86,7 +86,7 @@ router.post("/stations", authenticate, requireAdmin, async (req: AuthRequest, re
 
 router.get("/stations", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (req.query.county) filters.county = req.query.county;
     if (req.query.status) filters.status = req.query.status;
     if (req.query.stationType) filters.stationType = req.query.stationType;

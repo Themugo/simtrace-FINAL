@@ -3,8 +3,16 @@
 
 import mongoose from 'mongoose';
 
+interface ExpectedSchema {
+  indexes?: Array<{ key: Record<string, unknown> }>;
+}
+
+interface IndexInfo {
+  key: Record<string, unknown>;
+}
+
 // Transaction helper
-export async function withTransaction(operation: (session: any) => Promise<any>): Promise<any> {
+export async function withTransaction<T>(operation: (session: mongoose.ClientSession) => Promise<T>): Promise<T> {
   const session = await mongoose.startSession();
   session.startTransaction();
   
@@ -21,14 +29,14 @@ export async function withTransaction(operation: (session: any) => Promise<any>)
 }
 
 // Migration validation
-export async function validateMigration(collection: string, expectedSchema: any): Promise<boolean> {
+export async function validateMigration(collection: string, expectedSchema: ExpectedSchema): Promise<boolean> {
   const collectionInfo = await mongoose.connection.db.collection(collection);
   const indexes = await collectionInfo.indexes();
   
   // Validate indexes
   const expectedIndexes = expectedSchema.indexes || [];
   const missingIndexes = expectedIndexes.filter(
-    (expected: any) => !indexes.some((actual: any) => actual.key && JSON.stringify(actual.key) === JSON.stringify(expected.key))
+    (expected: { key: Record<string, unknown> }) => !indexes.some((actual: IndexInfo) => actual.key && JSON.stringify(actual.key) === JSON.stringify(expected.key))
   );
   
   if (missingIndexes.length > 0) {
@@ -54,7 +62,7 @@ export async function performRestoreDrill(backupPath: string): Promise<boolean> 
 }
 
 // Data consistency check
-export async function checkDataConsistency(collection: string, query: any, expectedCount: number): Promise<boolean> {
+export async function checkDataConsistency(collection: string, query: Record<string, unknown>, expectedCount: number): Promise<boolean> {
   const count = await mongoose.connection.db.collection(collection).countDocuments(query);
   
   if (count !== expectedCount) {
@@ -73,7 +81,7 @@ export async function verifyAuditTrail(userId: string, action: string, timeframe
 }
 
 // Schema validation
-export function validateSchema(document: any, schema: any): boolean {
+export function validateSchema(document: Record<string, unknown>, schema: Record<string, unknown>): boolean {
   const validator = new mongoose.Schema(schema);
   const Model = mongoose.model('TempValidation', validator);
   
@@ -81,13 +89,13 @@ export function validateSchema(document: any, schema: any): boolean {
     new Model(document).validate();
     return true;
   } catch (error) {
-    console.error('[Schema Validation] Validation failed:', (error as any).message);
+    console.error('[Schema Validation] Validation failed:', error instanceof Error ? error.message : 'Unknown error');
     return false;
   }
 }
 
 // Data migration helper
-export async function migrateData(collection: string, migrationFn: (doc: any) => Promise<any>): Promise<number> {
+export async function migrateData(collection: string, migrationFn: (doc: Record<string, unknown>) => Promise<unknown>): Promise<number> {
   return withTransaction(async (session) => {
     const documents = await mongoose.connection.db.collection(collection).find({}).session(session).toArray();
     
@@ -105,7 +113,7 @@ export async function migrateData(collection: string, migrationFn: (doc: any) =>
 }
 
 // Rollback helper
-export async function rollbackMigration(collection: string, rollbackFn: (doc: any) => Promise<any>): Promise<number> {
+export async function rollbackMigration(collection: string, rollbackFn: (doc: Record<string, unknown>) => Promise<unknown>): Promise<number> {
   return withTransaction(async (session) => {
     const documents = await mongoose.connection.db.collection(collection).find({}).session(session).toArray();
     

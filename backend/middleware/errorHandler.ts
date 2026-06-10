@@ -8,7 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 // Generate unique request ID for tracking
 export const generateRequestId = (): string => crypto.randomUUID();
 
-export const errorHandler = (err: any, req: Request & { id?: string; user?: any }, res: Response, next: NextFunction) => {
+export const errorHandler = (err: unknown, req: Request & { id?: string; user?: Record<string, unknown> }, res: Response, next: NextFunction) => {
   const requestId = req.id || generateRequestId();
   const isDev = process.env.NODE_ENV !== 'production';
 

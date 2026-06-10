@@ -9,23 +9,30 @@ import {
 } from "../db/index.js";
 
 // ── Selfie Capture Management ─────────────────────────────────────────────────────────
-export async function captureSelfie(data: any) {
+export async function captureSelfie(data: Record<string, unknown>) {
+  const d = data as {
+    imageUrl: string;
+    deviceId: string;
+    consentBasis?: string;
+    createdBy: string;
+    captureLocation?: { lat: number; lng: number };
+  };
   const captureId = `capture_${crypto.randomBytes(16).toString("hex")}`;
 
   // Generate image hash for deduplication
-  const imageHash = createHash("sha256").update(data.imageUrl).digest("hex");
+  const imageHash = createHash("sha256").update(d.imageUrl).digest("hex");
 
   // Check if device is locked
-  const device = await Device.findById(data.deviceId);
+  const device = await Device.findById(d.deviceId);
   if (!device) throw new Error("Device not found");
 
-  const lock = await checkDeviceLockStatus(data.deviceId);
+  const lock = await checkDeviceLockStatus(d.deviceId);
   if (!lock.locked) {
     throw new Error("Device is not locked");
   }
 
   // Count previous unlock attempts
-  const previousCaptures = await SelfieCapture.find({ deviceId: data.deviceId });
+  const previousCaptures = await SelfieCapture.find({ deviceId: d.deviceId });
   const unlockAttempt = previousCaptures.length + 1;
 
   const capture = await SelfieCapture.create({
@@ -34,15 +41,15 @@ export async function captureSelfie(data: any) {
     imageHash,
     unlockAttempt,
     // Lawful basis: captures only occur on a locked (reported lost/stolen) device
-    consentBasis: data.consentBasis || "legitimate_interest_stolen_device_recovery",
+    consentBasis: d.consentBasis || "legitimate_interest_stolen_device_recovery",
     retentionUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
     status: "pending",
-    createdBy: data.createdBy,
-    updatedBy: data.createdBy,
+    createdBy: d.createdBy,
+    updatedBy: d.createdBy,
   });
 
   // Record unlock attempt on lock
-  await recordUnlockAttempt((lock as any).lockId, data.captureLocation);
+  await recordUnlockAttempt((lock as { lockId: string }).lockId, d.captureLocation);
 
   // Trigger AI analysis
   await analyzeSelfie(captureId);
@@ -128,19 +135,24 @@ export async function getThiefCaptures() {
 }
 
 // ── Thief Report Management ───────────────────────────────────────────────────────────
-export async function reportThief(data: any) {
+export async function reportThief(data: Record<string, unknown>) {
+  const d = data as {
+    createdBy: string;
+    selfieCaptureId: string;
+    reportedTo: string[];
+  };
   const reportId = `report_${crypto.randomBytes(16).toString("hex")}`;
 
   const report = await ThiefReport.create({
     ...data,
     reportId,
     status: "pending",
-    createdBy: data.createdBy,
-    updatedBy: data.createdBy,
+    createdBy: d.createdBy,
+    updatedBy: d.createdBy,
   });
 
   // Update selfie capture as reported
-  const capture = await SelfieCapture.findById(data.selfieCaptureId);
+  const capture = await SelfieCapture.findById(d.selfieCaptureId);
   if (capture) {
     (capture as any).thiefReported = true;
     (capture as any).thiefReportedTo = data.reportedTo;
@@ -188,12 +200,12 @@ export async function autoReportThief(captureId: string) {
   return report;
 }
 
-export async function updateThiefReport(reportId: string, updates: any, updatedBy: string) {
+export async function updateThiefReport(reportId: string, updates: Record<string, unknown>, updatedBy: string) {
   const report = await ThiefReport.findOne({ reportId });
   if (!report) throw new Error("Report not found");
 
   Object.assign(report, updates);
-  (report as any).updatedBy = updatedBy;
+  (report as Record<string, unknown>).updatedBy = updatedBy;
   report.updatedAt = new Date();
   await report.save();
 

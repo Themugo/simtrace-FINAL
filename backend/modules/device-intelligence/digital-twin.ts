@@ -4,6 +4,20 @@
 // @ts-ignore - Import from JS file
 import { DeviceLocation, TrackingEvent } from '../../db/index.js';
 
+interface DeviceLocationDoc {
+  lat: number;
+  lng: number;
+  timestamp: Date;
+}
+
+interface LocationCluster {
+  center: { lat: number; lng: number };
+  count: number;
+  firstSeen: Date;
+  lastSeen: Date;
+  avgStayDuration: number;
+}
+
 export interface DeviceDigitalTwin {
   imei: string;
   riskHistory: RiskHistoryEntry[];
@@ -137,7 +151,7 @@ class DigitalTwinManager {
   }
 
   // Detect movement pattern type
-  private detectMovementPatternType(locations: any[]): 'commute' | 'random' | 'stationary' | 'travel' {
+  private detectMovementPatternType(locations: DeviceLocationDoc[]): 'commute' | 'random' | 'stationary' | 'travel' {
     if (locations.length < 2) return 'stationary';
 
     const distances: number[] = [];
@@ -157,14 +171,14 @@ class DigitalTwinManager {
     return 'random';
   }
 
-  private isCommutePattern(locations: any[]): boolean {
+  private isCommutePattern(locations: DeviceLocationDoc[]): boolean {
     // Check for regular movement between 2-3 locations
     const uniqueLocations = new Set(locations.map(l => `${l.lat.toFixed(4)},${l.lng.toFixed(4)}`));
     return uniqueLocations.size >= 2 && uniqueLocations.size <= 4;
   }
 
   // Extract typical locations
-  private extractTypicalLocations(locations: any[]): Array<{ lat: number; lng: number; frequency: number }> {
+  private extractTypicalLocations(locations: DeviceLocationDoc[]): Array<{ lat: number; lng: number; frequency: number }> {
     const locationCounts = new Map<string, { lat: number; lng: number; count: number }>();
 
     for (const loc of locations) {
@@ -190,7 +204,7 @@ class DigitalTwinManager {
   }
 
   // Extract typical times
-  private extractTypicalTimes(locations: any[]): Array<{ hour: number; frequency: number }> {
+  private extractTypicalTimes(locations: DeviceLocationDoc[]): Array<{ hour: number; frequency: number }> {
     const hourCounts = new Map<number, number>();
 
     for (const loc of locations) {
@@ -208,7 +222,7 @@ class DigitalTwinManager {
   }
 
   // Calculate average speed
-  private calculateAverageSpeed(locations: any[]): number {
+  private calculateAverageSpeed(locations: DeviceLocationDoc[]): number {
     if (locations.length < 2) return 0;
 
     let totalSpeed = 0;
@@ -233,7 +247,7 @@ class DigitalTwinManager {
   }
 
   // Calculate pattern confidence
-  private calculatePatternConfidence(locations: any[]): number {
+  private calculatePatternConfidence(locations: DeviceLocationDoc[]): number {
     if (locations.length < 10) return 0;
 
     const typicalLocations = this.extractTypicalLocations(locations);
@@ -274,14 +288,14 @@ class DigitalTwinManager {
   }
 
   // Cluster locations
-  private clusterLocations(locations: any[]): Array<{
+  private clusterLocations(locations: DeviceLocationDoc[]): Array<{
     center: { lat: number; lng: number };
     count: number;
     firstSeen: Date;
     lastSeen: Date;
     avgStayDuration: number;
   }> {
-    const clusters: Map<string, any> = new Map();
+    const clusters = new Map<string, LocationCluster>();
     const threshold = 0.001; // ~100m
 
     for (const loc of locations) {
@@ -321,7 +335,7 @@ class DigitalTwinManager {
   }
 
   // Classify location type
-  private classifyLocation(cluster: any): 'home' | 'work' | 'frequent' | 'transit' {
+  private classifyLocation(cluster: LocationCluster): 'home' | 'work' | 'frequent' | 'transit' {
     const hour = new Date(cluster.firstSeen).getHours();
     
     // If mostly visited during evening/night, likely home
@@ -337,7 +351,7 @@ class DigitalTwinManager {
   }
 
   // Generate location name
-  private generateLocationName(cluster: any, type: string): string {
+  private generateLocationName(cluster: LocationCluster, type: string): string {
     const typeNames = {
       home: 'Home',
       work: 'Work',
@@ -385,7 +399,7 @@ class DigitalTwinManager {
     };
   }
 
-  private calculateActivityLevel(locations: any[]): 'low' | 'medium' | 'high' {
+  private calculateActivityLevel(locations: DeviceLocationDoc[]): 'low' | 'medium' | 'high' {
     const movementCount = locations.length;
     const daysCovered = new Set(locations.map(l => new Date(l.timestamp).toDateString())).size;
     const avgPerDay = movementCount / daysCovered;
@@ -395,7 +409,7 @@ class DigitalTwinManager {
     return 'high';
   }
 
-  private calculateTypicalDayStart(locations: any[]): number {
+  private calculateTypicalDayStart(locations: DeviceLocationDoc[]): number {
     const hours = locations.map(l => new Date(l.timestamp).getHours());
     const counts = new Map<number, number>();
     
@@ -416,7 +430,7 @@ class DigitalTwinManager {
     return startHour;
   }
 
-  private calculateTypicalDayEnd(locations: any[]): number {
+  private calculateTypicalDayEnd(locations: DeviceLocationDoc[]): number {
     const hours = locations.map(l => new Date(l.timestamp).getHours());
     const counts = new Map<number, number>();
     
@@ -453,7 +467,7 @@ class DigitalTwinManager {
     return (avgConfidence + (1 - locationDiversity)) / 2;
   }
 
-  private async countAnomalies(imei: string, locations: any[]): Promise<number> {
+  private async countAnomalies(imei: string, locations: DeviceLocationDoc[]): Promise<number> {
     // Count events flagged as anomalies
     const events = await TrackingEvent.find({ imei, anomaly: true });
     return events.length;

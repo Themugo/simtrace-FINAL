@@ -11,7 +11,7 @@ const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
 
 describeMongo('Risk Scoring Engine Tests', () => {
   let engine: RiskScoringEngine;
-  let testDevice: any;
+  let testDevice: Record<string, unknown>;
   let testImei: string;
 
   beforeAll(async () => {

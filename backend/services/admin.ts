@@ -6,7 +6,7 @@ import {
 } from "../db/index.js";
 
 // ── Admin Management ─────────────────────────────────────────────────────────────────
-export async function createAdmin(data: any) {
+export async function createAdmin(data: Record<string, unknown>) {
   const adminId = `admin_${crypto.randomBytes(16).toString("hex")}`;
 
   const admin = await Admin.create({
@@ -37,7 +37,7 @@ export async function getAdminByOfficialEmail(officialEmail: string) {
   return admin;
 }
 
-export async function updateAdmin(adminId: string, updates: any) {
+export async function updateAdmin(adminId: string, updates: Record<string, unknown>) {
   const admin = await Admin.findOneAndUpdate(
     { adminId },
     {
@@ -97,7 +97,7 @@ export async function deleteAdmin(adminId: string) {
   const superAdmin = await SuperAdmin.findById(admin.managedBy);
   if (superAdmin) {
     superAdmin.managedAdmins = superAdmin.managedAdmins.filter(
-      (id: any) => id.toString() !== admin._id.toString()
+      (id: { toString(): string }) => id.toString() !== admin._id.toString()
     );
     await superAdmin.save();
   }
@@ -129,7 +129,7 @@ export async function addLayerAccess(adminId: string, layer: string, permissions
   if (!admin) throw new Error("Admin not found");
 
   // Check if layer access already exists
-  const existingAccess = admin.layerAccess.find((la: any) => la.layer === layer);
+  const existingAccess = admin.layerAccess.find((la: { layer: string; permissions: string[] }) => la.layer === layer);
   if (existingAccess) {
     existingAccess.permissions = permissions;
   } else {
@@ -149,7 +149,7 @@ export async function removeLayerAccess(adminId: string, layer: string) {
   const admin = await Admin.findOne({ adminId });
   if (!admin) throw new Error("Admin not found");
 
-  admin.layerAccess = admin.layerAccess.filter((la: any) => la.layer !== layer);
+  admin.layerAccess = admin.layerAccess.filter((la: { layer: string }) => la.layer !== layer);
   admin.updatedAt = new Date();
   await admin.save();
 
@@ -160,7 +160,7 @@ export async function updateLayerPermissions(adminId: string, layer: string, per
   const admin = await Admin.findOne({ adminId });
   if (!admin) throw new Error("Admin not found");
 
-  const layerAccess = admin.layerAccess.find((la: any) => la.layer === layer);
+  const layerAccess = admin.layerAccess.find((la: { layer: string; permissions: string[] }) => la.layer === layer);
   if (!layerAccess) throw new Error("Layer access not found");
 
   layerAccess.permissions = permissions;

@@ -23,7 +23,7 @@ router.get("/", authenticate, requireRole("law_enforcement"), async (req: AuthRe
     });
     const { status, priority, agency, assignedTo } = schema.parse(req.query);
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (status) query.status = status;
     if (priority) query.priority = priority;
     if (agency) query.agency = agency;

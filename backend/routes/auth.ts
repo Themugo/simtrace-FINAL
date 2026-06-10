@@ -107,7 +107,7 @@ router.patch("/update-profile", authenticate, async (req: AuthRequest, res: Resp
       phone: z.string().max(20).optional(),
       name:  z.string().min(2).max(80).optional(),
     }).parse(req.body);
-    const update: any = {};
+    const update: Record<string, unknown> = {};
     if (phone !== undefined) update.phone = phone;
     if (name  !== undefined) update.name  = name;
     const user = await User.findByIdAndUpdate(req.user!.id, update, { new: true }).select("-passwordHash -apiKey");
@@ -207,15 +207,15 @@ router.post("/reset-password", async (req: Request, res: Response, next: NextFun
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function sanitize(user: any): SanitizedUser {
+function sanitize(user: Record<string, unknown>): SanitizedUser {
   return {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    emailVerified: user.emailVerified,
-    phoneVerified: user.phoneVerified,
-    mustChangePassword: user.mustChangePassword,
+    id: user._id as string,
+    name: user.name as string,
+    email: user.email as string,
+    role: user.role as string,
+    emailVerified: user.emailVerified as boolean | undefined,
+    phoneVerified: user.phoneVerified as boolean | undefined,
+    mustChangePassword: user.mustChangePassword as boolean | undefined,
   };
 }
 

@@ -5,7 +5,7 @@ import { WebhookSubscription, WebhookDeliveryLog, User } from "../db/index.js";
 import crypto from "crypto";
 
 // ── Webhook Subscription Management ───────────────────────────────────────────────
-export async function createWebhookSubscription(data: any) {
+export async function createWebhookSubscription(data: { userId: string; url: string; events: string[]; secret?: string }) {
   const {
     userId,
     url,
@@ -44,7 +44,7 @@ export async function getWebhookSubscriptionsByUser(userId: string) {
   return subscriptions;
 }
 
-export async function updateWebhookSubscription(subscriptionId: string, updates: any) {
+export async function updateWebhookSubscription(subscriptionId: string, updates: Record<string, unknown>) {
   const subscription = await WebhookSubscription.findById(subscriptionId);
   if (!subscription) throw new Error("Webhook subscription not found");
 
@@ -80,13 +80,13 @@ export async function regenerateWebhookSecret(subscriptionId: string) {
 }
 
 // ── Webhook Delivery ─────────────────────────────────────────────────────────────
-export async function triggerWebhook(event: string, payload: any) {
+export async function triggerWebhook(event: string, payload: Record<string, unknown>) {
   const subscriptions = await WebhookSubscription.find({
     active: true,
     events: event,
   });
 
-  const deliveries: any[] = [];
+  const deliveries: unknown[] = [];
 
   for (const subscription of subscriptions) {
     try {
@@ -100,7 +100,18 @@ export async function triggerWebhook(event: string, payload: any) {
   return deliveries;
 }
 
-async function deliverWebhook(subscription: any, event: string, payload: any) {
+type SubscriptionDoc = {
+  _id: string;
+  url: string;
+  secret: string;
+  totalDelivered: number;
+  lastDeliveredAt?: Date;
+  totalFailed: number;
+  lastFailedAt?: Date;
+  save(): Promise<unknown>;
+};
+
+async function deliverWebhook(subscription: SubscriptionDoc, event: string, payload: Record<string, unknown>) {
   const signature = generateSignature(payload, subscription.secret);
 
   const response = await fetch(subscription.url, {
@@ -140,7 +151,7 @@ async function deliverWebhook(subscription: any, event: string, payload: any) {
   return log;
 }
 
-function generateSignature(payload: any, secret: string): string {
+function generateSignature(payload: Record<string, unknown>, secret: string): string {
   const payloadString = JSON.stringify(payload);
   const hmac = crypto.createHmac("sha256", secret);
   hmac.update(payloadString);

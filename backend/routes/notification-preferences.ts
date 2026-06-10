@@ -104,10 +104,10 @@ router.patch("/channels", authenticate, async (req: AuthRequest, res: Response, 
     const prefs = await NotificationPreferences.findOneAndUpdate(
       { user: req.user!.id },
       {
-        $set: Object.keys(data).reduce((acc: any, key) => {
-          acc[`channels.${key}`] = (data as any)[key];
+        $set: Object.keys(data).reduce((acc: Record<string, unknown>, key) => {
+          acc[`channels.${key}`] = (data as Record<string, unknown>)[key];
           return acc;
-        }, {}),
+        }, {} as Record<string, unknown>),
         updatedAt: new Date(),
       },
       { upsert: true, new: true }
@@ -136,10 +136,10 @@ router.patch("/alert-types", authenticate, async (req: AuthRequest, res: Respons
     const prefs = await NotificationPreferences.findOneAndUpdate(
       { user: req.user!.id },
       {
-        $set: Object.keys(data).reduce((acc: any, key) => {
-          acc[`alertTypes.${key}`] = (data as any)[key];
+        $set: Object.keys(data).reduce((acc: Record<string, unknown>, key) => {
+          acc[`alertTypes.${key}`] = (data as Record<string, unknown>)[key];
           return acc;
-        }, {}),
+        }, {} as Record<string, unknown>),
         updatedAt: new Date(),
       },
       { upsert: true, new: true }
@@ -166,10 +166,10 @@ router.patch("/quiet-hours", authenticate, async (req: AuthRequest, res: Respons
     const prefs = await NotificationPreferences.findOneAndUpdate(
       { user: req.user!.id },
       {
-        $set: Object.keys(data).reduce((acc: any, key) => {
-          acc[`quietHours.${key}`] = (data as any)[key];
+        $set: Object.keys(data).reduce((acc: Record<string, unknown>, key) => {
+          acc[`quietHours.${key}`] = (data as Record<string, unknown>)[key];
           return acc;
-        }, {}),
+        }, {} as Record<string, unknown>),
         updatedAt: new Date(),
       },
       { upsert: true, new: true }

@@ -81,7 +81,7 @@ export function requireIPWhitelist(whitelistedIPs: string[]) {
 }
 
 // Rate Limit by API Key
-export function createAPIKeyRateLimit(limiter: any) {
+export function createAPIKeyRateLimit(limiter: Record<string, unknown>) {
   return (req: Request & { rateLimitKey?: string }, res: Response, next: NextFunction) => {
     const apiKey = req.headers['x-api-key'] as string;
     

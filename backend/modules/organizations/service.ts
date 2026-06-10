@@ -40,7 +40,7 @@ export async function getOrganizationById(organizationId: string) {
   return Organization.findById(organizationId).lean();
 }
 
-export async function updateOrganization(organizationId: string, updates: any) {
+export async function updateOrganization(organizationId: string, updates: Record<string, unknown>) {
   return Organization.findByIdAndUpdate(organizationId, updates, { new: true }).lean();
 }
 

@@ -44,7 +44,7 @@ export function requireOrganizationAccess() {
 export function withTenantIsolation(req: Request, res: Response, next: NextFunction): void {
   const originalJson = res.json;
   
-  res.json = function(this: Response, data: any) {
+  res.json = function(this: Response, data: unknown) {
     // If the response contains data that should be tenant-isolated,
     // the organizationId filter should have been applied in the controller
     return originalJson.call(this, data);

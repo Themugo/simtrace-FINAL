@@ -119,11 +119,22 @@ export async function detectIpChange(imei: string, newIpAddress: string) {
   return false;
 }
 
-export async function detectFingerprintChange(imei: string, newFingerprint: any) {
+interface DeviceFingerprint {
+  networkMac?: string;
+  bluetoothMac?: string;
+  screenRes?: string;
+  osVersion?: string;
+  buildId?: string;
+}
+
+export async function detectFingerprintChange(imei: string, newFingerprint: DeviceFingerprint) {
   const device = await Device.findOne({ imei });
   
-  if (!device || !device.fingerprint) {
-    // First fingerprint, store it
+  if (!device) {
+    return false;
+  }
+
+  if (!device.fingerprint) {
     await Device.findByIdAndUpdate(device._id, { fingerprint: newFingerprint });
     return false;
   }
@@ -179,7 +190,7 @@ export async function analyzeMovementContinuity(imei: string, hours = 24) {
     return { continuous: true, gaps: [] };
   }
   
-  const gaps: any[] = [];
+  const gaps: Array<{ start: Date; end: Date; duration: number }> = [];
   let lastTimestamp = locations[0].timestamp.getTime();
   
   for (let i = 1; i < locations.length; i++) {
@@ -215,7 +226,13 @@ export async function detectImpossibleTravel(imei: string, maxSpeedKmh = 1000) {
   }
   
   const earthRadiusKm = 6371;
-  const suspiciousMoves: any[] = [];
+  const suspiciousMoves: Array<{
+    from: { lat: number; lng: number; timestamp: Date };
+    to: { lat: number; lng: number; timestamp: Date };
+    distance: number;
+    timeDiffHours: number;
+    calculatedSpeed: number;
+  }> = [];
   
   for (let i = 1; i < locations.length; i++) {
     const prev = locations[i - 1];

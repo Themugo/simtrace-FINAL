@@ -202,8 +202,8 @@ export async function triangulateDeviceLocation(imei: string): Promise<{
   }
 
   // Perform triangulation (simplified)
-  const avgLat = recentPings.reduce((sum: number, p: any) => sum + p.lat, 0) / recentPings.length;
-  const avgLng = recentPings.reduce((sum: number, p: any) => sum + p.lng, 0) / recentPings.length;
+  const avgLat = recentPings.reduce((sum: number, p) => sum + p.lat, 0) / recentPings.length;
+  const avgLng = recentPings.reduce((sum: number, p) => sum + p.lng, 0) / recentPings.length;
 
   return {
     lat: avgLat,
