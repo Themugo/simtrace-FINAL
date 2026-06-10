@@ -258,7 +258,7 @@ export default function TelecomPortalPage() {
                   onClick={async () => {
                     setTestingHook(true); setWebhookTest(null);
                     try {
-                      const res = await api.testWebhook(partner.partner!._id);
+                      const res = await api.testWebhook(partner.partner?._id || '');
                       setWebhookTest(res);
                     } catch (err: any) { setWebhookTest({ success: false, message: err.message }); }
                     finally { setTestingHook(false); }

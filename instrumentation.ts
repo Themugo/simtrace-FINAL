@@ -5,15 +5,17 @@ Sentry.init({
   environment: process.env.NODE_ENV || "development",
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
   profilesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
   
-  integrations: [
-    Sentry.replayIntegration({
-      maskAllText: true,
-      blockAllMedia: true,
-    }),
-  ],
+  // Replay integration temporarily disabled due to import compatibility
+  // replaysSessionSampleRate: 0.1,
+  // replaysOnErrorSampleRate: 1.0,
+  
+  // integrations: [
+  //   Sentry.replayIntegration({
+  //     maskAllText: true,
+  //     blockAllMedia: true,
+  //   }),
+  // ],
   
   beforeSend(event, hint) {
     // Filter out certain errors if needed

@@ -11,7 +11,7 @@ import pinoHttp from "pino-http";
 import { connectDB } from "./db/index.js";
 import { seedPlans } from "./services/billing.js";
 import { initIO } from "./services/socket.js";
-import { authenticateSocket } from "./middleware/auth.js";
+import { authenticateSocket, authenticate } from "./middleware/auth.js";
 import { sanitizeInput } from "./middleware/validation.js";
 import { notFoundHandler } from "./middleware/errorHandler.js";
 import { initializeQueues } from "./queues/index.js";
@@ -25,6 +25,7 @@ import "./sentry.js";
 // Route imports
 import authRoutes      from "./routes/auth.js";
 import verificationRoutes from "./routes/verification.js";
+import phoneVerificationRoutes from "./routes/phone-verification.js";
 import oauthRoutes     from "./routes/oauth.js";
 import deviceRoutes    from "./routes/devices.js";
 import imeiRoutes      from "./routes/imei.js";
@@ -95,6 +96,8 @@ import aiAdvancedRoutes from "./routes/aiAdvanced.js";
 import analyticsRoutes from "./routes/analytics.js";
 import i18nRoutes from "./routes/i18n.js";
 import enterpriseAdvancedRoutes from "./routes/enterpriseAdvanced.js";
+import autoRegisterRoutes from "./routes/auto-register.js";
+import reportsRoutes from "./routes/reports.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();

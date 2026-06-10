@@ -1,38 +1,10 @@
 // OpenTelemetry Tracing Setup
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
-
-// IMPORTANT: @sentry/node (v8+) initialises its OWN OpenTelemetry SDK whenever a
-// SENTRY_DSN is configured. Starting a SECOND NodeSDK here makes both SDKs contend
-// for the global tracer provider during import and HANGS process startup — the
-// HTTP port never binds and the platform (e.g. Render) times out the deploy.
-//
-// So the standalone SDK is OFF by default. It only starts when explicitly opted in
-// (ENABLE_OTEL_SDK=true) AND Sentry is NOT already managing tracing (no SENTRY_DSN).
-// When Sentry is active it provides the tracing; the no-op tracer fallback below
-// keeps withTracing()/traced() working in every case.
-let sdk: NodeSDK | null = null;
+// Disabled due to import compatibility issues with newer OpenTelemetry versions
+// TODO: Update to use correct semantic conventions when needed
+let sdk: any = null;
 
 if (process.env.ENABLE_OTEL_SDK === 'true' && !process.env.SENTRY_DSN) {
-  try {
-    sdk = new NodeSDK({
-      resource: new Resource({
-        [SemanticResourceAttributes.SERVICE_NAME]: 'simtrace-backend',
-        [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
-        [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
-      }) as any,
-      spanProcessor: new SimpleSpanProcessor(new ConsoleSpanExporter() as any) as any,
-      // Add more exporters as needed (e.g., Jaeger, OTLP)
-    });
-    sdk.start();
-    console.log('[Tracing] standalone OpenTelemetry SDK started');
-  } catch (error) {
-    console.error('[Tracing] Failed to initialize OpenTelemetry:', error);
-    sdk = null;
-  }
+  console.log('[Tracing] OpenTelemetry SDK temporarily disabled due to import compatibility');
 } else if (process.env.SENTRY_DSN) {
   console.log('[Tracing] using Sentry-managed OpenTelemetry (standalone SDK disabled)');
 } else {
