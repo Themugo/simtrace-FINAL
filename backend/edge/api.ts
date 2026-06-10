@@ -441,7 +441,7 @@ class EdgeAPI {
     this.addEdgeRoute({
       path: '/api/v1/devices',
       methods: ['GET'],
-      origin: 'https://api.simtrace.com',
+      origin: process.env.EDGE_API_ORIGIN || 'https://api.simtrace.com',
       cacheTTL: 300,
       cacheKey: ['authorization'],
       enabled: true,
@@ -450,7 +450,7 @@ class EdgeAPI {
     this.addEdgeRoute({
       path: '/api/v1/devices/*',
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
-      origin: 'https://api.simtrace.com',
+      origin: process.env.EDGE_API_ORIGIN || 'https://api.simtrace.com',
       bypassCache: true,
       enabled: true,
     });
@@ -458,21 +458,21 @@ class EdgeAPI {
     // Add regional configs
     this.addRegionalConfig({
       region: 'us-east',
-      endpoint: 'https://api-us.simtrace.com',
+      endpoint: process.env.EDGE_API_US_ENDPOINT || 'https://api-us.simtrace.com',
       priority: 1,
       healthCheck: { path: '/health', interval: 30, timeout: 5 },
     });
 
     this.addRegionalConfig({
       region: 'eu-west',
-      endpoint: 'https://api-eu.simtrace.com',
+      endpoint: process.env.EDGE_API_EU_ENDPOINT || 'https://api-eu.simtrace.com',
       priority: 2,
       healthCheck: { path: '/health', interval: 30, timeout: 5 },
     });
 
     this.addRegionalConfig({
       region: 'africa',
-      endpoint: 'https://api-af.simtrace.com',
+      endpoint: process.env.EDGE_API_AF_ENDPOINT || 'https://api-af.simtrace.com',
       priority: 3,
       healthCheck: { path: '/health', interval: 30, timeout: 5 },
     });

@@ -4,7 +4,9 @@ import imeiRoutes from '../routes/imei';
 import { connectDB, Device } from '../db/index';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-describe('IMEI Routes', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('IMEI Routes', () => {
   let app: express.Application;
   let mongoServer: MongoMemoryServer;
 

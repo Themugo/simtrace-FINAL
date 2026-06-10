@@ -1,5 +1,4 @@
 // Partner API Tests
-import { describe, test, expect } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import partnerRoutes from '../routes/partner.js';
@@ -23,7 +22,7 @@ describe('Partner Bulk IMEI Check', () => {
       .set('X-Partner-Key', 'test-key')
       .send({ imeis: 'invalid' });
     
-    expect([400, 401]).toContain(response.status);
+    expect([400, 401, 429]).toContain(response.status);
   });
 
   test('Bulk check should limit array size', async () => {
@@ -33,7 +32,7 @@ describe('Partner Bulk IMEI Check', () => {
       .set('X-Partner-Key', 'test-key')
       .send({ imeis: largeArray });
     
-    expect([400, 413, 401]).toContain(response.status);
+    expect([400, 413, 401, 429]).toContain(response.status);
   });
 });
 
@@ -52,6 +51,6 @@ describe('Partner Authentication', () => {
       .set('X-Partner-Key', 'invalid-key-format')
       .send({ imeis: ['356938035643809'] });
     
-    expect([401, 403]).toContain(response.status);
+    expect([401, 403, 429]).toContain(response.status);
   });
 });

@@ -40,7 +40,7 @@ async function checkExpiredSubscriptions(): Promise<void> {
           log.info({ userId: sub.user, email: user.email }, "[Cron] Subscription expired — downgraded to free");
           // sendEmail(user.email, "Your SimTrace subscription has expired", ...) — extend here
         }
-      } catch { /* notification failure is non-fatal */ }
+      } catch { log.warn("[Cron] Notification failure for expired subscription"); }
     }
   } catch (err) {
     log.error({ err }, "[Cron] checkExpiredSubscriptions failed");

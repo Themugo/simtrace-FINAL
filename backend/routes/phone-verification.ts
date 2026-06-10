@@ -134,7 +134,7 @@ router.post(
         user = await User.create({
           name: `User ${phoneNumber.slice(-4)}`,
           phoneNumber,
-          email: `${phoneNumber}@simtrace.site`,
+          email: `${phoneNumber}@${process.env.PHONE_EMAIL_DOMAIN || "phone.local"}`,
           role: "user",
           phoneVerified: true,
         });

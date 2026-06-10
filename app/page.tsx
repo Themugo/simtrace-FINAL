@@ -148,9 +148,6 @@ export default function HomePage() {
 
           {/* CTA buttons */}
           <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap", marginTop: "2rem" }}>
-            <Link href="/download" className="btn-primary" style={{ padding: "0.75rem 2rem", fontSize: "0.95rem", textDecoration: "none", background: "linear-gradient(135deg, var(--emerald), var(--sky))" }}>
-              📱 Download App
-            </Link>
             <Link href="/register" className="btn-primary" style={{ padding: "0.75rem 2rem", fontSize: "0.95rem", textDecoration: "none" }}>
               Get Started Free →
             </Link>
@@ -256,9 +253,6 @@ export default function HomePage() {
           Free plan includes 2 devices. No credit card required. Takes 60 seconds to set up.
         </p>
         <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/download" className="btn-primary" style={{ padding: "0.85rem 2.25rem", fontSize: "1rem", textDecoration: "none", background: "linear-gradient(135deg, var(--emerald), var(--sky))" }}>
-            📱 Download App
-          </Link>
           <Link href="/register" className="btn-primary" style={{ padding: "0.85rem 2.25rem", fontSize: "1rem", textDecoration: "none" }}>
             Create Free Account
           </Link>

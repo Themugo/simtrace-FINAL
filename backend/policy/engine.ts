@@ -268,6 +268,7 @@ class PolicyEngine {
       const func = new Function('context', `return ${condition}`);
       return func(context);
     } catch {
+      console.warn("[Policy] Failed to evaluate condition:", condition);
       return false;
     }
   }

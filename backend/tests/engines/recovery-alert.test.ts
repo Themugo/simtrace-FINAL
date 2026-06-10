@@ -1,18 +1,18 @@
 // Recovery & Alert Engine Integration Tests
 // Test the recovery actions and alerting functionality
 
-import { describe, it, before, after } from 'mocha';
-import { expect } from 'chai';
-import { connectDB } from '../db/index.js';
-import { Device } from '../db/index.js';
-import { RecoveryAlertEngine } from '../engines/recovery-alert-engine.js';
+import { connectDB } from '../../db/index.js';
+import { Device } from '../../db/index.js';
+import { RecoveryAlertEngine } from '../../engines/recovery-alert-engine.js';
 
-describe('Recovery & Alert Engine Tests', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Recovery & Alert Engine Tests', () => {
   let engine: RecoveryAlertEngine;
   let testDevice: any;
   let testImei: string;
 
-  before(async () => {
+  beforeAll(async () => {
     await connectDB();
     engine = new RecoveryAlertEngine();
 
@@ -28,7 +28,7 @@ describe('Recovery & Alert Engine Tests', () => {
     });
   });
 
-  after(async () => {
+  afterAll(async () => {
     // Cleanup test data
     await Device.deleteOne({ imei: testImei });
   });

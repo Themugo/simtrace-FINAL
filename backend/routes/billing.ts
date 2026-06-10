@@ -125,7 +125,8 @@ router.get("/mpesa-status/:checkoutId", authenticate, async (req: AuthRequest, r
     try {
       const daraja = await queryMpesaSTK(String(checkoutId));
       res.json({ status: "pending", daraja, message: "Waiting for M-Pesa confirmation…" });
-    } catch {
+    } catch (err) {
+      console.error("[Billing] M-Pesa status query failed:", err);
       res.json({ status: "pending", message: "Waiting for M-Pesa confirmation…" });
     }
   } catch (err) { next(err); }

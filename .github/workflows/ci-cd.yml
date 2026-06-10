@@ -106,3 +106,16 @@ jobs:
         with:
           name: frontend-build
           path: .next
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: [test-backend, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Disabled - backend already deployed on Render, Railway action version invalid
+    # - uses: actions/checkout@v4
+    # - uses: railwayapp/cli@v1
+    #   with:
+    #     command: up
+    #     service: backend
+    #   env:
+    #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

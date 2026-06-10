@@ -1,20 +1,20 @@
 // Risk Scoring Engine Integration Tests
 // Test the risk scoring and threat detection functionality
 
-import { describe, it, before, after } from 'mocha';
-import { expect } from 'chai';
-import { connectDB } from '../db/index.js';
-import { Device } from '../db/index.js';
-import { Ping } from '../db/index.js';
-import { TrackingEvent } from '../db/index.js';
-import { RiskScoringEngine } from '../engines/risk-scoring-engine.js';
+import { connectDB } from '../../db/index.js';
+import { Device } from '../../db/index.js';
+import { Ping } from '../../db/index.js';
+import { TrackingEvent } from '../../db/index.js';
+import { RiskScoringEngine } from '../../engines/risk-scoring-engine.js';
 
-describe('Risk Scoring Engine Tests', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Risk Scoring Engine Tests', () => {
   let engine: RiskScoringEngine;
   let testDevice: any;
   let testImei: string;
 
-  before(async () => {
+  beforeAll(async () => {
     await connectDB();
     engine = new RiskScoringEngine();
 
@@ -30,7 +30,7 @@ describe('Risk Scoring Engine Tests', () => {
     });
   });
 
-  after(async () => {
+  afterAll(async () => {
     // Cleanup test data
     await Device.deleteOne({ imei: testImei });
     await Ping.deleteMany({ imei: testImei });

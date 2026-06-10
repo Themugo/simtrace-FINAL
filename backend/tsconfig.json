@@ -20,11 +20,8 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": false,
-    "noFallthroughCasesInSwitch": false,
-    "types": [
-      "node",
-      "jest"
-    ]
+    "noFallthroughCasesInSwitch": true,
+    "types": ["node", "jest"]
   },
   "include": [
     "**/*.ts"

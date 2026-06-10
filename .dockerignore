@@ -11,3 +11,33 @@ README.md
 .DS_Store
 Thumbs.db
 scripts/seed-demo.js
+
+# Build & test artifacts
+coverage/
+.next/
+*.tsbuildinfo
+.next
+k6/
+e2e/
+__tests__/
+tests/
+prototypes/
+runbooks/
+governance/
+terraform/
+kubernetes/
+monitoring/
+docs/
+mobile/
+
+# IDE & local config
+.prettierrc
+.prettierignore
+.eslintrc.json
+.sentryclirc
+next-env.d.ts
+instrumentation.ts
+docker-compose.yml
+render.yaml
+vercel.json
+env.production.template

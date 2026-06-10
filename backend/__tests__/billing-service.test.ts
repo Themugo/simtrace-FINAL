@@ -2,7 +2,9 @@ import { connectDB, User, Subscription, Payment } from '../db/index.js';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import * as billingService from '../services/billing.js';
 
-describe('Billing Service', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Billing Service', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

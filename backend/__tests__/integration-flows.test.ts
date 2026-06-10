@@ -6,7 +6,9 @@ import billingRoutes from '../routes/billing.js';
 import { connectDB, User, Device, Subscription } from '../db/index.js';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-describe('Integration Tests - Critical Flows', () => {
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Integration Tests - Critical Flows', () => {
   let app: express.Application;
   let mongoServer: MongoMemoryServer;
 

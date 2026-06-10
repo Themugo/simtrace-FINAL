@@ -70,6 +70,7 @@ export async function getSession(refreshToken: string): Promise<SessionData | nu
   try {
     return JSON.parse(data) as SessionData;
   } catch {
+    console.warn("[Session] Failed to parse session data (may be corrupted)");
     return null;
   }
 }
@@ -100,7 +101,7 @@ async function deleteAllUserSessions(userId: string): Promise<void> {
           await redis.del(key);
         }
       } catch {
-        // Ignore parse errors
+        console.warn("[Session] Failed to parse session data during cleanup");
       }
     }
   }
@@ -153,6 +154,7 @@ export function validateAccessToken(token: string): SessionData | null {
       role: payload.role,
     };
   } catch {
+    console.warn("[Session] Failed to parse session token payload");
     return null;
   }
 }
