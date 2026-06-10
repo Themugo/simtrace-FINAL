@@ -91,6 +91,10 @@ import securityRoutes from "./routes/security.js";
 import offlineRoutes from "./routes/offline.js";
 import infrastructureRoutes from "./routes/infrastructure.js";
 import networkEffectsRoutes from "./routes/networkEffects.js";
+import aiAdvancedRoutes from "./routes/aiAdvanced.js";
+import analyticsRoutes from "./routes/analytics.js";
+import i18nRoutes from "./routes/i18n.js";
+import enterpriseAdvancedRoutes from "./routes/enterpriseAdvanced.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
@@ -317,6 +321,10 @@ app.use("/api/security",              securityRoutes);
 app.use("/api/offline",               offlineRoutes);
 app.use("/api/infrastructure",       infrastructureRoutes);
 app.use("/api/network-effects",       networkEffectsRoutes);
+app.use("/api/ai-advanced",           aiAdvancedRoutes);
+app.use("/api/analytics",             analyticsRoutes);
+app.use("/api/i18n",                  i18nRoutes);
+app.use("/api/enterprise-advanced",   enterpriseAdvancedRoutes);
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = initIO(server, allowedOrigins);
