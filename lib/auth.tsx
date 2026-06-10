@@ -8,6 +8,8 @@ interface User {
   email: string;
   role: string;
   phone?: string;
+  station?: string;
+  operator?: string;
 }
 
 interface AuthContextType {

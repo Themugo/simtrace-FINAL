@@ -48,7 +48,7 @@ class PushNotificationManager {
       // Send subscription to server
       await this.sendSubscriptionToServer(this.subscription);
 
-      console.log('[Push Notifications] Initialized successfully');
+      // Push notifications initialized successfully
       return true;
     } catch (error) {
       console.error('[Push Notifications] Initialization failed:', error);
@@ -101,7 +101,7 @@ class PushNotificationManager {
       await this.subscription.unsubscribe();
       await this.sendUnsubscriptionToServer(this.subscription);
       this.subscription = null;
-      console.log('[Push Notifications] Unsubscribed successfully');
+      // Push notifications unsubscribed successfully
     } catch (error) {
       console.error('[Push Notifications] Unsubscription failed:', error);
     }
@@ -146,7 +146,7 @@ export async function registerBackgroundSync(tag: string, minInterval: number = 
     try {
       const registration = await navigator.serviceWorker.ready;
       await registration.sync.register(tag);
-      console.log(`[Background Sync] Registered: ${tag}`);
+      // Background sync registered successfully
     } catch (error) {
       console.error('[Background Sync] Registration failed:', error);
     }

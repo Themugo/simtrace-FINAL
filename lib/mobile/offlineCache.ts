@@ -24,7 +24,7 @@ class OfflineCache {
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('[Offline Cache] Service worker registered:', registration);
+        // Service worker registered successfully
       } catch (error) {
         console.error('[Offline Cache] Service worker registration failed:', error);
       }
@@ -75,7 +75,7 @@ class OfflineCache {
   async clear(): Promise<void> {
     try {
       await caches.delete(this.cacheName);
-      console.log('[Offline Cache] Cache cleared');
+      // Cache cleared successfully
     } catch (error) {
       console.error('[Offline Cache] Failed to clear cache:', error);
     }
@@ -86,7 +86,7 @@ class OfflineCache {
     try {
       const cache = await caches.open(this.cacheName);
       await cache.addAll(this.cachedUrls);
-      console.log('[Offline Cache] Critical resources cached');
+      // Critical resources cached successfully
     } catch (error) {
       console.error('[Offline Cache] Failed to precache resources:', error);
     }
