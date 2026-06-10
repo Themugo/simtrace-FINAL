@@ -87,6 +87,10 @@ import enterpriseRoutes from "./routes/enterprise.js";
 import regulatoryRoutes from "./routes/regulatory.js";
 import configurationManagementRoutes from "./routes/configurationManagement.js";
 import pricingRoutes from "./routes/pricing.js";
+import securityRoutes from "./routes/security.js";
+import offlineRoutes from "./routes/offline.js";
+import infrastructureRoutes from "./routes/infrastructure.js";
+import networkEffectsRoutes from "./routes/networkEffects.js";
 import { startCron }    from "./services/cron.js";
 
 const app: Express = express();
@@ -309,6 +313,10 @@ app.use("/api/rewards",               rewardsRoutes);
 app.use("/api/enterprise",            enterpriseRoutes);
 app.use("/api/regulatory",            regulatoryRoutes);
 app.use("/api/configuration",         configurationManagementRoutes);
+app.use("/api/security",              securityRoutes);
+app.use("/api/offline",               offlineRoutes);
+app.use("/api/infrastructure",       infrastructureRoutes);
+app.use("/api/network-effects",       networkEffectsRoutes);
 
 // ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = initIO(server, allowedOrigins);
