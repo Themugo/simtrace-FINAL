@@ -55,7 +55,7 @@ export default function DashboardScreen() {
   const loadDevices = async () => {
     try {
       await dispatch(fetchDevices()).unwrap();
-    } catch (error: any) {
+    } catch {
       Alert.alert('Error', 'Failed to load devices');
     }
   };
@@ -101,7 +101,7 @@ export default function DashboardScreen() {
       await loadDevices();
       
       Alert.alert('Success', `Panic mode activated for ${activeDevices.length} device(s)`);
-    } catch (error: any) {
+    } catch {
       Alert.alert('Error', 'Failed to activate panic mode. Please try again.');
     }
   };
@@ -134,14 +134,7 @@ export default function DashboardScreen() {
                 <Text style={styles.profileIcon}>👤</Text>
               </TouchableOpacity>
             </View>
-      </View>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
@@ -236,8 +229,10 @@ export default function DashboardScreen() {
             ))
           )}
         </View>
-      </ScrollView>
-    </View>
+          </ScrollView>
+        </Animated.View>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
