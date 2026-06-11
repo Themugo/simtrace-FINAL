@@ -1,12 +1,15 @@
 // services/subscription.ts - Subscription management services
 import crypto from "crypto";
+import mongoose from "mongoose";
 import {
-  SubscriptionPlan,
-  UserSubscription,
-  PaymentTransaction,
   User,
   Device,
 } from "../db/index.js";
+
+// Get models from mongoose (they may be registered elsewhere)
+const SubscriptionPlan = mongoose.models.SubscriptionPlan || mongoose.model('SubscriptionPlan', new mongoose.Schema({}, { strict: false }));
+const UserSubscription = mongoose.models.UserSubscription || mongoose.model('UserSubscription', new mongoose.Schema({}, { strict: false }));
+const PaymentTransaction = mongoose.models.PaymentTransaction || mongoose.model('PaymentTransaction', new mongoose.Schema({}, { strict: false }));
 
 // ── Subscription Plan Management ───────────────────────────────────────────────────────
 export async function createSubscriptionPlan(data: Record<string, unknown>) {

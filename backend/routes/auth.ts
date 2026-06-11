@@ -69,7 +69,7 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
       });
     }
     
-    res.status(201).json({ token: signToken(user), user: sanitize(user) });
+    res.status(201).json({ token: signToken(user as any), user: sanitize(user as unknown as Record<string, unknown>) });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
@@ -84,7 +84,7 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction) =>
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
-    res.json({ token: signToken(user), user: sanitize(user) });
+    res.json({ token: signToken(user as any), user: sanitize(user as unknown as Record<string, unknown>) });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
@@ -135,7 +135,7 @@ router.post("/change-password", authenticate, async (req: AuthRequest, res: Resp
     user.mustChangePassword = false;
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;   // revoke other sessions
     await user.save();
-    res.json({ message: "Password updated successfully", token: signToken(user) });
+    res.json({ message: "Password updated successfully", token: signToken(user as any) });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
@@ -199,7 +199,7 @@ router.post("/reset-password", async (req: Request, res: Response, next: NextFun
     await reset.save();
 
     // Sign new token so user is logged in immediately after reset
-    res.json({ message: "Password reset successfully.", token: signToken(user), user: sanitize(user) });
+    res.json({ message: "Password reset successfully.", token: signToken(user as any), user: sanitize(user as unknown as Record<string, unknown>) });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
     next(err);
@@ -269,7 +269,7 @@ router.post("/refresh", authenticate, async (req: AuthRequest, res: Response, ne
   try {
     const user = await User.findById(req.user!.id).select("-passwordHash -apiKey");
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json({ token: signToken(user), user: sanitize(user) });
+    res.json({ token: signToken(user as any), user: sanitize(user as unknown as Record<string, unknown>) });
   } catch (err) { next(err); }
 });
 

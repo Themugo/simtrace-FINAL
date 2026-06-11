@@ -3,7 +3,7 @@
 
 import { Worker, Job } from 'bullmq';
 import { queues, JobTypes } from '../index.js';
-import { assessDeviceRisk } from '../modules/risk/engine.js';
+import { assessDeviceRisk } from '../../modules/risk/engine.js';
 
 const aiWorker = new Worker(
   'ai-processing',

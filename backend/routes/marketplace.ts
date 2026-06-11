@@ -70,7 +70,7 @@ interface AppDashboard {
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -91,8 +91,8 @@ router.get("/extensions", authenticate, async (req: AuthRequest, res: Response, 
     } else if (category && typeof category === 'string') {
       extensions = enterpriseMarketplace.getExtensionsByCategory(category);
     } else {
-      extensions = Array.from((enterpriseMarketplace as any).extensions.values())
-        .filter((e: Record<string, unknown>) => e.status as string === 'published');
+      extensions = [...(enterpriseMarketplace as any).extensions.values() as any[]]
+        .filter((e: Record<string, unknown>) => (e.status as string) === 'published');
     }
 
     res.json({ extensions });

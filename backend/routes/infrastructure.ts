@@ -8,12 +8,12 @@ import { globalLawEnforcementService } from "../services/infrastructure/globalLa
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
   };
-}
+};
 
 // ── Satellite Communication ─────────────────────────────────────────────────────
 
@@ -60,7 +60,7 @@ router.post("/satellite/send", authenticate, async (req: AuthRequest, res: Respo
 router.get("/satellite/message/:messageId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { messageId } = req.params;
-    const message = satelliteCommunicationService.getMessageStatus(messageId);
+    const message = satelliteCommunicationService.getMessageStatus(messageId as string);
     
     if (!message) {
       return res.status(404).json({ error: "Message not found" });
@@ -76,7 +76,7 @@ router.get("/satellite/device/:deviceId/messages", authenticate, async (req: Aut
   try {
     const { deviceId } = req.params;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
-    const messages = satelliteCommunicationService.getDeviceMessages(deviceId, limit);
+    const messages = satelliteCommunicationService.getDeviceMessages(deviceId as string, limit);
     res.json({ messages });
   } catch (err) {
     next(err);
@@ -92,7 +92,7 @@ router.put("/satellite/device/:deviceId/signal", authenticate, async (req: AuthR
     const { signalStrength, batteryLevel } = schema.parse(req.body);
     const { deviceId } = req.params;
 
-    satelliteCommunicationService.updateDeviceSignal(deviceId, signalStrength, batteryLevel);
+    satelliteCommunicationService.updateDeviceSignal(deviceId as string, signalStrength, batteryLevel);
     res.json({ success: true });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -160,7 +160,7 @@ router.get("/data-residency/rules", authenticate, async (req: AuthRequest, res: 
 router.delete("/data-residency/rules/:ruleId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { ruleId } = req.params;
-    const success = multiRegionDataService.deleteResidencyRule(ruleId);
+    const success = multiRegionDataService.deleteResidencyRule(ruleId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Rule not found" });
@@ -198,7 +198,7 @@ router.post("/data-residency/store", authenticate, async (req: AuthRequest, res:
 router.get("/data-residency/location/:dataId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dataId } = req.params;
-    const location = multiRegionDataService.getDataLocation(dataId);
+    const location = multiRegionDataService.getDataLocation(dataId as string);
     
     if (!location) {
       return res.status(404).json({ error: "Data location not found" });
@@ -230,7 +230,7 @@ router.post("/data-residency/transfer", authenticate, async (req: AuthRequest, r
 router.get("/data-residency/transfer/:transferId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { transferId } = req.params;
-    const transfer = multiRegionDataService.getTransferStatus(transferId);
+    const transfer = multiRegionDataService.getTransferStatus(transferId as string);
     
     if (!transfer) {
       return res.status(404).json({ error: "Transfer not found" });
@@ -279,7 +279,7 @@ router.post("/law-enforcement/register", authenticate, requireAdmin, async (req:
     });
     const data = schema.parse(req.body);
 
-    const agency = globalLawEnforcementService.registerAgency(data);
+    const agency = globalLawEnforcementService.registerAgency(data as any);
     res.json({ agency });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -319,7 +319,7 @@ router.post("/law-enforcement/request", authenticate, async (req: AuthRequest, r
 router.get("/law-enforcement/request/:requestId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { requestId } = req.params;
-    const request = globalLawEnforcementService.getRequestStatus(requestId);
+    const request = globalLawEnforcementService.getRequestStatus(requestId as string);
     
     if (!request) {
       return res.status(404).json({ error: "Request not found" });
@@ -336,7 +336,7 @@ router.post("/law-enforcement/request/:requestId/approve", authenticate, require
     const { requestId } = req.params;
     const approvingAgency = req.user?.id || 'system';
     
-    const success = globalLawEnforcementService.approveRequest(requestId, approvingAgency);
+    const success = globalLawEnforcementService.approveRequest(requestId as string, approvingAgency);
     
     if (!success) {
       return res.status(400).json({ error: "Failed to approve request" });
@@ -357,7 +357,7 @@ router.post("/law-enforcement/request/:requestId/reject", authenticate, requireA
     const { requestId } = req.params;
     const rejectingAgency = req.user?.id || 'system';
     
-    const success = globalLawEnforcementService.rejectRequest(requestId, rejectingAgency, reason);
+    const success = globalLawEnforcementService.rejectRequest(requestId as string, rejectingAgency, reason);
     
     if (!success) {
       return res.status(400).json({ error: "Failed to reject request" });

@@ -279,7 +279,7 @@ class MapInfrastructure {
 
   // Add moving trail
   addMovingTrail(trail: Omit<MovingTrail, 'deviceId'>): MovingTrail {
-    const deviceId = trail.deviceId || `trail_${Date.now()}`;
+    const deviceId = `trail_${Date.now()}`;
     const newTrail: MovingTrail = {
       ...trail,
       deviceId,

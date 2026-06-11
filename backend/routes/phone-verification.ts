@@ -155,7 +155,7 @@ router.post(
       verificationCodes.delete(phoneNumber);
 
       // Generate token
-      const token = signToken(user);
+      const token = signToken(user as unknown as { _id: string; role: string; email: string; tokenVersion?: number });
 
       res.json({
         message: "Phone verified successfully",
@@ -163,7 +163,7 @@ router.post(
         user: {
           id: user._id,
           name: user.name,
-          phoneNumber: user.phoneNumber,
+          phoneNumber: (user as any).phoneNumber,
           email: user.email,
           role: user.role,
           phoneVerified: user.phoneVerified,

@@ -13,6 +13,7 @@ const router = Router();
 interface AuthRequest extends Request {
   user?: {
     id: string;
+    email: string;
     role: string;
   };
 }
@@ -67,7 +68,7 @@ router.post("/crowd/sighting/:sightingId/verify", authenticate, requireAdmin, as
       verified: z.boolean()
     });
     const { verified } = schema.parse(req.body);
-    const { sightingId } = req.params;
+    const sightingId = req.params.sightingId as string;
 
     const success = crowdSourcedTrackingService.verifySighting(sightingId, verified);
     
@@ -107,7 +108,7 @@ router.post("/crowd/campaign", authenticate, async (req: AuthRequest, res: Respo
 
 router.get("/crowd/device/:deviceId/sightings", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = req.params.deviceId as string;
     const verifiedOnly = req.query.verified === 'true';
     const sightings = crowdSourcedTrackingService.getSightingsForDevice(deviceId, verifiedOnly);
     res.json({ sightings });
@@ -118,7 +119,7 @@ router.get("/crowd/device/:deviceId/sightings", authenticate, async (req: AuthRe
 
 router.post("/crowd/sighting/:sightingId/claim", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { sightingId } = req.params;
+    const sightingId = req.params.sightingId as string;
     const result = crowdSourcedTrackingService.claimReward(sightingId);
     res.json({ result });
   } catch (err) {
@@ -156,9 +157,9 @@ router.post("/insurance/provider", authenticate, requireAdmin, async (req: AuthR
       contactEmail: z.string(),
       contactPhone: z.string(),
       supportedPolicies: z.array(z.string()),
-      isActive: z.boolean().optional(),
-      averageClaimTime: z.number().optional(),
-      successRate: z.number().optional()
+      isActive: z.boolean().default(true),
+      averageClaimTime: z.number().default(0),
+      successRate: z.number().default(0)
     });
     const data = schema.parse(req.body);
 
@@ -238,7 +239,7 @@ router.post("/insurance/claim", authenticate, async (req: AuthRequest, res: Resp
 
 router.post("/insurance/claim/:claimId/process", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { claimId } = req.params;
+    const claimId = req.params.claimId as string;
     const claim = await insuranceIntegrationService.processClaim(claimId);
     res.json({ claim });
   } catch (err) {
@@ -363,7 +364,7 @@ router.post("/bounty/claim/:claimId/verify", authenticate, requireAdmin, async (
       verified: z.boolean()
     });
     const { verified } = schema.parse(req.body);
-    const { claimId } = req.params;
+    const claimId = req.params.claimId as string;
 
     const success = smartContractBountyService.verifyClaim(claimId, verified);
     
@@ -458,7 +459,7 @@ router.post("/sna/analyze", authenticate, requireAdmin, async (req: AuthRequest,
 
 router.get("/sna/node/:nodeId/risk", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { nodeId } = req.params;
+    const nodeId = req.params.nodeId as string;
     const riskScore = socialNetworkAnalysisService.getNodeRisk(nodeId);
     res.json({ riskScore });
   } catch (err) {
@@ -468,7 +469,7 @@ router.get("/sna/node/:nodeId/risk", authenticate, async (req: AuthRequest, res:
 
 router.get("/sna/node/:nodeId/patterns", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { nodeId } = req.params;
+    const nodeId = req.params.nodeId as string;
     const patterns = socialNetworkAnalysisService.getPatternsForNode(nodeId);
     res.json({ patterns });
   } catch (err) {
@@ -543,7 +544,7 @@ router.post("/drone/mission", authenticate, async (req: AuthRequest, res: Respon
 
 router.post("/drone/mission/:missionId/start", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { missionId } = req.params;
+    const missionId = req.params.missionId as string;
     const success = droneIntegrationService.startMission(missionId);
     
     if (!success) {
@@ -563,7 +564,7 @@ router.post("/drone/mission/:missionId/complete", authenticate, async (req: Auth
       footage: z.array(z.string())
     });
     const { findings, footage } = schema.parse(req.body);
-    const { missionId } = req.params;
+    const missionId = req.params.missionId as string;
 
     const success = droneIntegrationService.completeMission(missionId, findings, footage);
     
@@ -580,7 +581,7 @@ router.post("/drone/mission/:missionId/complete", authenticate, async (req: Auth
 
 router.get("/drone/mission/:missionId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { missionId } = req.params;
+    const missionId = req.params.missionId as string;
     const mission = droneIntegrationService.getMission(missionId);
     
     if (!mission) {

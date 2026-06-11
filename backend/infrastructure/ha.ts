@@ -89,7 +89,6 @@ class HighAvailabilityInfrastructure {
       primary: true,
       status: 'active',
       latency: 50,
-      lastHealthCheck: new Date(),
     });
 
     this.addRegion({
@@ -99,7 +98,6 @@ class HighAvailabilityInfrastructure {
       primary: false,
       status: 'active',
       latency: 120,
-      lastHealthCheck: new Date(),
     });
 
     this.addRegion({
@@ -109,7 +107,6 @@ class HighAvailabilityInfrastructure {
       primary: false,
       status: 'active',
       latency: 180,
-      lastHealthCheck: new Date(),
     });
   }
 

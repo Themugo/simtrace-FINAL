@@ -14,7 +14,7 @@ import { PLANS, getUserSubscription } from "../services/billing.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -93,7 +93,7 @@ router.post("/imei-report", async (req: Request, res: Response, next: NextFuncti
       computeRiskScore(imei),
     ]);
 
-    const report = await generateImeiReport({ imei, device, riskScore, recentPings, alerts, reports });
+    const report = await generateImeiReport({ imei, device: device ? { make: device.make, model: device.model, status: device.status, lastSeen: device.lastSeen } : undefined, riskScore, recentPings, alerts, reports });
 
     if (userId) await recordAiCall(userId, "imei_report");
 
@@ -111,7 +111,7 @@ router.post("/triage", authenticate, requireAdmin, async (req: Request, res: Res
     const alerts = await Alert.find({ read: false }).sort({ ts: -1 }).limit(limit);
     if (!alerts.length) return res.json({ triage: [] });
 
-    const triage = await triageAlerts(alerts);
+    const triage = await triageAlerts(alerts.map((a: any) => ({ _id: a._id.toString(), type: a.type, imei: a.imei, ts: a.ts, payload: a.payload })));
     res.json({ triage, count: alerts.length });
   } catch (err) { next(err); }
 });

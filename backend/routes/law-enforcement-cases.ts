@@ -5,12 +5,7 @@ import { LawEnforcementCase, User } from "../db/index.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
+type AuthRequest = Request & { user?: { id: string; role: string } }
 
 // GET /api/law-enforcement-cases — get law enforcement cases
 router.get("/", authenticate, requireRole("law_enforcement"), async (req: AuthRequest, res: Response, next: NextFunction) => {

@@ -154,8 +154,9 @@ export async function getAllAuditLogs(
   if (filters?.resourceType) query.resourceType = filters.resourceType;
   if (filters?.startDate || filters?.endDate) {
     query.timestamp = {};
-    if (filters.startDate) query.timestamp.$gte = filters.startDate;
-    if (filters.endDate) query.timestamp.$lte = filters.endDate;
+    const ts = query.timestamp as Record<string, unknown>;
+    if (filters.startDate) ts.$gte = filters.startDate;
+    if (filters.endDate) ts.$lte = filters.endDate;
   }
   
   return AuditLog.find(query)

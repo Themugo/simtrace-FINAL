@@ -17,7 +17,7 @@ export function createRateLimiter(options: {
       max,
       standardHeaders: true,
       legacyHeaders: false,
-      store: new RateLimiterRedis({
+      store: new (RateLimiterRedis as any)({
         client: redisClient,
         prefix: 'rate_limit:',
       }),

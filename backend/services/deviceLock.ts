@@ -13,7 +13,7 @@ export async function lockDevice(data: Record<string, unknown>) {
   // Verify device ownership
   const device = await Device.findById(data.deviceId);
   if (!device) throw new Error("Device not found");
-  if (device.owner?.toString() !== data.userId.toString()) {
+  if (device.owner?.toString() !== (data.userId as string).toString()) {
     throw new Error("You don't own this device");
   }
 

@@ -154,7 +154,7 @@ router.patch("/guardians/:guardianId/permissions", authenticate, async (req: Aut
 
     const { guardianId } = req.params;
     const { permissions } = schema.parse(req.body);
-    const guardian = await updateGuardianPermissions(req.user!.id, guardianId as string, permissions);
+    const guardian = await updateGuardianPermissions(req.user!.id, guardianId as string, permissions as unknown as Record<string, unknown>);
     res.json(guardian);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });

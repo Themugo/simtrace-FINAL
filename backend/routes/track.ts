@@ -90,7 +90,7 @@ router.post("/", deviceKeyAuth, async (req: PingRequest, res: Response, next: Ne
     );
 
     // 3. Run intelligence (async — don't block response)
-    runIntelligence({ ping, device }).catch(err => log.error({ err, imei: data.imei }, "Intelligence failed"));
+    runIntelligence({ ping, device: device as any }).catch(err => log.error({ err, imei: data.imei }, "Intelligence failed"));
 
     // 4. Emit real-time location to subscribed dashboard clients
     getIO().to(`device:${data.imei}`).emit("location_update", {

@@ -221,7 +221,7 @@ export class DroneIntegrationService {
     if (drone) {
       drone.status = 'available';
       drone.batteryLevel = Math.max(0, drone.batteryLevel - 20); // Simulate battery usage
-      drone.currentLocation = mission.targetLocation;
+      drone.currentLocation = { ...mission.targetLocation, altitude: 0 };
       drone.lastUpdate = Date.now();
       this.drones.set(drone.droneId, drone);
     }

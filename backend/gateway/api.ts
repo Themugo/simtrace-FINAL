@@ -175,7 +175,6 @@ class APIGateway {
       // Create new rule or reset existing
       const newRule: QuotaRule = {
         id: `quota_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        identifier,
         limit,
         period,
         current: 1,

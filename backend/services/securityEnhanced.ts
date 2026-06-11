@@ -4,6 +4,46 @@
 import { NearbyDeviceDetection, Guardian, ParentChild, PanicMode, Device, User, SatellitePing } from "../db/index.js";
 import { getIO } from "./socket.js";
 
+interface NearbyDetectionDoc {
+  potentialWitnesses: unknown[];
+  status: string;
+}
+
+interface GuardianUserDoc {
+  name: string;
+  phone?: string;
+  email?: string;
+}
+
+interface GuardianDoc {
+  status: string;
+  permissions: unknown;
+  canReportTheft: boolean;
+  emergencyOnly: boolean;
+  usageCount: number;
+  lastUsed: Date;
+}
+
+interface ParentChildDoc {
+  childName: string;
+  guardianConsent: boolean;
+  liveTrackingEnabled: boolean;
+  liveTrackingReason: string | null;
+  liveTrackingStartTime: Date | null;
+  liveTrackingEndTime: Date | null;
+  child: string;
+  geofences: unknown[];
+}
+
+interface PanicModeDoc {
+  status: string;
+  resolvedAt: Date;
+  resolvedBy: string;
+  resolutionNotes: string;
+  user: string;
+  authorizedTrackers: Array<{ userId: string }>;
+}
+
 // ── Nearby Device Detection ───────────────────────────────────────────────────────
 export async function detectNearbyDevices(data: Record<string, unknown>) {
   const {
@@ -91,8 +131,8 @@ export async function addPotentialWitness(detectionId: string, witnessData: Reco
   const detection = await NearbyDeviceDetection.findById(detectionId);
   if (!detection) throw new Error("Detection not found");
 
-  (detection as any).potentialWitnesses.push(witnessData);
-  (detection as any).status = "investigating";
+  (detection as unknown as NearbyDetectionDoc).potentialWitnesses.push(witnessData);
+  (detection as unknown as NearbyDetectionDoc).status = "investigating";
   await detection.save();
 
   return detection;
@@ -121,9 +161,9 @@ export async function addGuardian(data: Record<string, unknown>) {
   const guardianRelation = await Guardian.create({
     user: userId,
     guardian: guardianId,
-    name: name || (guardian as any).name,
-    phone: phone || (guardian as any).phone,
-    email: email || (guardian as any).email,
+    name: name || (guardian as unknown as GuardianUserDoc).name,
+    phone: phone || (guardian as unknown as GuardianUserDoc).phone,
+    email: email || (guardian as unknown as GuardianUserDoc).email,
     relationship,
     permissions: permissions || [{ type: "report_theft", enabled: true }],
     canReportTheft: canReportTheft !== false,
@@ -134,7 +174,7 @@ export async function addGuardian(data: Record<string, unknown>) {
   // Notify guardian
   getIO().to(`user:${guardianId}`).emit("guardian_added", {
     guardianId: guardianRelation._id,
-    userName: (user as any).name,
+    userName: (user as unknown as GuardianUserDoc).name,
     relationship,
   });
 
@@ -153,7 +193,7 @@ export async function removeGuardian(userId: string, guardianId: string) {
   const guardian = await Guardian.findOne({ user: userId, guardian: guardianId });
   if (!guardian) throw new Error("Guardian not found");
 
-  (guardian as any).status = "revoked";
+  (guardian as unknown as GuardianDoc).status = "revoked";
   guardian.updatedAt = new Date();
   await guardian.save();
 
@@ -164,7 +204,7 @@ export async function updateGuardianPermissions(userId: string, guardianId: stri
   const guardian = await Guardian.findOne({ user: userId, guardian: guardianId });
   if (!guardian) throw new Error("Guardian not found");
 
-  (guardian as any).permissions = permissions;
+  (guardian as unknown as GuardianDoc).permissions = permissions;
   guardian.updatedAt = new Date();
   await guardian.save();
 
@@ -175,14 +215,13 @@ export async function guardianReportTheft(guardianId: string, deviceId: string, 
   const guardian = await Guardian.findById(guardianId);
   if (!guardian) throw new Error("Guardian not found");
 
-  if (!(guardian as any).canReportTheft) {
+  if (!(guardian as unknown as GuardianDoc).canReportTheft) {
     throw new Error("Guardian does not have permission to report theft");
   }
 
-  if ((guardian as any).emergencyOnly) {
-    // Log emergency report
-    (guardian as any).usageCount += 1;
-    (guardian as any).lastUsed = new Date();
+  if ((guardian as unknown as GuardianDoc).emergencyOnly) {
+    (guardian as unknown as GuardianDoc).usageCount += 1;
+    (guardian as unknown as GuardianDoc).lastUsed = new Date();
     await guardian.save();
   }
 
@@ -221,7 +260,7 @@ export async function addChild(data: Record<string, unknown>) {
   const parentChild = await ParentChild.create({
     parent: parentId,
     child: childId,
-    childName: childName || (child as any).name,
+    childName: childName || (child as unknown as GuardianUserDoc).name,
     childAge,
     school,
     canTrack: canTrack !== false,
@@ -236,7 +275,7 @@ export async function addChild(data: Record<string, unknown>) {
   // Notify parent
   getIO().to(`user:${parentId}`).emit("child_added", {
     parentChildId: parentChild._id,
-    childName: (parentChild as any).childName,
+    childName: (parentChild as unknown as ParentChildDoc).childName,
   });
 
   return parentChild;
@@ -255,22 +294,22 @@ export async function enableLiveTracking(parentChildId: string, reason: string, 
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
   // Lawful-basis gate: live-tracking a minor requires recorded guardian consent
-  if ((parentChild as any).guardianConsent !== true) {
+  if ((parentChild as unknown as ParentChildDoc).guardianConsent !== true) {
     throw new Error("Guardian consent is required before enabling live tracking of a minor");
   }
 
   const startTime = new Date();
   const endTime = new Date(Date.now() + durationHours * 60 * 60 * 1000);
 
-  (parentChild as any).liveTrackingEnabled = true;
-  (parentChild as any).liveTrackingReason = reason;
-  (parentChild as any).liveTrackingStartTime = startTime;
-  (parentChild as any).liveTrackingEndTime = endTime;
+  (parentChild as unknown as ParentChildDoc).liveTrackingEnabled = true;
+  (parentChild as unknown as ParentChildDoc).liveTrackingReason = reason;
+  (parentChild as unknown as ParentChildDoc).liveTrackingStartTime = startTime;
+  (parentChild as unknown as ParentChildDoc).liveTrackingEndTime = endTime;
   parentChild.updatedAt = new Date();
   await parentChild.save();
 
   // Notify child
-  getIO().to(`user:${(parentChild as any).child}`).emit("live_tracking_enabled", {
+  getIO().to(`user:${(parentChild as unknown as ParentChildDoc).child}`).emit("live_tracking_enabled", {
     reason,
     endTime,
   });
@@ -282,15 +321,15 @@ export async function disableLiveTracking(parentChildId: string) {
   const parentChild = await ParentChild.findById(parentChildId);
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
-  (parentChild as any).liveTrackingEnabled = false;
-  (parentChild as any).liveTrackingReason = null;
-  (parentChild as any).liveTrackingStartTime = null;
-  (parentChild as any).liveTrackingEndTime = null;
+  (parentChild as unknown as ParentChildDoc).liveTrackingEnabled = false;
+  (parentChild as unknown as ParentChildDoc).liveTrackingReason = null;
+  (parentChild as unknown as ParentChildDoc).liveTrackingStartTime = null;
+  (parentChild as unknown as ParentChildDoc).liveTrackingEndTime = null;
   parentChild.updatedAt = new Date();
   await parentChild.save();
 
   // Notify child
-  getIO().to(`user:${(parentChild as any).child}`).emit("live_tracking_disabled", {});
+  getIO().to(`user:${(parentChild as unknown as ParentChildDoc).child}`).emit("live_tracking_disabled", {});
 
   return parentChild;
 }
@@ -299,7 +338,7 @@ export async function addGeofence(parentChildId: string, geofenceData: Record<st
   const parentChild = await ParentChild.findById(parentChildId);
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
-  (parentChild as any).geofences.push(geofenceData);
+  (parentChild as unknown as ParentChildDoc).geofences.push(geofenceData);
   parentChild.updatedAt = new Date();
   await parentChild.save();
 
@@ -310,7 +349,7 @@ export async function removeGeofence(parentChildId: string, geofenceIndex: numbe
   const parentChild = await ParentChild.findById(parentChildId);
   if (!parentChild) throw new Error("Parent-child relationship not found");
 
-  (parentChild as any).geofences.splice(geofenceIndex, 1);
+  (parentChild as unknown as ParentChildDoc).geofences.splice(geofenceIndex, 1);
   parentChild.updatedAt = new Date();
   await parentChild.save();
 
@@ -348,7 +387,7 @@ export async function activatePanicMode(data: Record<string, unknown>) {
   for (const tracker of authorizedTrackers) {
     getIO().to(`user:${tracker.userId}`).emit("panic_activated", {
       panicId: panicMode._id,
-      userName: (user as any).name,
+      userName: (user as unknown as GuardianUserDoc).name,
       panicType,
       location,
     });
@@ -388,20 +427,20 @@ export async function resolvePanicMode(panicId: string, resolvedBy: string, reso
   const panicMode = await PanicMode.findById(panicId);
   if (!panicMode) throw new Error("Panic mode not found");
 
-  (panicMode as any).status = "resolved";
-  (panicMode as any).resolvedAt = new Date();
-  (panicMode as any).resolvedBy = resolvedBy;
-  (panicMode as any).resolutionNotes = resolutionNotes;
+  (panicMode as unknown as PanicModeDoc).status = "resolved";
+  (panicMode as unknown as PanicModeDoc).resolvedAt = new Date();
+  (panicMode as unknown as PanicModeDoc).resolvedBy = resolvedBy;
+  (panicMode as unknown as PanicModeDoc).resolutionNotes = resolutionNotes;
   panicMode.updatedAt = new Date();
   await panicMode.save();
 
   // Notify all involved parties
-  getIO().to(`user:${(panicMode as any).user}`).emit("panic_resolved", {
+  getIO().to(`user:${(panicMode as unknown as PanicModeDoc).user}`).emit("panic_resolved", {
     panicId: panicMode._id,
     resolutionNotes,
   });
 
-  for (const tracker of (panicMode as any).authorizedTrackers) {
+  for (const tracker of (panicMode as unknown as PanicModeDoc).authorizedTrackers) {
     getIO().to(`user:${tracker.userId}`).emit("panic_resolved", {
       panicId: panicMode._id,
       resolutionNotes,
@@ -415,16 +454,16 @@ export async function cancelPanicMode(panicId: string) {
   const panicMode = await PanicMode.findById(panicId);
   if (!panicMode) throw new Error("Panic mode not found");
 
-  (panicMode as any).status = "cancelled";
+  (panicMode as unknown as PanicModeDoc).status = "cancelled";
   panicMode.updatedAt = new Date();
   await panicMode.save();
 
   // Notify all involved parties
-  getIO().to(`user:${(panicMode as any).user}`).emit("panic_cancelled", {
+  getIO().to(`user:${(panicMode as unknown as PanicModeDoc).user}`).emit("panic_cancelled", {
     panicId: panicMode._id,
   });
 
-  for (const tracker of (panicMode as any).authorizedTrackers) {
+  for (const tracker of (panicMode as unknown as PanicModeDoc).authorizedTrackers) {
     getIO().to(`user:${tracker.userId}`).emit("panic_cancelled", {
       panicId: panicMode._id,
     });

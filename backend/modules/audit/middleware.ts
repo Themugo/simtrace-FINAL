@@ -36,7 +36,7 @@ export function auditLog(action: AuditAction, resourceType?: string) {
         });
       }
       
-      return originalSend.apply(this, args);
+      return originalSend.apply(this, args as [body?: any]);
     };
     
     next();

@@ -8,6 +8,31 @@ import {
   Device,
 } from "../db/index.js";
 
+interface IShopDoc {
+  status: string;
+  commission: { type: string; value: number; tier: number };
+  totalRepairs: number;
+  successfulRepairs: number;
+  totalCommission: number;
+  devicesRepaired: string[];
+  specializations: string[];
+  verified: boolean;
+  permissions: Record<string, boolean>;
+}
+
+interface IRepairDoc {
+  status: string;
+  shopId: string;
+  completionDate: Date;
+  findings: string;
+  deviceStatusAfter: string;
+  contributedToRecovery: boolean;
+  recoveryNotes: string;
+  updatedBy: string;
+  commissionAmount: number;
+  deviceId: string;
+}
+
 // ── Repair Shop Management ─────────────────────────────────────────────────────────
 export async function createRepairShop(data: Record<string, unknown>) {
   const shopId = `shop_${crypto.randomBytes(16).toString("hex")}`;
@@ -104,10 +129,10 @@ export async function createRepairRecord(data: Record<string, unknown>) {
   if (!shop) throw new Error("Repair shop not found");
 
   let commissionAmount = 0;
-  if ((shop as any).commission.type === "percentage") {
-    commissionAmount = (d.repairCost * (shop as any).commission.value) / 100;
+  if ((shop as unknown as IShopDoc).commission.type === "percentage") {
+    commissionAmount = (d.repairCost * (shop as unknown as IShopDoc).commission.value) / 100;
   } else {
-    commissionAmount = (shop as any).commission.value;
+    commissionAmount = (shop as unknown as IShopDoc).commission.value;
   }
 
   const repair = await RepairRecord.create({
@@ -159,8 +184,8 @@ export async function updateRepairRecord(repairId: string, updates: Record<strin
   if (!repair) throw new Error("Repair record not found");
 
   // If completed, update successful repairs count
-  if ((updates as { status: string }).status === "completed" && (repair as any).status !== "completed") {
-    await RepairShop.findByIdAndUpdate((repair as any).shopId, {
+  if ((updates as { status: string }).status === "completed" && (repair as unknown as IRepairDoc).status !== "completed") {
+    await RepairShop.findByIdAndUpdate((repair as unknown as IRepairDoc).shopId, {
       $inc: { successfulRepairs: 1 },
     });
   }
@@ -173,23 +198,23 @@ export async function completeRepairRecord(repairId: string, completionData: Rec
   if (!repair) throw new Error("Repair record not found");
 
   const cd = completionData as { findings: string; deviceStatusAfter: string; contributedToRecovery: boolean; recoveryNotes: string };
-  (repair as any).completionDate = new Date();
-  (repair as any).status = "completed";
-  (repair as any).findings = cd.findings;
-  (repair as any).deviceStatusAfter = cd.deviceStatusAfter;
-  (repair as any).contributedToRecovery = cd.contributedToRecovery || false;
-  (repair as any).recoveryNotes = cd.recoveryNotes;
-  (repair as any).updatedBy = completedBy;
+  (repair as unknown as IRepairDoc).completionDate = new Date();
+  (repair as unknown as IRepairDoc).status = "completed";
+  (repair as unknown as IRepairDoc).findings = cd.findings;
+  (repair as unknown as IRepairDoc).deviceStatusAfter = cd.deviceStatusAfter;
+  (repair as unknown as IRepairDoc).contributedToRecovery = cd.contributedToRecovery || false;
+  (repair as unknown as IRepairDoc).recoveryNotes = cd.recoveryNotes;
+  (repair as unknown as IRepairDoc).updatedBy = completedBy;
   repair.updatedAt = new Date();
   await repair.save();
 
   // Update shop stats
-  await RepairShop.findByIdAndUpdate((repair as any).shopId, {
+  await RepairShop.findByIdAndUpdate((repair as unknown as IRepairDoc).shopId, {
     $inc: { successfulRepairs: 1 },
   });
 
   // If contributed to recovery, notify relevant parties
-  if ((repair as any).contributedToRecovery) {
+  if ((repair as unknown as IRepairDoc).contributedToRecovery) {
     // TODO: Notify recovery network
   }
 
@@ -201,16 +226,16 @@ export async function cancelRepairRecord(repairId: string, cancelledBy: string) 
   if (!repair) throw new Error("Repair record not found");
 
   // Remove commission from shop
-  await RepairShop.findByIdAndUpdate((repair as any).shopId, {
+  await RepairShop.findByIdAndUpdate((repair as unknown as IRepairDoc).shopId, {
     $inc: {
       totalRepairs: -1,
-      totalCommission: -(repair as any).commissionAmount,
+      totalCommission: -(repair as unknown as IRepairDoc).commissionAmount,
     },
-    $pull: { devicesRepaired: (repair as any).deviceId },
+    $pull: { devicesRepaired: (repair as unknown as IRepairDoc).deviceId },
   });
 
-  (repair as any).status = "cancelled";
-  (repair as any).updatedBy = cancelledBy;
+  (repair as unknown as IRepairDoc).status = "cancelled";
+  (repair as unknown as IRepairDoc).updatedBy = cancelledBy;
   repair.updatedAt = new Date();
   await repair.save();
 
@@ -222,7 +247,7 @@ export async function checkRepairShopPermission(shopId: string, permission: stri
   const shop = await RepairShop.findOne({ shopId, status: "active" });
   if (!shop) return { allowed: false, reason: "Repair shop not found or inactive" };
 
-  if (!(shop as any).permissions[permission]) {
+  if (!(shop as unknown as IShopDoc).permissions[permission]) {
     return { allowed: false, reason: `Permission '${permission}' not granted` };
   }
 
@@ -234,9 +259,9 @@ export async function reportRecoveryContribution(repairId: string, recoveryData:
   const repair = await RepairRecord.findOne({ repairId });
   if (!repair) throw new Error("Repair record not found");
 
-  (repair as any).contributedToRecovery = true;
-  (repair as any).recoveryNotes = (recoveryData as { notes: string }).notes;
-  (repair as any).updatedBy = reportedBy;
+  (repair as unknown as IRepairDoc).contributedToRecovery = true;
+  (repair as unknown as IRepairDoc).recoveryNotes = (recoveryData as { notes: string }).notes;
+  (repair as unknown as IRepairDoc).updatedBy = reportedBy;
   repair.updatedAt = new Date();
   await repair.save();
 
@@ -264,16 +289,16 @@ export async function getRepairShopStatistics(shopId: string) {
   const recoveryContributions = repairs.filter((r) => r.contributedToRecovery);
 
   return {
-    totalRepairs: (shop as any).totalRepairs,
-    successfulRepairs: (shop as any).successfulRepairs,
-    totalCommission: (shop as any).totalCommission,
-    devicesRepaired: (shop as any).devicesRepaired.length,
+    totalRepairs: (shop as unknown as IShopDoc).totalRepairs,
+    successfulRepairs: (shop as unknown as IShopDoc).successfulRepairs,
+    totalCommission: (shop as unknown as IShopDoc).totalCommission,
+    devicesRepaired: (shop as unknown as IShopDoc).devicesRepaired.length,
     completedRepairs: completedRepairs.length,
     recoveryContributions: recoveryContributions.length,
-    commissionTier: (shop as any).commission.tier,
-    specializations: (shop as any).specializations,
-    verified: (shop as any).verified,
-    status: (shop as any).status,
+    commissionTier: (shop as unknown as IShopDoc).commission.tier,
+    specializations: (shop as unknown as IShopDoc).specializations,
+    verified: (shop as unknown as IShopDoc).verified,
+    status: (shop as unknown as IShopDoc).status,
   };
 }
 

@@ -61,11 +61,11 @@ webhookWorker.on('completed', (job: Job) => {
   console.log(`[Webhook Worker] Job ${job.id} completed`);
 });
 
-webhookWorker.on('failed', (job: Job | undefined, err: Error) => {
+webhookWorker.on('failed', (job, err: Error) => {
   console.error(`[Webhook Worker] Job ${job?.id} failed:`, err.message);
   
   // Move to dead-letter queue after max retries
-  if (job?.attemptsMade >= job?.opts?.attempts) {
+  if (job && job.attemptsMade != null && job.opts?.attempts != null && job.attemptsMade >= job.opts.attempts) {
     console.log(`[Webhook Worker] Job ${job.id} moved to DLQ after ${job.attemptsMade} attempts`);
   }
 });

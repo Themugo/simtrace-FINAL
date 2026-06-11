@@ -157,7 +157,7 @@ class MLPipeline {
 
     if (knownLocations.length > 0) {
       // Find most likely location based on time
-      const timeBasedLocation = knownLocations.find(loc => 
+      const timeBasedLocation = knownLocations.find((loc: any) => 
         loc.typicalHour === timeOfDay
       );
 

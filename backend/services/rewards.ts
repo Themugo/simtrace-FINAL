@@ -4,6 +4,21 @@
 import { RecoveryReward, RecoveryCase, Device, User } from "../db/index.js";
 import { getIO } from "./socket.js";
 
+interface IRewardDoc {
+  [key: string]: unknown;
+  status: string;
+  expiresAt: Date;
+  recipient: string;
+  recipientType: string;
+  recoveryCase: { user: string; lastLocation: { lat: number; lng: number } };
+  imei: string;
+  paymentMethod: string;
+  paymentReference: string;
+  paidAt: Date;
+  rewardAmount: number;
+  currency: string;
+}
+
 // ── Reward Creation ───────────────────────────────────────────────────────────────
 export async function createRecoveryReward(data: Record<string, unknown>) {
   const {
@@ -84,12 +99,12 @@ export async function claimReward(rewardId: string, recipientId: string, recipie
   const reward = await RecoveryReward.findById(rewardId);
   if (!reward) throw new Error("Reward not found");
 
-  if ((reward as any).status !== "offered") {
+  if ((reward as unknown as IRewardDoc).status !== "offered") {
     throw new Error("Reward is not available for claiming");
   }
 
-  if ((reward as any).expiresAt < new Date()) {
-    (reward as any).status = "expired";
+  if ((reward as unknown as IRewardDoc).expiresAt < new Date()) {
+    (reward as unknown as IRewardDoc).status = "expired";
     await reward.save();
     throw new Error("Reward has expired");
   }
@@ -97,17 +112,17 @@ export async function claimReward(rewardId: string, recipientId: string, recipie
   const user = await User.findById(recipientId);
   if (!user) throw new Error("User not found");
 
-  (reward as any).recipient = recipientId;
-  (reward as any).recipientType = recipientType || "finder";
-  (reward as any).status = "claimed";
+  (reward as unknown as IRewardDoc).recipient = recipientId;
+  (reward as unknown as IRewardDoc).recipientType = recipientType || "finder";
+  (reward as unknown as IRewardDoc).status = "claimed";
   reward.updatedAt = new Date();
   await reward.save();
 
   // Notify via socket
-  getIO().to(`user:${(reward as any).recoveryCase.user}`).emit("reward_claimed", {
+  getIO().to(`user:${(reward as unknown as IRewardDoc).recoveryCase.user}`).emit("reward_claimed", {
     rewardId: reward._id,
-    imei: (reward as any).imei,
-    recipient: (user as any).name,
+    imei: (reward as unknown as IRewardDoc).imei,
+    recipient: (user as unknown as { name: string }).name,
   });
 
   return reward;
@@ -118,27 +133,27 @@ export async function payReward(rewardId: string, paymentMethod: string, payment
   const reward = await RecoveryReward.findById(rewardId);
   if (!reward) throw new Error("Reward not found");
 
-  if ((reward as any).status !== "claimed") {
+  if ((reward as unknown as IRewardDoc).status !== "claimed") {
     throw new Error("Reward must be claimed before payment");
   }
 
-  if (!(reward as any).recipient) {
+  if (!(reward as unknown as IRewardDoc).recipient) {
     throw new Error("Reward has no recipient");
   }
 
   // Process payment (simplified - would integrate with payment gateways)
-  (reward as any).paymentMethod = paymentMethod;
-  (reward as any).paymentReference = paymentReference;
-  (reward as any).status = "paid";
-  (reward as any).paidAt = new Date();
+  (reward as unknown as IRewardDoc).paymentMethod = paymentMethod;
+  (reward as unknown as IRewardDoc).paymentReference = paymentReference;
+  (reward as unknown as IRewardDoc).status = "paid";
+  (reward as unknown as IRewardDoc).paidAt = new Date();
   reward.updatedAt = new Date();
   await reward.save();
 
   // Notify recipient
-  getIO().to(`user:${(reward as any).recipient}`).emit("reward_paid", {
+  getIO().to(`user:${(reward as unknown as IRewardDoc).recipient}`).emit("reward_paid", {
     rewardId: reward._id,
-    amount: (reward as any).rewardAmount,
-    currency: (reward as any).currency,
+    amount: (reward as unknown as IRewardDoc).rewardAmount,
+    currency: (reward as unknown as IRewardDoc).currency,
   });
 
   return reward;
@@ -152,7 +167,7 @@ export async function updateReward(rewardId: string, updates: Record<string, unk
   const allowedUpdates = ["rewardAmount", "currency", "expiresAt", "terms"];
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      (reward as any)[key] = updates[key];
+      (reward as unknown as IRewardDoc)[key] = updates[key];
     }
   }
 
@@ -166,11 +181,11 @@ export async function cancelReward(rewardId: string) {
   const reward = await RecoveryReward.findById(rewardId);
   if (!reward) throw new Error("Reward not found");
 
-  if ((reward as any).status === "paid") {
+  if ((reward as unknown as IRewardDoc).status === "paid") {
     throw new Error("Cannot cancel a paid reward");
   }
 
-  (reward as any).status = "expired";
+  (reward as unknown as IRewardDoc).status = "expired";
   reward.updatedAt = new Date();
   await reward.save();
 
@@ -186,7 +201,7 @@ export async function checkRewardExpiry() {
   });
 
   for (const reward of expiredRewards) {
-    (reward as any).status = "expired";
+    (reward as unknown as IRewardDoc).status = "expired";
     reward.updatedAt = new Date();
     await reward.save();
   }
@@ -263,12 +278,12 @@ export async function getRewardsByLocation(lat: number, lng: number, radiusKm = 
 
   // Filter by distance (in production, use MongoDB geospatial queries)
   const filtered = rewards.filter((r) => {
-    if (!(r as any).recoveryCase?.lastLocation) return false;
+    if (!(r as unknown as IRewardDoc).recoveryCase?.lastLocation) return false;
     const distance = haversineDistance(
       lat,
       lng,
-      (r as any).recoveryCase.lastLocation.lat,
-      (r as any).recoveryCase.lastLocation.lng
+      (r as unknown as IRewardDoc).recoveryCase.lastLocation.lat,
+      (r as unknown as IRewardDoc).recoveryCase.lastLocation.lng
     );
     return distance <= radiusKm;
   });

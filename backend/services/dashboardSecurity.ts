@@ -22,11 +22,96 @@ import {
   User,
 } from "../db/index.js";
 import { getIO } from "./socket.js";
+import mongoose from "mongoose";
 
 // Mongoose models use strict: false with no generic type parameter.
 // Document fields are any at the TS level — this type is used for
 // spread-into-create/findOneAndUpdate payloads instead of `any`.
 type DashboardInput = Record<string, unknown>;
+
+interface IOfficialEmailDoc extends mongoose.Document {
+  emailId: string;
+  officialEmail: string;
+  verificationToken: string | null;
+  verificationExpiresAt: Date | null;
+  isVerified: boolean;
+  verifiedAt: Date;
+  status: string;
+  createdBy: string;
+  updatedBy: string;
+}
+
+interface ISecurityOtpDoc extends mongoose.Document {
+  otpId: string;
+  otpNumber: string;
+  holderName: string;
+  purpose: string;
+  expiresAt: Date;
+  isVerified: boolean;
+  verifiedAt: Date;
+  used: boolean;
+  status: string;
+  createdBy: string;
+  updatedBy: string;
+}
+
+interface IPasswordResetRequestDoc extends mongoose.Document {
+  requestId: string;
+  requesterId: string;
+  requesterEmailId: string;
+  requesterOtpId: string;
+  verificationCode: string;
+  verificationExpiresAt: Date;
+  status: string;
+  emailVerified: boolean;
+  otpVerified: boolean;
+  approverId: string;
+  approvalStatus: string;
+  approvalReason: string;
+  approvedAt: Date;
+  userId: string;
+  newPasswordHash: string;
+  passwordChangedAt: Date;
+  createdBy: string;
+  updatedBy: string;
+}
+
+interface INetworkChangeRequestDoc extends mongoose.Document {
+  requestId: string;
+  requesterId: string;
+  requesterEmailId: string;
+  requesterOtpId: string;
+  requiredApprovals: string[];
+  approvals: Array<{ approverId: string; approverEmailId: string; approverOtpId: string; status: string; comment: string; approvedAt: Date }>;
+  status: string;
+  emailVerified: boolean;
+  otpVerified: boolean;
+  executionStatus: string;
+  executedAt: Date;
+  executedBy: string;
+  executionLog: string;
+  rollbackRequired: boolean;
+  rollbackStatus: string;
+  rollbackAt: Date;
+  rollbackReason: string;
+  createdBy: string;
+  updatedBy: string;
+}
+
+interface IDashboardAccessLogDoc extends mongoose.Document {
+  logId: string;
+  suspiciousActivity: boolean;
+  riskScore: number;
+}
+
+interface IUserDoc extends mongoose.Document {
+  password: string;
+}
+
+interface IDashboardDoc extends mongoose.Document {
+  allowedIPs: string[];
+  allowedTimeRanges: Array<{ dayOfWeek: number[]; startTime: string; endTime: string }>;
+}
 
 // ── Official Email Management ───────────────────────────────────────────────────────
 export async function createOfficialEmail(data: DashboardInput) {
@@ -56,14 +141,14 @@ export async function verifyOfficialEmail(emailId: string, token: string) {
   const email = await OfficialEmail.findOne({ emailId, verificationToken: hashSecret(token) });
   if (!email) throw new Error("Invalid verification token");
 
-  if ((email as any).verificationExpiresAt < new Date()) {
+  if ((email as IOfficialEmailDoc).verificationExpiresAt! < new Date()) {
     throw new Error("Verification token expired");
   }
 
-  (email as any).isVerified = true;
-  (email as any).verifiedAt = new Date();
-  (email as any).verificationToken = null;
-  (email as any).verificationExpiresAt = null;
+  (email as IOfficialEmailDoc).isVerified = true;
+  (email as IOfficialEmailDoc).verifiedAt = new Date();
+  (email as IOfficialEmailDoc).verificationToken = null;
+  (email as IOfficialEmailDoc).verificationExpiresAt = null;
   email.updatedAt = new Date();
   await email.save();
 
@@ -135,8 +220,8 @@ export async function verifySecurityOtp(otpId: string, otpNumber: string) {
   const otp = await SecurityOtp.findOne({ otpId, otpNumber: hashSecret(otpNumber), status: "active" });
   if (!otp) throw new Error("Invalid OTP number");
 
-  (otp as any).isVerified = true;
-  (otp as any).verifiedAt = new Date();
+  (otp as ISecurityOtpDoc).isVerified = true;
+  (otp as ISecurityOtpDoc).verifiedAt = new Date();
   otp.updatedAt = new Date();
   await otp.save();
 
@@ -238,32 +323,32 @@ export async function verifyPasswordReset(requestId: string, verificationMethod:
   const resetRequest = await PasswordResetRequest.findOne({ requestId });
   if (!resetRequest) throw new Error("Password reset request not found");
 
-  if ((resetRequest as any).verificationExpiresAt < new Date()) {
-    (resetRequest as any).status = "expired";
+  if ((resetRequest as IPasswordResetRequestDoc).verificationExpiresAt < new Date()) {
+    (resetRequest as IPasswordResetRequestDoc).status = "expired";
     await resetRequest.save();
     throw new Error("Verification code expired");
   }
 
   if (verificationMethod === "official_email") {
-    if ((resetRequest as any).verificationCode !== hashSecret(code)) {
+    if ((resetRequest as IPasswordResetRequestDoc).verificationCode !== hashSecret(code)) {
       throw new Error("Invalid verification code");
     }
-    (resetRequest as any).emailVerified = true;
+    (resetRequest as IPasswordResetRequestDoc).emailVerified = true;
   } else if (verificationMethod === "security_otp") {
     const otp = await SecurityOtp.findOne({ otpNumber: hashSecret(otpNumber), status: "active" });
     if (!otp) throw new Error("Invalid OTP number");
-    (resetRequest as any).otpVerified = true;
+    (resetRequest as IPasswordResetRequestDoc).otpVerified = true;
   } else if (verificationMethod === "both") {
-    if ((resetRequest as any).verificationCode !== hashSecret(code)) {
+    if ((resetRequest as IPasswordResetRequestDoc).verificationCode !== hashSecret(code)) {
       throw new Error("Invalid verification code");
     }
     const otp = await SecurityOtp.findOne({ otpNumber: hashSecret(otpNumber), status: "active" });
     if (!otp) throw new Error("Invalid OTP number");
-    (resetRequest as any).emailVerified = true;
-    (resetRequest as any).otpVerified = true;
+    (resetRequest as IPasswordResetRequestDoc).emailVerified = true;
+    (resetRequest as IPasswordResetRequestDoc).otpVerified = true;
   }
 
-  (resetRequest as any).status = "verified";
+  (resetRequest as IPasswordResetRequestDoc).status = "verified";
   resetRequest.updatedAt = new Date();
   await resetRequest.save();
 
@@ -274,21 +359,21 @@ export async function approvePasswordReset(requestId: string, approverId: string
   const resetRequest = await PasswordResetRequest.findOne({ requestId });
   if (!resetRequest) throw new Error("Password reset request not found");
 
-  if ((resetRequest as any).status !== "verified") {
+  if ((resetRequest as IPasswordResetRequestDoc).status !== "verified") {
     throw new Error("Request must be verified before approval");
   }
 
-  (resetRequest as any).approverId = approverId;
-  (resetRequest as any).approvalStatus = "approved";
-  (resetRequest as any).approvalReason = approvalReason;
-  (resetRequest as any).approvedAt = new Date();
-  (resetRequest as any).status = "approved";
+  (resetRequest as IPasswordResetRequestDoc).approverId = approverId;
+  (resetRequest as IPasswordResetRequestDoc).approvalStatus = "approved";
+  (resetRequest as IPasswordResetRequestDoc).approvalReason = approvalReason;
+  (resetRequest as IPasswordResetRequestDoc).approvedAt = new Date();
+  (resetRequest as IPasswordResetRequestDoc).status = "approved";
   resetRequest.updatedAt = new Date();
   await resetRequest.save();
 
   // TODO: Notify requester and user
   console.warn(`[DashboardSecurity] Password reset approved notification not sent for ${requestId}`);
-  getIO().to(`user:${(resetRequest as any).userId}`).emit("password_reset_approved", {
+  getIO().to(`user:${(resetRequest as IPasswordResetRequestDoc).userId}`).emit("password_reset_approved", {
     requestId,
     approverId,
   });
@@ -300,15 +385,15 @@ export async function rejectPasswordReset(requestId: string, approverId: string,
   const resetRequest = await PasswordResetRequest.findOne({ requestId });
   if (!resetRequest) throw new Error("Password reset request not found");
 
-  (resetRequest as any).approverId = approverId;
-  (resetRequest as any).approvalStatus = "rejected";
-  (resetRequest as any).approvalReason = rejectionReason;
-  (resetRequest as any).status = "rejected";
+  (resetRequest as IPasswordResetRequestDoc).approverId = approverId;
+  (resetRequest as IPasswordResetRequestDoc).approvalStatus = "rejected";
+  (resetRequest as IPasswordResetRequestDoc).approvalReason = rejectionReason;
+  (resetRequest as IPasswordResetRequestDoc).status = "rejected";
   resetRequest.updatedAt = new Date();
   await resetRequest.save();
 
   // TODO: Notify requester
-  getIO().to(`user:${(resetRequest as any).requesterId}`).emit("password_reset_rejected", {
+  getIO().to(`user:${(resetRequest as IPasswordResetRequestDoc).requesterId}`).emit("password_reset_rejected", {
     requestId,
     reason: rejectionReason,
   });
@@ -320,7 +405,7 @@ export async function completePasswordReset(requestId: string, newPassword: stri
   const resetRequest = await PasswordResetRequest.findOne({ requestId });
   if (!resetRequest) throw new Error("Password reset request not found");
 
-  if ((resetRequest as any).status !== "approved") {
+  if ((resetRequest as IPasswordResetRequestDoc).status !== "approved") {
     throw new Error("Request must be approved before completion");
   }
 
@@ -328,23 +413,23 @@ export async function completePasswordReset(requestId: string, newPassword: stri
   const newPasswordHash = await bcrypt.hash(newPassword, 10);
 
   // Update user password (preserve all other data)
-  const user = await User.findById((resetRequest as any).userId);
+  const user = await User.findById((resetRequest as IPasswordResetRequestDoc).userId);
   if (!user) throw new Error("User not found");
 
-  (user as any).password = newPasswordHash;
+  (user as unknown as IUserDoc).password = newPasswordHash;
   await user.save();
 
   // Update reset request
-  (resetRequest as any).newPasswordHash = newPasswordHash;
-  (resetRequest as any).passwordChangedAt = new Date();
-  (resetRequest as any).status = "completed";
+  (resetRequest as IPasswordResetRequestDoc).newPasswordHash = newPasswordHash;
+  (resetRequest as IPasswordResetRequestDoc).passwordChangedAt = new Date();
+  (resetRequest as IPasswordResetRequestDoc).status = "completed";
   resetRequest.updatedAt = new Date();
   await resetRequest.save();
 
   // TODO: Log the password change in audit log
   // TODO: Notify user via official channels
   console.warn(`[DashboardSecurity] Password change audit log / notification not sent for ${requestId}`);
-  getIO().to(`user:${(resetRequest as any).userId}`).emit("password_reset_completed", {
+  getIO().to(`user:${(resetRequest as IPasswordResetRequestDoc).userId}`).emit("password_reset_completed", {
     requestId,
   });
 
@@ -414,19 +499,19 @@ export async function verifyNetworkChange(requestId: string, verificationMethod:
   if (!networkChange) throw new Error("Network change request not found");
 
   if (verificationMethod === "official_email") {
-    (networkChange as any).emailVerified = true;
+    (networkChange as INetworkChangeRequestDoc).emailVerified = true;
   } else if (verificationMethod === "security_otp") {
     const otp = await SecurityOtp.findOne({ otpNumber: hashSecret(otpNumber), status: "active" });
     if (!otp) throw new Error("Invalid OTP number");
-    (networkChange as any).otpVerified = true;
+    (networkChange as INetworkChangeRequestDoc).otpVerified = true;
   } else if (verificationMethod === "both") {
-    (networkChange as any).emailVerified = true;
+    (networkChange as INetworkChangeRequestDoc).emailVerified = true;
     const otp = await SecurityOtp.findOne({ otpNumber: hashSecret(otpNumber), status: "active" });
     if (!otp) throw new Error("Invalid OTP number");
-    (networkChange as any).otpVerified = true;
+    (networkChange as INetworkChangeRequestDoc).otpVerified = true;
   }
 
-  (networkChange as any).status = "verified";
+  (networkChange as INetworkChangeRequestDoc).status = "verified";
   networkChange.updatedAt = new Date();
   await networkChange.save();
 
@@ -437,12 +522,12 @@ export async function approveNetworkChange(requestId: string, approverId: string
   const networkChange = await NetworkChangeRequest.findOne({ requestId });
   if (!networkChange) throw new Error("Network change request not found");
 
-  if ((networkChange as any).status !== "verified") {
+  if ((networkChange as INetworkChangeRequestDoc).status !== "verified") {
     throw new Error("Request must be verified before approval");
   }
 
   // Add approval
-  (networkChange as any).approvals.push({
+  (networkChange as INetworkChangeRequestDoc).approvals.push({
     approverId,
     approverEmailId,
     approverOtpId,
@@ -452,14 +537,14 @@ export async function approveNetworkChange(requestId: string, approverId: string
   });
 
   // Check if all required approvals are received
-  const approvedLevels = (networkChange as any).approvals
+  const approvedLevels = (networkChange as INetworkChangeRequestDoc).approvals
     .filter((a: { status: string; approverId: string }) => a.status === "approved")
     .map((a: { status: string; approverId: string }) => getApproverLevel(a.approverId));
   
-  const allApproved = (networkChange as any).requiredApprovals.every((level: string) => approvedLevels.includes(level));
+  const allApproved = (networkChange as INetworkChangeRequestDoc).requiredApprovals.every((level: string) => approvedLevels.includes(level));
 
   if (allApproved) {
-    (networkChange as any).status = "approved";
+    (networkChange as INetworkChangeRequestDoc).status = "approved";
   }
 
   networkChange.updatedAt = new Date();
@@ -468,7 +553,7 @@ export async function approveNetworkChange(requestId: string, approverId: string
   // TODO: Notify next approver or requester if all approved
   console.warn(`[DashboardSecurity] Network change approval notification not implemented for ${requestId}`);
   if (allApproved) {
-    getIO().to(`user:${(networkChange as any).requesterId}`).emit("network_change_approved", {
+    getIO().to(`user:${(networkChange as INetworkChangeRequestDoc).requesterId}`).emit("network_change_approved", {
       requestId,
     });
   }
@@ -480,12 +565,12 @@ export async function rejectNetworkChange(requestId: string, approverId: string,
   const networkChange = await NetworkChangeRequest.findOne({ requestId });
   if (!networkChange) throw new Error("Network change request not found");
 
-  (networkChange as any).status = "rejected";
+  (networkChange as INetworkChangeRequestDoc).status = "rejected";
   networkChange.updatedAt = new Date();
   await networkChange.save();
 
   // TODO: Notify requester
-  getIO().to(`user:${(networkChange as any).requesterId}`).emit("network_change_rejected", {
+  getIO().to(`user:${(networkChange as INetworkChangeRequestDoc).requesterId}`).emit("network_change_rejected", {
     requestId,
     reason: rejectionReason,
   });
@@ -497,14 +582,14 @@ export async function executeNetworkChange(requestId: string, executedBy: string
   const networkChange = await NetworkChangeRequest.findOne({ requestId });
   if (!networkChange) throw new Error("Network change request not found");
 
-  if ((networkChange as any).status !== "approved") {
+  if ((networkChange as INetworkChangeRequestDoc).status !== "approved") {
     throw new Error("Request must be approved before execution");
   }
 
-  (networkChange as any).executionStatus = "in_progress";
-  (networkChange as any).executedAt = new Date();
-  (networkChange as any).executedBy = executedBy;
-  (networkChange as any).executionLog = executionLog;
+  (networkChange as INetworkChangeRequestDoc).executionStatus = "in_progress";
+  (networkChange as INetworkChangeRequestDoc).executedAt = new Date();
+  (networkChange as INetworkChangeRequestDoc).executedBy = executedBy;
+  (networkChange as INetworkChangeRequestDoc).executionLog = executionLog;
   networkChange.updatedAt = new Date();
   await networkChange.save();
 
@@ -512,8 +597,8 @@ export async function executeNetworkChange(requestId: string, executedBy: string
   // TODO: Update system configuration with new network settings
   console.warn(`[DashboardSecurity] Network change execution not implemented for ${requestId} — marking completed as stub`);
   
-  (networkChange as any).executionStatus = "completed";
-  (networkChange as any).status = "completed";
+  (networkChange as INetworkChangeRequestDoc).executionStatus = "completed";
+  (networkChange as INetworkChangeRequestDoc).status = "completed";
   networkChange.updatedAt = new Date();
   await networkChange.save();
 
@@ -530,10 +615,10 @@ export async function rollbackNetworkChange(requestId: string, rollbackReason: s
   const networkChange = await NetworkChangeRequest.findOne({ requestId });
   if (!networkChange) throw new Error("Network change request not found");
 
-  (networkChange as any).rollbackRequired = true;
-  (networkChange as any).rollbackStatus = "in_progress";
-  (networkChange as any).rollbackAt = new Date();
-  (networkChange as any).rollbackReason = rollbackReason;
+  (networkChange as INetworkChangeRequestDoc).rollbackRequired = true;
+  (networkChange as INetworkChangeRequestDoc).rollbackStatus = "in_progress";
+  (networkChange as INetworkChangeRequestDoc).rollbackAt = new Date();
+  (networkChange as INetworkChangeRequestDoc).rollbackReason = rollbackReason;
   networkChange.updatedAt = new Date();
   await networkChange.save();
 
@@ -541,8 +626,8 @@ export async function rollbackNetworkChange(requestId: string, rollbackReason: s
   // TODO: Restore previous system settings
   console.warn(`[DashboardSecurity] Network change rollback execution not implemented for ${requestId}`);
   
-  (networkChange as any).rollbackStatus = "completed";
-  (networkChange as any).executionStatus = "rolled_back";
+  (networkChange as INetworkChangeRequestDoc).rollbackStatus = "completed";
+  (networkChange as INetworkChangeRequestDoc).executionStatus = "rolled_back";
   networkChange.updatedAt = new Date();
   await networkChange.save();
 
@@ -587,7 +672,7 @@ export async function logDashboardAccess(data: DashboardInput) {
   });
 
   // Alert if suspicious activity detected
-  if ((accessLog as any).suspiciousActivity) {
+  if ((accessLog as IDashboardAccessLogDoc).suspiciousActivity) {
     // TODO: Send security alert
     console.warn(`[DashboardSecurity] Suspicious activity alert not sent — ${logId} risk score ${riskScore}`);
     getIO().to(`role:admin`).emit("suspicious_activity", {
@@ -800,20 +885,20 @@ export async function checkDashboardAccess(userId: string, dashboardLevel: strin
   }
 
   // Check IP whitelist
-  if ((dashboard as any).allowedIPs && (dashboard as any).allowedIPs.length > 0) {
-    const ipAllowed = (dashboard as any).allowedIPs.some((allowedIp: string) => ipAddress.startsWith(allowedIp));
+  if ((dashboard as IDashboardDoc).allowedIPs && (dashboard as IDashboardDoc).allowedIPs.length > 0) {
+    const ipAllowed = (dashboard as IDashboardDoc).allowedIPs.some((allowedIp: string) => ipAddress.startsWith(allowedIp));
     if (!ipAllowed) {
       return { allowed: false, reason: "IP not whitelisted" };
     }
   }
 
   // Check time-based access
-  if ((dashboard as any).allowedTimeRanges && (dashboard as any).allowedTimeRanges.length > 0) {
+  if ((dashboard as IDashboardDoc).allowedTimeRanges && (dashboard as IDashboardDoc).allowedTimeRanges.length > 0) {
     const now = new Date();
     const dayOfWeek = now.getDay();
     const currentTime = now.getHours() * 60 + now.getMinutes();
 
-    const timeAllowed = (dashboard as any).allowedTimeRanges.some((rule: { dayOfWeek: number[]; startTime: string; endTime: string }) => {
+    const timeAllowed = (dashboard as IDashboardDoc).allowedTimeRanges.some((rule: { dayOfWeek: number[]; startTime: string; endTime: string }) => {
       if (rule.dayOfWeek.includes(dayOfWeek)) {
         const [startHour, startMin] = rule.startTime.split(":").map(Number);
         const [endHour, endMin] = rule.endTime.split(":").map(Number);

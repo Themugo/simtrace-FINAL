@@ -25,7 +25,7 @@ router.post('/setup', authenticate, async (req: AuthRequest, res: Response, next
     const user = await User.findById(req.user!.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (user.twoFactorEnabled) {
+    if ((user as unknown as { twoFactorEnabled?: boolean }).twoFactorEnabled) {
       return res.status(400).json({ error: '2FA is already enabled' });
     }
 

@@ -8,6 +8,26 @@ import {
   Device,
 } from "../db/index.js";
 
+interface ISellerDoc {
+  status: string;
+  commission: { type: string; value: number; tier: number };
+  totalSales: number;
+  totalCommission: number;
+  devicesSold: string[];
+  businessType: string;
+  verified: boolean;
+  permissions: Record<string, boolean>;
+}
+
+interface IRegistrationDoc {
+  sellerId: string;
+  deviceId: string;
+  salePrice: number;
+  commissionAmount: number;
+  status: string;
+  updatedBy: string;
+}
+
 // ── Seller/Reseller Management ─────────────────────────────────────────────────────
 export async function createSellerReseller(data: Record<string, unknown>) {
   const sellerId = `seller_${crypto.randomBytes(16).toString("hex")}`;
@@ -95,10 +115,10 @@ export async function registerDevice(data: Record<string, unknown>) {
   if (!seller) throw new Error("Seller/Reseller not found");
 
   let commissionAmount = 0;
-  if ((seller as any).commission.type === "percentage") {
-    commissionAmount = (d.salePrice * (seller as any).commission.value) / 100;
+  if ((seller as unknown as ISellerDoc).commission.type === "percentage") {
+    commissionAmount = (d.salePrice * (seller as unknown as ISellerDoc).commission.value) / 100;
   } else {
-    commissionAmount = (seller as any).commission.value;
+    commissionAmount = (seller as unknown as ISellerDoc).commission.value;
   }
 
   const registration = await DeviceRegistration.create({
@@ -147,8 +167,8 @@ export async function transferDeviceRegistration(registrationId: string, newSell
   if (!registration) throw new Error("Device registration not found");
 
   // Remove from old seller
-  await SellerReseller.findByIdAndUpdate((registration as any).sellerId, {
-    $pull: { devicesSold: (registration as any).deviceId },
+  await SellerReseller.findByIdAndUpdate((registration as unknown as IRegistrationDoc).sellerId, {
+    $pull: { devicesSold: (registration as unknown as IRegistrationDoc).deviceId },
   });
 
   // Calculate new commission
@@ -156,27 +176,27 @@ export async function transferDeviceRegistration(registrationId: string, newSell
   if (!newSeller) throw new Error("New seller not found");
 
   let commissionAmount = 0;
-  if ((newSeller as any).commission.type === "percentage") {
-    commissionAmount = ((registration as any).salePrice * (newSeller as any).commission.value) / 100;
+  if ((newSeller as unknown as ISellerDoc).commission.type === "percentage") {
+    commissionAmount = ((registration as unknown as IRegistrationDoc).salePrice * (newSeller as unknown as ISellerDoc).commission.value) / 100;
   } else {
-    commissionAmount = (newSeller as any).commission.value;
+    commissionAmount = (newSeller as unknown as ISellerDoc).commission.value;
   }
 
   // Update registration
-  (registration as any).sellerId = newSellerId;
-  (registration as any).commissionAmount = commissionAmount;
-  (registration as any).status = "transferred";
-  (registration as any).updatedBy = transferredBy;
+  (registration as unknown as IRegistrationDoc).sellerId = newSellerId;
+  (registration as unknown as IRegistrationDoc).commissionAmount = commissionAmount;
+  (registration as unknown as IRegistrationDoc).status = "transferred";
+  (registration as unknown as IRegistrationDoc).updatedBy = transferredBy;
   registration.updatedAt = new Date();
   await registration.save();
 
   // Add to new seller
   await SellerReseller.findByIdAndUpdate(newSellerId, {
     $inc: {
-      totalSales: (registration as any).salePrice,
+      totalSales: (registration as unknown as IRegistrationDoc).salePrice,
       totalCommission: commissionAmount,
     },
-    $push: { devicesSold: (registration as any).deviceId },
+    $push: { devicesSold: (registration as unknown as IRegistrationDoc).deviceId },
   });
 
   return registration;
@@ -187,16 +207,16 @@ export async function cancelDeviceRegistration(registrationId: string, cancelled
   if (!registration) throw new Error("Device registration not found");
 
   // Remove commission from seller
-  await SellerReseller.findByIdAndUpdate((registration as any).sellerId, {
+  await SellerReseller.findByIdAndUpdate((registration as unknown as IRegistrationDoc).sellerId, {
     $inc: {
-      totalSales: -(registration as any).salePrice,
-      totalCommission: -(registration as any).commissionAmount,
+      totalSales: -(registration as unknown as IRegistrationDoc).salePrice,
+      totalCommission: -(registration as unknown as IRegistrationDoc).commissionAmount,
     },
-    $pull: { devicesSold: (registration as any).deviceId },
+    $pull: { devicesSold: (registration as unknown as IRegistrationDoc).deviceId },
   });
 
-  (registration as any).status = "cancelled";
-  (registration as any).updatedBy = cancelledBy;
+  (registration as unknown as IRegistrationDoc).status = "cancelled";
+  (registration as unknown as IRegistrationDoc).updatedBy = cancelledBy;
   registration.updatedAt = new Date();
   await registration.save();
 
@@ -208,7 +228,7 @@ export async function checkSellerPermission(sellerId: string, permission: string
   const seller = await SellerReseller.findOne({ sellerId, status: "active" });
   if (!seller) return { allowed: false, reason: "Seller not found or inactive" };
 
-  if (!(seller as any).permissions[permission]) {
+  if (!(seller as unknown as ISellerDoc).permissions[permission]) {
     return { allowed: false, reason: `Permission '${permission}' not granted` };
   }
 
@@ -224,14 +244,14 @@ export async function getSellerStatistics(sellerId: string) {
   const activeRegistrations = registrations.filter((r) => r.status === "active");
 
   return {
-    totalSales: (seller as any).totalSales,
-    totalCommission: (seller as any).totalCommission,
-    totalDevicesSold: (seller as any).devicesSold.length,
+    totalSales: (seller as unknown as ISellerDoc).totalSales,
+    totalCommission: (seller as unknown as ISellerDoc).totalCommission,
+    totalDevicesSold: (seller as unknown as ISellerDoc).devicesSold.length,
     activeRegistrations: activeRegistrations.length,
-    commissionTier: (seller as any).commission.tier,
-    businessType: (seller as any).businessType,
-    verified: (seller as any).verified,
-    status: (seller as any).status,
+    commissionTier: (seller as unknown as ISellerDoc).commission.tier,
+    businessType: (seller as unknown as ISellerDoc).businessType,
+    verified: (seller as unknown as ISellerDoc).verified,
+    status: (seller as unknown as ISellerDoc).status,
   };
 }
 

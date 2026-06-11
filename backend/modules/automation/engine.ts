@@ -1,7 +1,7 @@
 // ── Advanced Automation Engine ───────────────────────────────────────────────────────
 // Rule engine for automation workflows, escalation chains, and recovery workflows
 
-import { emit } from '../../events/index.js';
+import { emit, eventBus } from '../../events/index.js';
 
 export interface Rule {
   id: string;
@@ -107,18 +107,18 @@ class AutomationEngine {
   // Setup event listeners
   private setupEventListeners(): void {
     // Listen to risk calculated events
-    emit.on('risk.calculated', (data) => {
-      this.evaluateRules('risk.calculated', data);
+    eventBus.on('risk.calculated', (event) => {
+      this.evaluateRules('risk.calculated', event.data as Record<string, unknown>);
     });
 
     // Listen to SIM change events
-    emit.on('sim.changed', (data) => {
-      this.evaluateRules('sim.changed', data);
+    eventBus.on('sim.changed', (event) => {
+      this.evaluateRules('sim.changed', event.data as Record<string, unknown>);
     });
 
     // Listen to high risk events
-    emit.on('risk.high', (data) => {
-      this.evaluateRules('risk.high', data);
+    eventBus.on('risk.high', (event) => {
+      this.evaluateRules('risk.high', event.data as Record<string, unknown>);
     });
   }
 

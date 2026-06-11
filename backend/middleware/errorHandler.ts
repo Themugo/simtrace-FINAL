@@ -11,6 +11,7 @@ export const generateRequestId = (): string => crypto.randomUUID();
 export const errorHandler = (err: unknown, req: Request & { id?: string; user?: Record<string, unknown> }, res: Response, next: NextFunction) => {
   const requestId = req.id || generateRequestId();
   const isDev = process.env.NODE_ENV !== 'production';
+  const e = err as Record<string, unknown>;
 
   // Log error with structured data
   const errorLog = {
@@ -18,11 +19,11 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
     timestamp: new Date().toISOString(),
     method: req.method,
     path: req.path,
-    statusCode: err.statusCode || 500,
+    statusCode: (e.statusCode as number) || 500,
     error: {
-      name: err.name,
-      message: err.message,
-      ...(isDev && { stack: err.stack })
+      name: e.name as string,
+      message: e.message as string,
+      ...(isDev && { stack: e.stack as string | undefined })
     },
     user: req.user?.id || 'anonymous',
     ip: req.ip || req.connection?.remoteAddress
@@ -32,25 +33,25 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
   console.error('[ERROR]', JSON.stringify(errorLog));
 
   // Handle specific error types
-  if (err.name === 'ValidationError') {
+  if ((e.name as string) === 'ValidationError') {
     return res.status(400).json({
       error: 'Validation Error',
-      details: err.message,
+      details: e.message as string,
       requestId
     });
   }
 
-  if (err.name === 'CastError') {
+  if ((e.name as string) === 'CastError') {
     return res.status(400).json({
       error: 'Invalid ID format',
-      details: err.message,
+      details: e.message as string,
       requestId
     });
   }
 
-  if (err.code === 11000) {
+  if ((e.code as number) === 11000) {
     // Duplicate key error
-    const field = Object.keys(err.keyPattern)[0];
+    const field = Object.keys(e.keyPattern as Record<string, unknown>)[0];
     return res.status(409).json({
       error: 'Duplicate entry',
       details: `${field} already exists`,
@@ -58,7 +59,7 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
     });
   }
 
-  if (err.name === 'JsonWebTokenError') {
+  if ((e.name as string) === 'JsonWebTokenError') {
     return res.status(401).json({
       error: 'Invalid token',
       details: 'Please provide a valid authentication token',
@@ -66,7 +67,7 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
     });
   }
 
-  if (err.name === 'TokenExpiredError') {
+  if ((e.name as string) === 'TokenExpiredError') {
     return res.status(401).json({
       error: 'Token expired',
       details: 'Please login again',
@@ -74,7 +75,7 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
     });
   }
 
-  if (err.name === 'UnauthorizedError') {
+  if ((e.name as string) === 'UnauthorizedError') {
     return res.status(401).json({
       error: 'Unauthorized',
       details: 'Authentication required',
@@ -83,16 +84,16 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
   }
 
   // Handle custom AppError instances
-  if (err.isOperational) {
-    return res.status(err.statusCode).json({
-      error: err.message,
-      ...(isDev && { details: err.details }),
+  if (e.isOperational as boolean) {
+    return res.status(e.statusCode as number).json({
+      error: e.message as string,
+      ...(isDev && { details: e.details as string }),
       requestId
     });
   }
 
   // Handle MongoDB connection errors
-  if (err.name === 'MongooseError' || err.name === 'MongoError') {
+  if ((e.name as string) === 'MongooseError' || (e.name as string) === 'MongoError') {
     return res.status(503).json({
       error: 'Database error',
       details: 'Unable to connect to database',
@@ -101,7 +102,7 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
   }
 
   // Handle Redis connection errors
-  if (err.message && err.message.includes('Redis')) {
+  if ((e.message as string) && (e.message as string).includes('Redis')) {
     return res.status(503).json({
       error: 'Cache error',
       details: 'Unable to connect to cache service',
@@ -110,13 +111,13 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
   }
 
   // Default error response
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal server error';
+  const statusCode = (e.statusCode as number) || 500;
+  const message = (e.message as string) || 'Internal server error';
 
   res.status(statusCode).json({
     error: statusCode === 500 ? 'Internal server error' : message,
     requestId,
-    ...(isDev && { stack: err.stack })
+    ...(isDev && { stack: e.stack as string | undefined })
   });
 };
 

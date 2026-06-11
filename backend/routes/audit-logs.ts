@@ -5,7 +5,7 @@ import { AuditLog } from "../db/index.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -123,8 +123,8 @@ router.get("/export", authenticate, requireAdmin, async (req: AuthRequest, res: 
     const header = "Timestamp,User,Email,Action,Resource,Method,Path,IP,Success,StatusCode\n";
     const rows = logs.map((log) => [
       new Date(log.timestamp).toISOString(),
-      log.userId?.name || "System",
-      log.userId?.email || "",
+      (log.userId as any)?.name || "System",
+      (log.userId as any)?.email || "",
       log.action,
       log.resource,
       log.method,

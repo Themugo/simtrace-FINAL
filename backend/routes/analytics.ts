@@ -6,7 +6,7 @@ import { realTimeAnalyticsService } from "../services/ai/realTimeAnalytics.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -128,7 +128,7 @@ router.get("/dashboards/public", async (req: Request, res: Response, next: NextF
 router.get("/dashboards/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const dashboard = realTimeAnalyticsService.getDashboard(dashboardId);
+    const dashboard = realTimeAnalyticsService.getDashboard(dashboardId as string);
     
     if (!dashboard) {
       return res.status(404).json({ error: "Dashboard not found" });
@@ -145,7 +145,7 @@ router.put("/dashboards/:dashboardId", authenticate, async (req: AuthRequest, re
     const { dashboardId } = req.params;
     const updates = req.body;
 
-    const dashboard = realTimeAnalyticsService.updateDashboard(dashboardId, updates);
+    const dashboard = realTimeAnalyticsService.updateDashboard(dashboardId as string, updates);
     
     if (!dashboard) {
       return res.status(404).json({ error: "Dashboard not found" });
@@ -160,7 +160,7 @@ router.put("/dashboards/:dashboardId", authenticate, async (req: AuthRequest, re
 router.delete("/dashboards/:dashboardId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dashboardId } = req.params;
-    const success = realTimeAnalyticsService.deleteDashboard(dashboardId);
+    const success = realTimeAnalyticsService.deleteDashboard(dashboardId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Dashboard not found" });
@@ -217,7 +217,7 @@ router.put("/alert-rules/:ruleId", authenticate, async (req: AuthRequest, res: R
     const { ruleId } = req.params;
     const updates = req.body;
 
-    const rule = realTimeAnalyticsService.updateAlertRule(ruleId, updates);
+    const rule = realTimeAnalyticsService.updateAlertRule(ruleId as string, updates);
     
     if (!rule) {
       return res.status(404).json({ error: "Rule not found" });
@@ -232,7 +232,7 @@ router.put("/alert-rules/:ruleId", authenticate, async (req: AuthRequest, res: R
 router.delete("/alert-rules/:ruleId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { ruleId } = req.params;
-    const success = realTimeAnalyticsService.deleteAlertRule(ruleId);
+    const success = realTimeAnalyticsService.deleteAlertRule(ruleId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Rule not found" });

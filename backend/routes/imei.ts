@@ -12,12 +12,7 @@ import { predictFraud, predictTheft } from "../ml/pipeline.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
+type AuthRequest = Request & { user?: { id: string; role: string } }
 
 // ── Luhn algorithm — validates IMEI check digit ───────────────────────────────
 function luhnValid(imei: string): boolean {

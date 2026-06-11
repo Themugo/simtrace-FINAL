@@ -4,7 +4,49 @@
 import { getStreamManager, STREAM_TOPICS } from './kafka.js';
 import { emit } from '../events/index.js';
 import { assessDeviceRisk } from '../modules/risk/engine.js';
-import { logAuditEvent } from '../modules/audit/audit.js';
+import { createAuditLog } from '../modules/audit/audit.js';
+
+interface TrackingEvent {
+  imei: string;
+  location: { lat: number; lng: number };
+  timestamp: string;
+}
+
+interface RiskEvent {
+  imei: string;
+  riskAssessment: {
+    threatLevel: string;
+    score?: number;
+    [key: string]: unknown;
+  };
+}
+
+interface AuditEvent {
+  action: string;
+  userId: string;
+  organizationId?: string;
+  resourceType?: string;
+  resourceId?: string;
+  details?: Record<string, unknown>;
+}
+
+interface NotificationEvent {
+  type: string;
+  userId: string;
+  recipients: string[];
+  subject: string;
+  content: string;
+}
+
+interface AnalyticsEvent {
+  type: string;
+  data: Record<string, unknown>;
+}
+
+interface AIEvent {
+  type: string;
+  data: Record<string, unknown>;
+}
 
 // ── Tracking Events Consumer ─────────────────────────────────────────────────────
 export async function startTrackingEventsConsumer(): Promise<void> {
@@ -14,16 +56,14 @@ export async function startTrackingEventsConsumer(): Promise<void> {
     STREAM_TOPICS.TRACKING_EVENTS,
     'tracking-consumer-group',
     async (message) => {
-      const { imei, location, timestamp } = message.value;
+      const { imei, location, timestamp } = message.value as TrackingEvent;
 
-      // Emit location detected event
       emit('location.detected', {
         imei,
         location,
         timestamp,
       });
 
-      // Emit device detected event
       emit('device.detected', {
         imei,
         timestamp,
@@ -41,15 +81,13 @@ export async function startRiskEventsConsumer(): Promise<void> {
     STREAM_TOPICS.RISK_EVENTS,
     'risk-consumer-group',
     async (message) => {
-      const { imei, riskAssessment } = message.value;
+      const { imei, riskAssessment } = message.value as RiskEvent;
 
-      // Emit risk calculated event
       emit('risk.calculated', {
         imei,
         riskAssessment,
       });
 
-      // If risk is high, emit high risk event
       if (riskAssessment.threatLevel === 'HIGH' || riskAssessment.threatLevel === 'CRITICAL') {
         emit('risk.high', {
           imei,
@@ -68,13 +106,12 @@ export async function startAuditEventsConsumer(): Promise<void> {
     STREAM_TOPICS.AUDIT_EVENTS,
     'audit-consumer-group',
     async (message) => {
-      const { action, userId, organizationId, resourceType, resourceId, details } = message.value;
+      const { action, userId, organizationId, resourceType, resourceId, details } = message.value as AuditEvent;
 
       // Log audit event to database
-      await logAuditEvent({
-        action,
+      await createAuditLog({
+        action: action as any,
         userId,
-        organizationId,
         resourceType,
         resourceId,
         details,
@@ -91,7 +128,7 @@ export async function startNotificationsConsumer(): Promise<void> {
     STREAM_TOPICS.NOTIFICATIONS,
     'notifications-consumer-group',
     async (message) => {
-      const { type, userId, recipients, subject, content } = message.value;
+      const { type, userId, recipients, subject, content } = message.value as NotificationEvent;
 
       // Process notification based on type
       switch (type) {
@@ -122,7 +159,7 @@ export async function startAnalyticsEventsConsumer(): Promise<void> {
     STREAM_TOPICS.ANALYTICS_EVENTS,
     'analytics-consumer-group',
     async (message) => {
-      const { type, data } = message.value;
+      const { type, data } = message.value as AnalyticsEvent;
 
       // Process analytics event
       switch (type) {
@@ -153,7 +190,7 @@ export async function startAIEventsConsumer(): Promise<void> {
     STREAM_TOPICS.AI_EVENTS,
     'ai-consumer-group',
     async (message) => {
-      const { type, data } = message.value;
+      const { type, data } = message.value as AIEvent;
 
       // Process AI event
       switch (type) {

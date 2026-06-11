@@ -1,4 +1,5 @@
 import express from "express";
+// @ts-ignore
 import Stripe from "stripe";
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
@@ -12,7 +13,7 @@ import {
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -155,11 +156,11 @@ router.post("/stripe-webhook", express.raw({ type: "application/json" }), async 
   const sig    = req.headers["stripe-signature"];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-  let event: Record<string, unknown>;
+  let event: Record<string, any>;
 
   try {
     if (secret && sig && stripe) {
-      event = stripe.webhooks.constructEvent(req.body, sig, secret) as unknown as Record<string, unknown>;
+      event = stripe.webhooks.constructEvent(req.body, sig, secret) as unknown as Record<string, any>;
     } else if (process.env.NODE_ENV === "production") {
       return res.status(400).json({ error: "Webhook signature verification required" });
     } else {

@@ -10,7 +10,7 @@ export const validate = (req: Request, res: Response, next: NextFunction) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       error: 'Validation failed',
-      details: errors.array().map((err) => ({
+      details: errors.array().map((err: any) => ({
         field: err.path,
         message: err.msg,
         value: err.value

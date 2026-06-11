@@ -11,12 +11,14 @@ export async function isAccountLocked(userId: string): Promise<boolean> {
   const user = await User.findById(userId);
   if (!user) return false;
 
-  if (user.lockedUntil && new Date() < user.lockedUntil) {
+  const u = user as unknown as { lockedUntil?: Date; loginAttempts?: number };
+
+  if (u.lockedUntil && new Date() < u.lockedUntil) {
     return true;
   }
 
   // Reset lockout if time has passed
-  if (user.lockedUntil && new Date() >= user.lockedUntil) {
+  if (u.lockedUntil && new Date() >= u.lockedUntil) {
     await resetLoginAttempts(userId);
   }
 
@@ -32,7 +34,8 @@ export async function recordFailedLogin(userId: string): Promise<{ locked: boole
     return { locked: false, remainingAttempts: MAX_LOGIN_ATTEMPTS };
   }
 
-  const attempts = (user.loginAttempts || 0) + 1;
+  const u = user as unknown as { lockedUntil?: Date; loginAttempts?: number };
+  const attempts = (u.loginAttempts || 0) + 1;
   const remainingAttempts = MAX_LOGIN_ATTEMPTS - attempts;
 
   if (attempts >= MAX_LOGIN_ATTEMPTS) {
@@ -68,9 +71,11 @@ export async function resetLoginAttempts(userId: string): Promise<void> {
  */
 export async function getLockoutRemainingTime(userId: string): Promise<number | null> {
   const user = await User.findById(userId);
-  if (!user || !user.lockedUntil) return null;
+  if (!user) return null;
+  const u = user as unknown as { lockedUntil?: Date; loginAttempts?: number };
+  if (!u.lockedUntil) return null;
 
-  const remaining = user.lockedUntil.getTime() - Date.now();
+  const remaining = u.lockedUntil.getTime() - Date.now();
   return remaining > 0 ? remaining : null;
 }
 
@@ -90,7 +95,8 @@ export async function unlockAccount(userId: string): Promise<void> {
 export async function shouldNotifyLockout(userId: string): Promise<boolean> {
   const user = await User.findById(userId);
   if (!user) return false;
+  const u = user as unknown as { lockedUntil?: Date; loginAttempts?: number };
 
   // Notify on first lockout
-  return (user.loginAttempts || 0) >= MAX_LOGIN_ATTEMPTS && user.lockedUntil;
+  return (u.loginAttempts || 0) >= MAX_LOGIN_ATTEMPTS && !!u.lockedUntil;
 }

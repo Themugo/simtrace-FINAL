@@ -30,7 +30,7 @@ export function scopeQueryToTenant(query: Record<string, unknown>, tenantId: str
 }
 
 // WebSocket tenant separation
-export function validateSocketTenant(socket: Record<string, unknown>, tenantId: string): boolean {
+export function validateSocketTenant(socket: { handshake: { auth?: { tenantId?: string } } }, tenantId: string): boolean {
   const socketTenantId = socket.handshake.auth?.tenantId;
   
   if (socketTenantId !== tenantId) {

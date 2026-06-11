@@ -1,7 +1,7 @@
 // ── Kafka/Redpanda Event Streaming ─────────────────────────────────────────────────
 // This provides a scalable event streaming architecture using Kafka or Redpanda
 
-import { Kafka, Consumer, Producer, KafkaConfig } from 'kafkajs';
+import { Kafka, Consumer, Producer, KafkaConfig, TopicMessages } from 'kafkajs';
 
 export interface StreamConfig {
   brokers: string[];
@@ -72,7 +72,7 @@ class StreamManager {
     };
 
     if (this.config.sasl) {
-      kafkaConfig.sasl = this.config.sasl;
+      kafkaConfig.sasl = this.config.sasl as any;
     }
 
     if (this.config.ssl) {
@@ -122,10 +122,12 @@ class StreamManager {
 
     await this.producer.send({
       topic: message.topic,
-      key: message.key,
-      value: JSON.stringify(message.value),
-      headers: message.headers,
-      timestamp: message.timestamp ? message.timestamp.getTime() : Date.now(),
+      messages: [{
+        key: message.key,
+        value: JSON.stringify(message.value),
+        headers: message.headers,
+        timestamp: message.timestamp ? String(message.timestamp.getTime()) : undefined,
+      }],
     });
   }
 
@@ -141,13 +143,13 @@ class StreamManager {
       timestamp: msg.timestamp ? msg.timestamp.getTime() : Date.now(),
     }));
 
-    await this.producer.sendBatch({
-      topicMessages: batch.reduce((acc, msg) => {
-        if (!acc[msg.topic]) acc[msg.topic] = [];
-        acc[msg.topic].push(msg);
-        return acc;
-      }, {} as Record<string, BatchMessage[]>),
-    });
+    const grouped = batch.reduce((acc, msg) => {
+      if (!acc[msg.topic]) acc[msg.topic] = [];
+      acc[msg.topic].push(msg);
+      return acc;
+    }, {} as Record<string, BatchMessage[]>);
+    const topicMessages = Object.entries(grouped).map(([topic, messages]) => ({ topic, messages })) as unknown as TopicMessages[];
+    await this.producer.sendBatch({ topicMessages });
   }
 
   // Subscribe to topic
@@ -208,16 +210,17 @@ class StreamManager {
         const offsets = await admin.fetchTopicOffsets(topic);
         const consumerOffsets = await admin.fetchOffsets({
           groupId,
-          topics: [{ topic }],
+          topics: [topic],
         });
 
         for (const offset of offsets) {
-          const consumerOffset = consumerOffsets.find(
-            o => o.partition === offset.partition
-          );
-          if (consumerOffset) {
-            lag[`${topic}:${offset.partition}`] =
-              offset.offset - consumerOffset.offset;
+          const topicOffsets = consumerOffsets.find(o => o.topic === topic);
+          if (topicOffsets) {
+            const partitionOffset = topicOffsets.partitions.find(p => p.partition === offset.partition);
+            if (partitionOffset) {
+              lag[`${topic}:${offset.partition}`] =
+                Number(offset.offset) - Number(partitionOffset.offset);
+            }
           }
         }
       } catch (error) {

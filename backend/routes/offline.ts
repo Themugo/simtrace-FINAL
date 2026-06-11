@@ -8,7 +8,7 @@ import { offlineManager } from "../services/offline/offlineManager.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -110,7 +110,7 @@ router.post("/storage/store", authenticate, async (req: AuthRequest, res: Respon
 router.get("/storage/:dataId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dataId } = req.params;
-    const data = offlineStorageService.retrieve(dataId);
+    const data = offlineStorageService.retrieve(dataId as string);
     
     if (!data) {
       return res.status(404).json({ error: "Data not found" });
@@ -145,7 +145,7 @@ router.put("/storage/:dataId", authenticate, async (req: AuthRequest, res: Respo
     const { data } = schema.parse(req.body);
     const { dataId } = req.params;
 
-    const result = offlineStorageService.update(dataId, data);
+    const result = offlineStorageService.update(dataId as string, data);
     
     if (!result) {
       return res.status(404).json({ error: "Data not found" });
@@ -161,7 +161,7 @@ router.put("/storage/:dataId", authenticate, async (req: AuthRequest, res: Respo
 router.delete("/storage/:dataId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { dataId } = req.params;
-    const success = offlineStorageService.delete(dataId);
+    const success = offlineStorageService.delete(dataId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Data not found" });

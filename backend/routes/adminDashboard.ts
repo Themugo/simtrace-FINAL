@@ -101,7 +101,7 @@ router.patch("/:dashboardId/widgets", authenticate, async (req: AuthRequest, res
 
     const { dashboardId } = req.params;
     const data = schema.parse(req.body);
-    const dashboard = await updateAdminDashboardWidgets(dashboardId as string, data.widgets);
+    const dashboard = await updateAdminDashboardWidgets(dashboardId as string, data.widgets as unknown as Record<string, unknown>);
     res.json(dashboard);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });

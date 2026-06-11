@@ -12,7 +12,8 @@ import {
   secureEnclaveService
 } from "../services/security/secureEnclave.js";
 import {
-  blockchainEvidenceService
+  blockchainEvidenceService,
+  EvidenceData
 } from "../services/security/blockchainEvidence.js";
 import {
   multiFactorBiometricsService
@@ -23,7 +24,7 @@ import {
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -49,7 +50,8 @@ router.post("/zk/ownership-proof", authenticate, async (req: AuthRequest, res: R
       eventCategory: 'zk_proof',
       severity: 'medium',
       details: { proofId: proof.verificationKey },
-      success: true
+      success: true,
+      metadata: {}
     });
 
     res.json({ proof });
@@ -74,13 +76,14 @@ router.post("/zk/verify-proof", authenticate, async (req: AuthRequest, res: Resp
     const result = await zeroKnowledgeProofService.verifyProof(proof, deviceId);
     
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       deviceId,
       eventType: 'zk_verify_proof',
       eventCategory: 'zk_proof',
       severity: result.isValid ? 'low' : 'high',
       details: { isValid: result.isValid },
-      success: result.isValid
+      success: result.isValid,
+      metadata: {}
     });
 
     res.json({ result });
@@ -102,12 +105,13 @@ router.post("/quantum/generate-keypair", authenticate, async (req: AuthRequest, 
     const keyPair = await quantumResistantEncryptionService.generateKeyPair(algorithm);
     
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       eventType: 'quantum_keypair_generation',
       eventCategory: 'quantum_crypto',
       severity: 'medium',
       details: { keyId: keyPair.keyId, algorithm: keyPair.algorithm },
-      success: true
+      success: true,
+      metadata: {}
     });
 
     res.json({ keyPair });
@@ -129,12 +133,13 @@ router.post("/quantum/encrypt", authenticate, async (req: AuthRequest, res: Resp
     const result = await quantumResistantEncryptionService.encrypt(plaintext, publicKey, algorithm);
     
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       eventType: 'quantum_encryption',
       eventCategory: 'quantum_crypto',
       severity: 'medium',
       details: { keyId: result.keyId, algorithm: result.algorithm },
-      success: true
+      success: true,
+      metadata: {}
     });
 
     res.json({ result });
@@ -160,12 +165,13 @@ router.post("/quantum/decrypt", authenticate, async (req: AuthRequest, res: Resp
     const result = await quantumResistantEncryptionService.decrypt(encryptedData, privateKey);
     
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       eventType: 'quantum_decryption',
       eventCategory: 'quantum_crypto',
       severity: result.success ? 'low' : 'high',
       details: { success: result.success },
-      success: result.success
+      success: result.success,
+      metadata: {}
     });
 
     res.json({ result });
@@ -189,12 +195,13 @@ router.post("/enclave/generate-key", authenticate, async (req: AuthRequest, res:
     const key = await secureEnclaveService.generateSecureKey(keyType, accessLevel, ttl);
     
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       eventType: 'enclave_key_generation',
       eventCategory: 'secure_enclave',
       severity: 'medium',
       details: { keyId: key.keyId, keyType: key.keyType },
-      success: true
+      success: true,
+      metadata: {}
     });
 
     res.json({ key });
@@ -216,12 +223,13 @@ router.post("/enclave/encrypt", authenticate, async (req: AuthRequest, res: Resp
     const result = await secureEnclaveService.encryptData(plaintext, keyId, accessLevel);
     
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       eventType: 'enclave_encryption',
       eventCategory: 'secure_enclave',
       severity: 'medium',
       details: { dataId: result.dataId },
-      success: true
+      success: true,
+      metadata: {}
     });
 
     res.json({ result });
@@ -232,34 +240,39 @@ router.post("/enclave/encrypt", authenticate, async (req: AuthRequest, res: Resp
 });
 
 router.post("/enclave/decrypt", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  let dataId = '';
   try {
     const schema = z.object({
       dataId: z.string(),
       accessLevel: z.enum(['user', 'admin', 'system']).optional()
     });
-    const { dataId, accessLevel } = schema.parse(req.body);
+    const parsed = schema.parse(req.body);
+    dataId = parsed.dataId;
+    const accessLevel = parsed.accessLevel;
 
     const plaintext = await secureEnclaveService.decryptData(dataId, accessLevel);
     
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       eventType: 'enclave_decryption',
       eventCategory: 'secure_enclave',
       severity: 'low',
       details: { dataId },
-      success: true
+      success: true,
+      metadata: {}
     });
 
     res.json({ plaintext });
   } catch (err) {
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       eventType: 'enclave_decryption',
       eventCategory: 'secure_enclave',
       severity: 'high',
       details: { dataId },
       success: false,
-      errorMessage: err instanceof Error ? err.message : 'Unknown error'
+      errorMessage: err instanceof Error ? err.message : 'Unknown error',
+      metadata: {}
     });
     
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -294,16 +307,17 @@ router.post("/blockchain/add-evidence", authenticate, async (req: AuthRequest, r
     });
     const data = schema.parse(req.body);
 
-    const result = await blockchainEvidenceService.addEvidence(data);
+    const result = await blockchainEvidenceService.addEvidence(data as unknown as EvidenceData);
     
     await securityAuditService.logEvent({
-      userId: req.user?.id,
+      userId: req.user?.id as string,
       deviceId: data.deviceId,
       eventType: 'blockchain_evidence_added',
       eventCategory: 'blockchain',
       severity: 'medium',
       details: { blockNumber: result.block.blockNumber, isValid: result.isValid },
-      success: result.isValid
+      success: result.isValid,
+      metadata: {}
     });
 
     res.json({ result });
@@ -315,7 +329,7 @@ router.post("/blockchain/add-evidence", authenticate, async (req: AuthRequest, r
 
 router.get("/blockchain/evidence/:blockNumber", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const blockNumber = parseInt(req.params.blockNumber);
+    const blockNumber = parseInt(req.params.blockNumber as string);
     const evidence = blockchainEvidenceService.getEvidence(blockNumber);
     
     if (!evidence) {
@@ -330,7 +344,7 @@ router.get("/blockchain/evidence/:blockNumber", authenticate, async (req: AuthRe
 
 router.get("/blockchain/device/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = req.params.deviceId as string;
     const evidence = blockchainEvidenceService.getEvidenceByDevice(deviceId);
     res.json({ evidence });
   } catch (err) {
@@ -375,7 +389,8 @@ router.post("/biometrics/enroll-face", authenticate, async (req: AuthRequest, re
       eventCategory: 'biometrics',
       severity: result.success ? 'medium' : 'low',
       details: { templateId: result.templateId, quality: result.quality },
-      success: result.success
+      success: result.success,
+      metadata: {}
     });
 
     res.json({ result });
@@ -402,7 +417,8 @@ router.post("/biometrics/enroll-voice", authenticate, async (req: AuthRequest, r
       eventCategory: 'biometrics',
       severity: result.success ? 'medium' : 'low',
       details: { templateId: result.templateId, quality: result.quality },
-      success: result.success
+      success: result.success,
+      metadata: {}
     });
 
     res.json({ result });
@@ -429,7 +445,8 @@ router.post("/biometrics/enroll-fingerprint", authenticate, async (req: AuthRequ
       eventCategory: 'biometrics',
       severity: result.success ? 'medium' : 'low',
       details: { templateId: result.templateId, quality: result.quality },
-      success: result.success
+      success: result.success,
+      metadata: {}
     });
 
     res.json({ result });
@@ -456,7 +473,8 @@ router.post("/biometrics/authenticate-face", authenticate, async (req: AuthReque
       eventCategory: 'biometrics',
       severity: result.isMatch ? 'low' : 'high',
       details: { confidence: result.confidence },
-      success: result.isMatch
+      success: result.isMatch,
+      metadata: {}
     });
 
     res.json({ result });
@@ -483,7 +501,8 @@ router.post("/biometrics/authenticate-voice", authenticate, async (req: AuthRequ
       eventCategory: 'biometrics',
       severity: result.isMatch ? 'low' : 'high',
       details: { confidence: result.confidence },
-      success: result.isMatch
+      success: result.isMatch,
+      metadata: {}
     });
 
     res.json({ result });
@@ -510,7 +529,8 @@ router.post("/biometrics/authenticate-fingerprint", authenticate, async (req: Au
       eventCategory: 'biometrics',
       severity: result.isMatch ? 'low' : 'high',
       details: { confidence: result.confidence },
-      success: result.isMatch
+      success: result.isMatch,
+      metadata: {}
     });
 
     res.json({ result });
@@ -542,7 +562,8 @@ router.post("/biometrics/multi-factor", authenticate, async (req: AuthRequest, r
       eventCategory: 'biometrics',
       severity: result.success ? 'low' : 'high',
       details: { overallConfidence: result.overallConfidence, factorsUsed: result.results.length },
-      success: result.success
+      success: result.success,
+      metadata: {}
     });
 
     res.json({ result });

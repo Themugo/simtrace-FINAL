@@ -1,76 +1,37 @@
-import { on, emitAsync } from './index.js';
-import { logAuditEvent } from '../modules/audit/audit.js';
+import { on, emit, emitAsync } from './index.js';
+import { createAuditLog } from '../modules/audit/audit.js';
 import { assessDeviceRisk } from '../modules/risk/engine.js';
 import { getRedisClient } from '../services/redis.js';
 
 // ── Event Subscribers ───────────────────────────────────────────────────────────
 // These functions subscribe to events and perform actions in response
 
+const audit = (a: string, userId?: string, orgId?: string, resourceType?: string, resourceId?: string, details?: Record<string, any>) =>
+  createAuditLog({ action: a as any, userId: userId || '', resourceType, resourceId, details: details as any });
+
 // Audit logging subscriber
 on('device.detected', async (event) => {
-  await logAuditEvent({
-    action: 'device_detected',
-    userId: event.userId,
-    organizationId: event.organizationId,
-    resourceType: 'device',
-    resourceId: event.data.imei,
-    details: event.data,
-  });
+  audit('device_detected', event.userId, event.organizationId, 'device', event.data.imei, event.data);
 });
 
 on('device.locked', async (event) => {
-  await logAuditEvent({
-    action: 'device_locked',
-    userId: event.userId,
-    organizationId: event.organizationId,
-    resourceType: 'device',
-    resourceId: event.data.deviceId,
-    details: event.data,
-  });
+  audit('device_locked', event.userId, event.organizationId, 'device', event.data.deviceId, event.data);
 });
 
 on('device.unlocked', async (event) => {
-  await logAuditEvent({
-    action: 'device_unlocked',
-    userId: event.userId,
-    organizationId: event.organizationId,
-    resourceType: 'device',
-    resourceId: event.data.deviceId,
-    details: event.data,
-  });
+  audit('device_unlocked', event.userId, event.organizationId, 'device', event.data.deviceId, event.data);
 });
 
 on('user.login', async (event) => {
-  await logAuditEvent({
-    action: 'user_login',
-    userId: event.userId,
-    organizationId: event.organizationId,
-    resourceType: 'user',
-    resourceId: event.userId,
-    details: event.data,
-  });
+  audit('user_login', event.userId, event.organizationId, 'user', event.userId, event.data);
 });
 
 on('case.created', async (event) => {
-  await logAuditEvent({
-    action: 'case_created',
-    userId: event.userId,
-    organizationId: event.organizationId,
-    resourceType: 'case',
-    resourceId: event.data.caseId,
-    details: event.data,
-  });
+  audit('case_created', event.userId, event.organizationId, 'case', event.data.caseId, event.data);
 });
 
 on('payment.completed', async (event) => {
-  await logAuditEvent({
-    action: 'payment_completed',
-    userId: event.userId,
-    organizationId: event.organizationId,
-    resourceType: 'payment',
-    resourceId: event.data.paymentId,
-    details: event.data,
-  });
+  audit('payment_completed', event.userId, event.organizationId, 'payment', event.data.paymentId, event.data);
 });
 
 // Risk assessment subscriber
@@ -108,14 +69,7 @@ on('location.detected', async (event) => {
 on('sim.changed', async (event) => {
   const { imei, oldSimIccid, newSimIccid } = event.data;
   
-  await logAuditEvent({
-    action: 'sim_changed',
-    userId: event.userId,
-    organizationId: event.organizationId,
-    resourceType: 'device',
-    resourceId: imei,
-    details: event.data,
-  });
+  audit('sim_changed', event.userId, event.organizationId, 'device', imei, event.data);
   
   // Trigger risk assessment
   const riskAssessment = await assessDeviceRisk(imei);
@@ -138,8 +92,9 @@ export async function setupRedisEventSubscriber() {
   
   await subscriber.connect();
   
-  subscriber.subscribe('simtrace:events', (message) => {
+  subscriber.subscribe('simtrace:events', (message: any) => {
     try {
+      if (typeof message !== 'string') return;
       const event = JSON.parse(message);
       emit(event.name, event.data, event.metadata);
     } catch (error) {

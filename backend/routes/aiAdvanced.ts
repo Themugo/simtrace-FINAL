@@ -10,7 +10,7 @@ import { anomalyDetectionMLService } from "../services/ai/anomalyDetectionML.js"
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -54,7 +54,7 @@ router.get("/deep-learning/models", authenticate, requireAdmin, async (req: Auth
 
 router.post("/deep-learning/retrain/:modelId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { modelId } = req.params;
+    const modelId = req.params.modelId as string;
     const model = await deepLearningService.retrainModel(modelId);
     res.json({ model });
   } catch (err) {
@@ -64,7 +64,7 @@ router.post("/deep-learning/retrain/:modelId", authenticate, requireAdmin, async
 
 router.get("/deep-learning/predictions/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = req.params.deviceId as string;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
     const predictions = deepLearningService.getPredictionHistory(deviceId, limit);
     res.json({ predictions });
@@ -122,7 +122,7 @@ router.post("/computer-vision/identify", authenticate, async (req: AuthRequest, 
 
 router.get("/computer-vision/features/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = req.params.deviceId as string;
     const features = computerVisionService.getDeviceFeatures(deviceId);
     res.json({ features });
   } catch (err) {
@@ -166,7 +166,7 @@ router.post("/nlp/document", authenticate, async (req: AuthRequest, res: Respons
 
 router.post("/nlp/analyze/:documentId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { documentId } = req.params;
+    const documentId = req.params.documentId as string;
     const analysis = await nlpEvidenceAnalysisService.analyzeDocument(documentId);
     res.json({ analysis });
   } catch (err) {
@@ -176,7 +176,7 @@ router.post("/nlp/analyze/:documentId", authenticate, async (req: AuthRequest, r
 
 router.get("/nlp/documents/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = req.params.deviceId as string;
     const documents = nlpEvidenceAnalysisService.getDocumentsForDevice(deviceId);
     res.json({ documents });
   } catch (err) {
@@ -216,7 +216,7 @@ router.post("/maintenance/metrics", authenticate, async (req: AuthRequest, res: 
     });
     const data = schema.parse(req.body);
 
-    const metrics = predictiveMaintenanceService.recordHealthMetrics(data);
+    const metrics = predictiveMaintenanceService.recordHealthMetrics({ ...data, timestamp: Date.now() });
     res.json({ metrics });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -303,7 +303,7 @@ router.post("/anomaly/detect", authenticate, async (req: AuthRequest, res: Respo
 
 router.get("/anomaly/detections/:deviceId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { deviceId } = req.params;
+    const deviceId = req.params.deviceId as string;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
     const detections = anomalyDetectionMLService.getDetectionHistory(deviceId, limit);
     res.json({ detections });
@@ -323,7 +323,7 @@ router.get("/anomaly/models", authenticate, requireAdmin, async (req: AuthReques
 
 router.post("/anomaly/retrain/:modelId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { modelId } = req.params;
+    const modelId = req.params.modelId as string;
     const model = await anomalyDetectionMLService.retrainModel(modelId);
     res.json({ model });
   } catch (err) {

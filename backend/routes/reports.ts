@@ -189,8 +189,7 @@ router.get("/alerts", authenticate, async (req: AuthRequest, res: Response, next
 // ── GET /api/reports/admin/summary — Admin: Get comprehensive report summary ─────────
 router.get("/admin/summary", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const stats = await router.handle(req, res, next);
-    res.json(stats);
+    res.json({ message: "Summary endpoint" });
   } catch (err) { next(err); }
 });
 

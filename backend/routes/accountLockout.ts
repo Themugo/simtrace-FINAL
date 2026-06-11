@@ -18,7 +18,7 @@ interface AuthRequest extends Request {
 // ── Check Account Lockout Status ───────────────────────────────────────────────
 router.get('/status/:userId', authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
     const locked = await isAccountLocked(userId);
     const remainingTime = locked ? await getLockoutRemainingTime(userId) : null;
 
@@ -34,7 +34,7 @@ router.get('/status/:userId', authenticate, requireAdmin, async (req: AuthReques
 // ── Unlock Account (Admin Only) ───────────────────────────────────────────────
 router.post('/unlock/:userId', authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
     const schema = z.object({
       reason: z.string().optional(),
     });

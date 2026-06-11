@@ -1,7 +1,7 @@
 import { emit } from '../events/index.js';
 import { assessDeviceRisk } from '../modules/risk/engine.js';
-import { enrichGeolocation } from '../modules/tracking/geolocation.js';
-import { detectAntiSpoofing } from '../modules/tracking/antispoof.js';
+import { enrichLocation as enrichGeolocation } from '../modules/tracking/geolocation.js';
+import { detectEmulator as detectAntiSpoofing } from '../modules/tracking/antispoof.js';
 import { TrackingEvent, DeviceLocation, DeviceSession } from '../db/index.js';
 import { getRedisClient } from '../services/redis.js';
 
@@ -174,7 +174,7 @@ class TelemetryPipeline {
     }
     
     // Mark as processed
-    await redis.set(dedupKey, '1', { EX: this.deduplicationWindow * 2 });
+    await redis.setex(dedupKey, this.deduplicationWindow * 2, '1');
     
     return { success: true };
   }
@@ -343,14 +343,15 @@ class TelemetryPipeline {
     // Find recent session
     const recentSession = await DeviceSession.findOne({
       imei: data.imei,
-      lastSeen: { $gte: new Date(now.getTime() - sessionWindow) },
-    });
+      startTime: { $gte: new Date(now.getTime() - sessionWindow) },
+    }) as any;
 
     if (recentSession) {
       // Update existing session
-      recentSession.lastSeen = now;
-      recentSession.eventCount += 1;
+      recentSession.endTime = now;
+      recentSession.eventsCount += 1;
       if (data.location) {
+        if (!recentSession.locations) recentSession.locations = [];
         recentSession.locations.push({
           lat: data.location.lat,
           lng: data.location.lng,
@@ -362,9 +363,9 @@ class TelemetryPipeline {
       // Create new session
       await DeviceSession.create({
         imei: data.imei,
-        startedAt: data.timestamp,
-        lastSeen: now,
-        eventCount: 1,
+        startTime: data.timestamp,
+        endTime: now,
+        eventsCount: 1,
         locations: data.location ? [{
           lat: data.location.lat,
           lng: data.location.lng,
@@ -372,7 +373,7 @@ class TelemetryPipeline {
         }] : [],
         ipAddress: data.ipAddress,
         deviceInfo: data.deviceInfo,
-      });
+      } as any);
     }
   }
 
@@ -381,8 +382,7 @@ class TelemetryPipeline {
     // Get previous SIM info for this device
     const previousEvent = await TrackingEvent.findOne({
       imei: data.imei,
-      simInfo: { $exists: true },
-    }).sort({ timestamp: -1 });
+    }).sort({ timestamp: -1 }) as unknown as { simInfo?: { iccid?: string } } | null;
 
     if (previousEvent && previousEvent.simInfo?.iccid !== data.simInfo?.iccid) {
       emit('sim.changed', {
@@ -403,10 +403,10 @@ class TelemetryPipeline {
       imei: data.imei,
     }).sort({ timestamp: -1 });
 
-    if (previousLocation && previousLocation.location) {
+    if (previousLocation) {
       const distance = this.calculateDistance(
-        previousLocation.location.lat,
-        previousLocation.location.lng,
+        previousLocation.lat,
+        previousLocation.lng,
         data.location.lat,
         data.location.lng
       );

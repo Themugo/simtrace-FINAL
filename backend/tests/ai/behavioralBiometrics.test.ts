@@ -143,6 +143,16 @@ describe('BehavioralBiometricsService', () => {
           typingSpeed: 10,
           errorRate: 25,
         },
+        usagePattern: {
+          appSequence: ['app5', 'app6'],
+          sessionDuration: 600,
+          interactionFrequency: 60,
+        },
+        movementPattern: {
+          accelerometer: [5, 3, 2],
+          gyroscope: [1, 2, 3],
+          touchPattern: [600, 900, 0.8, 1200, 3, 2],
+        },
       });
       
       expect(lowMatchResult.riskLevel).toBe('high');

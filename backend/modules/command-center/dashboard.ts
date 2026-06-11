@@ -1,7 +1,7 @@
 // ── Live Command Center Dashboard ───────────────────────────────────────────────────
 // SOC-style dashboard for realtime monitoring and threat detection
 
-import { emit } from '../../events/index.js';
+import { emit, eventBus, Event, EventName } from '../../events/index.js';
 import { getRedisClient } from '../../services/redis.js';
 
 export interface DashboardWidget {
@@ -128,36 +128,36 @@ class CommandCenterDashboard {
   // Setup event listeners
   private setupEventListeners(): void {
     // Listen to device detected events
-    emit.on('device.detected', (data) => {
-      this.handleDeviceDetected(data);
+    eventBus.on('device.detected', (event: Event) => {
+      this.handleDeviceDetected(event.data as Record<string, unknown>);
     });
 
     // Listen to risk calculated events
-    emit.on('risk.calculated', (data) => {
-      this.handleRiskCalculated(data);
+    eventBus.on('risk.calculated', (event: Event) => {
+      this.handleRiskCalculated(event.data as Record<string, unknown>);
     });
 
     // Listen to high risk events
-    emit.on('risk.high', (data) => {
-      this.handleHighRisk(data);
+    eventBus.on('risk.high', (event: Event) => {
+      this.handleHighRisk(event.data as Record<string, unknown>);
     });
 
     // Listen to SIM change events
-    emit.on('sim.changed', (data) => {
-      this.handleSIMChange(data);
+    eventBus.on('sim.changed', (event: Event) => {
+      this.handleSIMChange(event.data as Record<string, unknown>);
     });
 
     // Listen to agent events
-    emit.on('agent.fraud_ring_detected', (data) => {
-      this.handleFraudRingDetected(data);
+    eventBus.on('agent.fraud_ring_detected' as EventName, (event: Event) => {
+      this.handleFraudRingDetected(event.data as Record<string, unknown>);
     });
 
-    emit.on('agent.suspicious_relationship', (data) => {
-      this.handleSuspiciousRelationship(data);
+    eventBus.on('agent.suspicious_relationship' as EventName, (event: Event) => {
+      this.handleSuspiciousRelationship(event.data as Record<string, unknown>);
     });
 
-    emit.on('agent.recovery_opportunity', (data) => {
-      this.handleRecoveryOpportunity(data);
+    eventBus.on('agent.recovery_opportunity' as EventName, (event: Event) => {
+      this.handleRecoveryOpportunity(event.data as Record<string, unknown>);
     });
   }
 
@@ -315,7 +315,7 @@ class CommandCenterDashboard {
     }
 
     // Emit widget update event
-    emit('dashboard.widget_updated', {
+    emit('dashboard.widget_updated' as EventName, {
       widgetId,
       data,
       timestamp: new Date(),

@@ -13,7 +13,75 @@ import {
   User,
   TheftReport,
 } from "../db/index.js";
+import mongoose from "mongoose";
 import { getIO } from "./socket.js";
+
+// ── Internal document interfaces for strict:false schemas ──────────────────────────
+interface IPoliceReportFields {
+  device: mongoose.Types.ObjectId;
+  user: mongoose.Types.ObjectId;
+  station: mongoose.Types.ObjectId;
+  obNumber: string;
+  incidentLocation?: unknown;
+  status: string;
+  confirmedBy?: string;
+  confirmedAt?: Date;
+  confirmationNotes?: string;
+  evidence: unknown[];
+  recovered?: boolean;
+  recoveredAt?: Date;
+  recoveredBy?: string;
+  recoveryLocation?: unknown;
+}
+
+interface INationwideAlertFields {
+  device: mongoose.Types.ObjectId;
+  policeReport: mongoose.Types.ObjectId;
+  status: string;
+  deactivatedAt?: Date;
+  notifiedStations: mongoose.Types.ObjectId[];
+  sightings: unknown[];
+}
+
+interface ICaseTransferFields {
+  policeReport: mongoose.Types.ObjectId;
+  fromStation: mongoose.Types.ObjectId;
+  toStation: mongoose.Types.ObjectId;
+  transferReason?: string;
+  status: string;
+  approvedBy?: string;
+  respondedAt?: Date;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  completedAt?: Date;
+}
+
+interface IRecoveryWorkflowFields {
+  device: mongoose.Types.ObjectId;
+  policeReport: mongoose.Types.ObjectId;
+  station: mongoose.Types.ObjectId;
+  currentStage: string;
+  status: string;
+  stageHistory: unknown[];
+  investigators: mongoose.Types.ObjectId[];
+  locatedAt?: Date;
+  locatedBy?: string;
+  locationDetails?: unknown;
+  recoveredAt?: Date;
+  recoveredBy?: string;
+  recoveryNotes?: unknown;
+  recoveryEvidence?: unknown[];
+  returnedToOwner?: boolean;
+  returnedAt?: Date;
+  returnCondition?: string;
+  arrestsMade: unknown[];
+}
+
+interface IInterpolCaseFields {
+  status: string;
+  publishedAt?: Date;
+  responses: unknown[];
+}
 
 // ── Police Station Management ───────────────────────────────────────────────────────
 export async function createPoliceStation(data: Record<string, unknown>) {
@@ -111,43 +179,43 @@ export async function confirmPoliceReport(reportId: string, confirmedBy: string,
   const report = await PoliceReport.findById(reportId);
   if (!report) throw new Error("Police report not found");
 
-  (report as any).status = "confirmed";
-  (report as any).confirmedBy = confirmedBy;
-  (report as any).confirmedAt = new Date();
-  (report as any).confirmationNotes = confirmationNotes;
+  (report as IPoliceReportFields).status = "confirmed";
+  (report as IPoliceReportFields).confirmedBy = confirmedBy;
+  (report as IPoliceReportFields).confirmedAt = new Date();
+  (report as IPoliceReportFields).confirmationNotes = confirmationNotes;
   report.updatedAt = new Date();
   await report.save();
 
   // Create nationwide alert
   await createNationwideAlert({
-    deviceId: (report as any).device,
+    deviceId: (report as IPoliceReportFields).device,
     policeReport: report._id,
     alertType: "stolen",
     alertLevel: "high",
-    lastKnownLocation: (report as any).incidentLocation,
+    lastKnownLocation: (report as IPoliceReportFields).incidentLocation,
   });
 
   // Create recovery workflow
   await createRecoveryWorkflow({
-    deviceId: (report as any).device,
+    deviceId: (report as IPoliceReportFields).device,
     policeReportId: report._id,
-    stationId: (report as any).station,
+    stationId: (report as IPoliceReportFields).station,
   });
 
   // Notify all stations
   const allStations = await PoliceStation.find({ status: "active" });
   allStations.forEach((station: { _id: string }) => {
     getIO().to(`station:${station._id}`).emit("device_reported_stolen", {
-      deviceId: (report as any).device,
-      obNumber: (report as any).obNumber,
+      deviceId: (report as IPoliceReportFields).device,
+      obNumber: (report as IPoliceReportFields).obNumber,
       alertLevel: "high",
     });
   });
 
   // Notify user
-  getIO().to(`user:${(report as any).user}`).emit("police_report_confirmed", {
+  getIO().to(`user:${(report as IPoliceReportFields).user}`).emit("police_report_confirmed", {
     reportId: report._id,
-    obNumber: (report as any).obNumber,
+    obNumber: (report as IPoliceReportFields).obNumber,
   });
 
   return report;
@@ -186,7 +254,7 @@ export async function addEvidenceToReport(reportId: string, evidenceData: Record
   const report = await PoliceReport.findById(reportId);
   if (!report) throw new Error("Police report not found");
 
-  (report as any).evidence.push({
+  (report as IPoliceReportFields).evidence.push({
     ...evidenceData,
     uploadedAt: new Date(),
   });
@@ -263,7 +331,7 @@ export async function reportSighting(alertId: string, sightingData: Record<strin
   const alert = await NationwideAlert.findById(alertId);
   if (!alert) throw new Error("Alert not found");
 
-  (alert as any).sightings.push({
+  (alert as INationwideAlertFields).sightings.push({
     ...sightingData,
     timestamp: new Date(),
   });
@@ -271,11 +339,11 @@ export async function reportSighting(alertId: string, sightingData: Record<strin
   await alert.save();
 
   // Notify originating station
-  const report = await PoliceReport.findById((alert as any).policeReport);
+  const report = await PoliceReport.findById((alert as INationwideAlertFields).policeReport);
   if (report) {
-    getIO().to(`station:${(report as any).station}`).emit("sighting_reported", {
+    getIO().to(`station:${(report as IPoliceReportFields).station}`).emit("sighting_reported", {
       alertId: alert._id,
-      deviceId: (alert as any).device,
+      deviceId: (alert as INationwideAlertFields).device,
       sighting: sightingData,
     });
   }
@@ -287,16 +355,16 @@ export async function deactivateAlert(alertId: string, reason: string) {
   const alert = await NationwideAlert.findById(alertId);
   if (!alert) throw new Error("Alert not found");
 
-  (alert as any).status = "inactive";
-  (alert as any).deactivatedAt = new Date();
+  (alert as INationwideAlertFields).status = "inactive";
+  (alert as INationwideAlertFields).deactivatedAt = new Date();
   alert.updatedAt = new Date();
   await alert.save();
 
   // Notify all stations
-  (alert as any).notifiedStations.forEach((stationId: string) => {
+  (alert as INationwideAlertFields).notifiedStations.forEach((stationId: mongoose.Types.ObjectId) => {
     getIO().to(`station:${stationId}`).emit("alert_deactivated", {
       alertId: alert._id,
-      deviceId: (alert as any).device,
+      deviceId: (alert as INationwideAlertFields).device,
       reason,
     });
   });
@@ -342,24 +410,24 @@ export async function acceptCaseTransfer(transferId: string, approvedBy: string)
   const transfer = await CaseTransfer.findById(transferId);
   if (!transfer) throw new Error("Transfer not found");
 
-  (transfer as any).status = "accepted";
-  (transfer as any).approvedBy = approvedBy;
-  (transfer as any).respondedAt = new Date();
+  (transfer as ICaseTransferFields).status = "accepted";
+  (transfer as ICaseTransferFields).approvedBy = approvedBy;
+  (transfer as ICaseTransferFields).respondedAt = new Date();
   transfer.updatedAt = new Date();
   await transfer.save();
 
   // Update police report
-  await PoliceReport.findByIdAndUpdate((transfer as any).policeReport, {
-    transferredTo: (transfer as any).toStation,
+  await PoliceReport.findByIdAndUpdate((transfer as ICaseTransferFields).policeReport, {
+    transferredTo: (transfer as ICaseTransferFields).toStation,
     transferredAt: new Date(),
     transferredBy: approvedBy,
-    transferReason: (transfer as any).transferReason,
+    transferReason: (transfer as ICaseTransferFields).transferReason,
   });
 
   // Notify requesting station
-  getIO().to(`station:${(transfer as any).fromStation}`).emit("case_transfer_accepted", {
+  getIO().to(`station:${(transfer as ICaseTransferFields).fromStation}`).emit("case_transfer_accepted", {
     transferId: transfer._id,
-    toStationId: (transfer as any).toStation,
+    toStationId: (transfer as ICaseTransferFields).toStation,
   });
 
   return transfer;
@@ -369,15 +437,15 @@ export async function rejectCaseTransfer(transferId: string, rejectedBy: string,
   const transfer = await CaseTransfer.findById(transferId);
   if (!transfer) throw new Error("Transfer not found");
 
-  (transfer as any).status = "rejected";
-  (transfer as any).rejectedBy = rejectedBy;
-  (transfer as any).rejectionReason = rejectionReason;
-  (transfer as any).respondedAt = new Date();
+  (transfer as ICaseTransferFields).status = "rejected";
+  (transfer as ICaseTransferFields).rejectedBy = rejectedBy;
+  (transfer as ICaseTransferFields).rejectionReason = rejectionReason;
+  (transfer as ICaseTransferFields).respondedAt = new Date();
   transfer.updatedAt = new Date();
   await transfer.save();
 
   // Notify requesting station
-  getIO().to(`station:${(transfer as any).fromStation}`).emit("case_transfer_rejected", {
+  getIO().to(`station:${(transfer as ICaseTransferFields).fromStation}`).emit("case_transfer_rejected", {
     transferId: transfer._id,
     rejectionReason,
   });
@@ -389,8 +457,8 @@ export async function completeCaseTransfer(transferId: string) {
   const transfer = await CaseTransfer.findById(transferId);
   if (!transfer) throw new Error("Transfer not found");
 
-  (transfer as any).status = "completed";
-  (transfer as any).completedAt = new Date();
+  (transfer as ICaseTransferFields).status = "completed";
+  (transfer as ICaseTransferFields).completedAt = new Date();
   transfer.updatedAt = new Date();
   await transfer.save();
 
@@ -425,8 +493,8 @@ export async function updateRecoveryStage(workflowId: string, stage: string, not
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
-  (workflow as any).currentStage = stage;
-  (workflow as any).stageHistory.push({
+  (workflow as IRecoveryWorkflowFields).currentStage = stage;
+  (workflow as IRecoveryWorkflowFields).stageHistory.push({
     stage,
     timestamp: new Date(),
     notes,
@@ -436,7 +504,7 @@ export async function updateRecoveryStage(workflowId: string, stage: string, not
   await workflow.save();
 
   // Notify station
-  getIO().to(`station:${(workflow as any).station}`).emit("recovery_stage_updated", {
+  getIO().to(`station:${(workflow as IRecoveryWorkflowFields).station}`).emit("recovery_stage_updated", {
     workflowId: workflow._id,
     currentStage: stage,
     notes,
@@ -449,8 +517,8 @@ export async function addInvestigator(workflowId: string, investigatorId: string
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
-  if (!(workflow as any).investigators.includes(investigatorId)) {
-    (workflow as any).investigators.push(investigatorId);
+  if (!(workflow as IRecoveryWorkflowFields).investigators.includes(investigatorId)) {
+    (workflow as IRecoveryWorkflowFields).investigators.push(investigatorId);
     workflow.updatedAt = new Date();
     await workflow.save();
   }
@@ -462,11 +530,11 @@ export async function locateDevice(workflowId: string, locationData: Record<stri
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
-  (workflow as any).currentStage = "located";
-  (workflow as any).locatedAt = new Date();
-  (workflow as any).locatedBy = locatedBy;
-  (workflow as any).locationDetails = locationData;
-  (workflow as any).stageHistory.push({
+  (workflow as IRecoveryWorkflowFields).currentStage = "located";
+  (workflow as IRecoveryWorkflowFields).locatedAt = new Date();
+  (workflow as IRecoveryWorkflowFields).locatedBy = locatedBy;
+  (workflow as IRecoveryWorkflowFields).locationDetails = locationData;
+  (workflow as IRecoveryWorkflowFields).stageHistory.push({
     stage: "located",
     timestamp: new Date(),
     notes: "Device located",
@@ -476,7 +544,7 @@ export async function locateDevice(workflowId: string, locationData: Record<stri
   await workflow.save();
 
   // Notify station
-  getIO().to(`station:${(workflow as any).station}`).emit("device_located", {
+  getIO().to(`station:${(workflow as IRecoveryWorkflowFields).station}`).emit("device_located", {
     workflowId: workflow._id,
     location: locationData,
   });
@@ -488,12 +556,12 @@ export async function recoverDevice(workflowId: string, recoveryData: { notes?: 
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
-  (workflow as any).currentStage = "recovered";
-  (workflow as any).recoveredAt = new Date();
-  (workflow as any).recoveredBy = recoveredBy;
-  (workflow as any).recoveryNotes = recoveryData.notes;
-  (workflow as any).recoveryEvidence = recoveryData.evidence || [];
-  (workflow as any).stageHistory.push({
+  (workflow as IRecoveryWorkflowFields).currentStage = "recovered";
+  (workflow as IRecoveryWorkflowFields).recoveredAt = new Date();
+  (workflow as IRecoveryWorkflowFields).recoveredBy = recoveredBy;
+  (workflow as IRecoveryWorkflowFields).recoveryNotes = recoveryData.notes;
+  (workflow as IRecoveryWorkflowFields).recoveryEvidence = recoveryData.evidence || [];
+  (workflow as IRecoveryWorkflowFields).stageHistory.push({
     stage: "recovered",
     timestamp: new Date(),
     notes: "Device recovered",
@@ -503,38 +571,38 @@ export async function recoverDevice(workflowId: string, recoveryData: { notes?: 
   await workflow.save();
 
   // Update police report
-  const report = await PoliceReport.findById((workflow as any).policeReport);
+  const report = await PoliceReport.findById((workflow as IRecoveryWorkflowFields).policeReport);
   if (report) {
-    (report as any).recovered = true;
-    (report as any).recoveredAt = new Date();
-    (report as any).recoveredBy = recoveredBy;
-    (report as any).recoveryLocation = (workflow as any).locationDetails;
-    (report as any).status = "resolved";
+    (report as IPoliceReportFields).recovered = true;
+    (report as IPoliceReportFields).recoveredAt = new Date();
+    (report as IPoliceReportFields).recoveredBy = recoveredBy;
+    (report as IPoliceReportFields).recoveryLocation = (workflow as IRecoveryWorkflowFields).locationDetails;
+    (report as IPoliceReportFields).status = "resolved";
     await report.save();
 
     // Update device status
-    await Device.findByIdAndUpdate((workflow as any).device, {
+    await Device.findByIdAndUpdate((workflow as IRecoveryWorkflowFields).device, {
       status: "recovered",
       recoveredAt: new Date(),
     });
 
     // Deactivate alert
-    const alert = await NationwideAlert.findOne({ device: (workflow as any).device, status: "active" });
+    const alert = await NationwideAlert.findOne({ device: (workflow as IRecoveryWorkflowFields).device, status: "active" });
     if (alert) {
       await deactivateAlert(alert._id.toString(), "Device recovered");
     }
   }
 
   // Notify station
-  getIO().to(`station:${(workflow as any).station}`).emit("device_recovered", {
+  getIO().to(`station:${(workflow as IRecoveryWorkflowFields).station}`).emit("device_recovered", {
     workflowId: workflow._id,
     recoveryData,
   });
 
   // Notify user
-  getIO().to(`user:${(report as any).user}`).emit("device_recovered_notification", {
-    deviceId: (workflow as any).device,
-    station: (workflow as any).station,
+  getIO().to(`user:${(report as IPoliceReportFields).user}`).emit("device_recovered_notification", {
+    deviceId: (workflow as IRecoveryWorkflowFields).device,
+    station: (workflow as IRecoveryWorkflowFields).station,
   });
 
   return workflow;
@@ -544,25 +612,25 @@ export async function returnDeviceToOwner(workflowId: string, returnCondition: s
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
-  (workflow as any).currentStage = "returned";
-  (workflow as any).returnedToOwner = true;
-  (workflow as any).returnedAt = new Date();
-  (workflow as any).returnCondition = returnCondition;
-  (workflow as any).stageHistory.push({
+  (workflow as IRecoveryWorkflowFields).currentStage = "returned";
+  (workflow as IRecoveryWorkflowFields).returnedToOwner = true;
+  (workflow as IRecoveryWorkflowFields).returnedAt = new Date();
+  (workflow as IRecoveryWorkflowFields).returnCondition = returnCondition;
+  (workflow as IRecoveryWorkflowFields).stageHistory.push({
     stage: "returned",
     timestamp: new Date(),
     notes: "Device returned to owner",
     updatedBy: returnedBy,
   });
-  (workflow as any).status = "completed";
+  (workflow as IRecoveryWorkflowFields).status = "completed";
   workflow.updatedAt = new Date();
   await workflow.save();
 
   // Notify user
-  const report = await PoliceReport.findById((workflow as any).policeReport);
+  const report = await PoliceReport.findById((workflow as IRecoveryWorkflowFields).policeReport);
   if (report) {
-    getIO().to(`user:${(report as any).user}`).emit("device_returned", {
-      deviceId: (workflow as any).device,
+    getIO().to(`user:${(report as IPoliceReportFields).user}`).emit("device_returned", {
+      deviceId: (workflow as IRecoveryWorkflowFields).device,
       returnCondition,
     });
   }
@@ -574,7 +642,7 @@ export async function addArrest(workflowId: string, arrestData: Record<string, u
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
-  (workflow as any).arrestsMade.push(arrestData);
+  (workflow as IRecoveryWorkflowFields).arrestsMade.push(arrestData);
   workflow.updatedAt = new Date();
   await workflow.save();
 
@@ -663,8 +731,8 @@ export async function publishInterpolNotice(caseId: string) {
   const interpolCase = await InterpolCase.findById(caseId);
   if (!interpolCase) throw new Error("Interpol case not found");
 
-  (interpolCase as any).status = "published";
-  (interpolCase as any).publishedAt = new Date();
+  (interpolCase as IInterpolCaseFields).status = "published";
+  (interpolCase as IInterpolCaseFields).publishedAt = new Date();
   interpolCase.updatedAt = new Date();
   await interpolCase.save();
 
@@ -675,7 +743,7 @@ export async function addInterpolResponse(caseId: string, responseData: Record<s
   const interpolCase = await InterpolCase.findById(caseId);
   if (!interpolCase) throw new Error("Interpol case not found");
 
-  (interpolCase as any).responses.push({
+  (interpolCase as IInterpolCaseFields).responses.push({
     ...responseData,
     timestamp: new Date(),
   });

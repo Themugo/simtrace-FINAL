@@ -4,12 +4,7 @@ import { authenticate, requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
+type AuthRequest = Request & { user?: { id: string; role: string } }
 
 // GET /api/alerts/unread-count  ← MUST be before /:id
 router.get("/unread-count", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {

@@ -3,6 +3,27 @@
 
 import { FinancialProjection, User, Device, Subscription, Payment, AdCampaign, AdEvent } from "../db/index.js";
 
+interface ProjectionMetrics {
+  totalUsers: number; newUsers: number; churnedUsers: number;
+  totalDevices: number; newDevices: number;
+  subscriptionRevenue: number; adRevenue: number; verificationRevenue: number;
+  partnerApiRevenue: number; insuranceRevenue: number;
+  totalRevenue: number; infrastructureCost: number; marketingCost: number;
+  operationalCost: number; totalCost: number; grossProfit: number;
+  netProfit: number; profitMargin: number;
+  revenueAchieved: boolean | null; targetRevenue: number;
+}
+
+interface DashboardProjections {
+  monthly: {
+    subscriptionRevenue: number; adRevenue: number; verificationRevenue: number;
+    partnerApiRevenue: number; insuranceRevenue: number;
+    infrastructureCost: number; marketingCost: number; operationalCost: number;
+  };
+  quarterly: unknown;
+  yearly: unknown;
+}
+
 // ── Projection Management ─────────────────────────────────────────────────────────
 export async function createFinancialProjection(data: Record<string, unknown>) {
   const {
@@ -94,39 +115,39 @@ export async function updateProjectionMetrics(projectionId: string, metrics: Rec
   const projection = await FinancialProjection.findById(projectionId);
   if (!projection) throw new Error("Projection not found");
 
-  if (metrics.totalUsers !== undefined) (projection as any).totalUsers = metrics.totalUsers;
-  if (metrics.newUsers !== undefined) (projection as any).newUsers = metrics.newUsers;
-  if (metrics.churnedUsers !== undefined) (projection as any).churnedUsers = metrics.churnedUsers;
-  if (metrics.totalDevices !== undefined) (projection as any).totalDevices = metrics.totalDevices;
-  if (metrics.newDevices !== undefined) (projection as any).newDevices = metrics.newDevices;
-  if (metrics.subscriptionRevenue !== undefined) (projection as any).subscriptionRevenue = metrics.subscriptionRevenue;
-  if (metrics.adRevenue !== undefined) (projection as any).adRevenue = metrics.adRevenue;
-  if (metrics.verificationRevenue !== undefined) (projection as any).verificationRevenue = metrics.verificationRevenue;
-  if (metrics.partnerApiRevenue !== undefined) (projection as any).partnerApiRevenue = metrics.partnerApiRevenue;
-  if (metrics.insuranceRevenue !== undefined) (projection as any).insuranceRevenue = metrics.insuranceRevenue;
-  if (metrics.infrastructureCost !== undefined) (projection as any).infrastructureCost = metrics.infrastructureCost;
-  if (metrics.marketingCost !== undefined) (projection as any).marketingCost = metrics.marketingCost;
-  if (metrics.operationalCost !== undefined) (projection as any).operationalCost = metrics.operationalCost;
+  if (metrics.totalUsers !== undefined) (projection as unknown as ProjectionMetrics).totalUsers = metrics.totalUsers as number;
+  if (metrics.newUsers !== undefined) (projection as unknown as ProjectionMetrics).newUsers = metrics.newUsers as number;
+  if (metrics.churnedUsers !== undefined) (projection as unknown as ProjectionMetrics).churnedUsers = metrics.churnedUsers as number;
+  if (metrics.totalDevices !== undefined) (projection as unknown as ProjectionMetrics).totalDevices = metrics.totalDevices as number;
+  if (metrics.newDevices !== undefined) (projection as unknown as ProjectionMetrics).newDevices = metrics.newDevices as number;
+  if (metrics.subscriptionRevenue !== undefined) (projection as unknown as ProjectionMetrics).subscriptionRevenue = metrics.subscriptionRevenue as number;
+  if (metrics.adRevenue !== undefined) (projection as unknown as ProjectionMetrics).adRevenue = metrics.adRevenue as number;
+  if (metrics.verificationRevenue !== undefined) (projection as unknown as ProjectionMetrics).verificationRevenue = metrics.verificationRevenue as number;
+  if (metrics.partnerApiRevenue !== undefined) (projection as unknown as ProjectionMetrics).partnerApiRevenue = metrics.partnerApiRevenue as number;
+  if (metrics.insuranceRevenue !== undefined) (projection as unknown as ProjectionMetrics).insuranceRevenue = metrics.insuranceRevenue as number;
+  if (metrics.infrastructureCost !== undefined) (projection as unknown as ProjectionMetrics).infrastructureCost = metrics.infrastructureCost as number;
+  if (metrics.marketingCost !== undefined) (projection as unknown as ProjectionMetrics).marketingCost = metrics.marketingCost as number;
+  if (metrics.operationalCost !== undefined) (projection as unknown as ProjectionMetrics).operationalCost = metrics.operationalCost as number;
 
   // Recalculate totals
-  (projection as any).totalRevenue = (projection as any).subscriptionRevenue + 
-                          (projection as any).adRevenue + 
-                          (projection as any).verificationRevenue + 
-                          (projection as any).partnerApiRevenue + 
-                          (projection as any).insuranceRevenue;
+  (projection as unknown as ProjectionMetrics).totalRevenue = (projection as unknown as ProjectionMetrics).subscriptionRevenue + 
+                          (projection as unknown as ProjectionMetrics).adRevenue + 
+                          (projection as unknown as ProjectionMetrics).verificationRevenue + 
+                          (projection as unknown as ProjectionMetrics).partnerApiRevenue + 
+                          (projection as unknown as ProjectionMetrics).insuranceRevenue;
 
-  (projection as any).totalCost = (projection as any).infrastructureCost + 
-                       (projection as any).marketingCost + 
-                       (projection as any).operationalCost;
+  (projection as unknown as ProjectionMetrics).totalCost = (projection as unknown as ProjectionMetrics).infrastructureCost + 
+                       (projection as unknown as ProjectionMetrics).marketingCost + 
+                       (projection as unknown as ProjectionMetrics).operationalCost;
 
-  (projection as any).grossProfit = (projection as any).totalRevenue - (projection as any).totalCost;
-  (projection as any).netProfit = (projection as any).grossProfit; // Simplified
-  (projection as any).profitMargin = (projection as any).totalRevenue > 0 
-    ? ((projection as any).netProfit / (projection as any).totalRevenue) * 100 
+  (projection as unknown as ProjectionMetrics).grossProfit = (projection as unknown as ProjectionMetrics).totalRevenue - (projection as unknown as ProjectionMetrics).totalCost;
+  (projection as unknown as ProjectionMetrics).netProfit = (projection as unknown as ProjectionMetrics).grossProfit; // Simplified
+  (projection as unknown as ProjectionMetrics).profitMargin = (projection as unknown as ProjectionMetrics).totalRevenue > 0 
+    ? ((projection as unknown as ProjectionMetrics).netProfit / (projection as unknown as ProjectionMetrics).totalRevenue) * 100 
     : 0;
 
-  (projection as any).revenueAchieved = (projection as any).targetRevenue 
-    ? (projection as any).totalRevenue >= (projection as any).targetRevenue 
+  (projection as unknown as ProjectionMetrics).revenueAchieved = (projection as unknown as ProjectionMetrics).targetRevenue 
+    ? (projection as unknown as ProjectionMetrics).totalRevenue >= (projection as unknown as ProjectionMetrics).targetRevenue 
     : null;
 
   projection.updatedAt = new Date();
@@ -144,7 +165,7 @@ export async function calculateRevenue(startDate: Date, endDate: Date) {
     type: "subscription",
   });
 
-  const subscriptionRevenue = subscriptionPayments.reduce((sum: number, p) => sum + ((p as any).amount || 0), 0);
+  const subscriptionRevenue = subscriptionPayments.reduce((sum: number, p) => sum + ((p as unknown as { amount: number }).amount || 0), 0);
 
   // Ad revenue
   const adConversions = await AdEvent.find({
@@ -153,7 +174,7 @@ export async function calculateRevenue(startDate: Date, endDate: Date) {
     flagged: false,
   });
 
-  const adRevenue = adConversions.reduce((sum: number, e) => sum + ((e as any).revenue || 0), 0);
+  const adRevenue = adConversions.reduce((sum: number, e) => sum + ((e as unknown as { revenue: number }).revenue || 0), 0);
 
   // Verification revenue (simplified - would need dedicated tracking)
   const verificationRevenue = 0;
@@ -300,17 +321,17 @@ export async function getFinancialDashboard() {
   })).reverse();
 
   const revenueBreakdown = {
-    subscription: (projections as any).monthly.subscriptionRevenue,
-    ads: (projections as any).monthly.adRevenue,
-    verification: (projections as any).monthly.verificationRevenue,
-    partnerApi: (projections as any).monthly.partnerApiRevenue,
-    insurance: (projections as any).monthly.insuranceRevenue,
+    subscription: (projections as unknown as DashboardProjections).monthly.subscriptionRevenue,
+    ads: (projections as unknown as DashboardProjections).monthly.adRevenue,
+    verification: (projections as unknown as DashboardProjections).monthly.verificationRevenue,
+    partnerApi: (projections as unknown as DashboardProjections).monthly.partnerApiRevenue,
+    insurance: (projections as unknown as DashboardProjections).monthly.insuranceRevenue,
   };
 
   const costBreakdown = {
-    infrastructure: (projections as any).monthly.infrastructureCost,
-    marketing: (projections as any).monthly.marketingCost,
-    operational: (projections as any).monthly.operationalCost,
+    infrastructure: (projections as unknown as DashboardProjections).monthly.infrastructureCost,
+    marketing: (projections as unknown as DashboardProjections).monthly.marketingCost,
+    operational: (projections as unknown as DashboardProjections).monthly.operationalCost,
   };
 
   return {

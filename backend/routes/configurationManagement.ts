@@ -196,7 +196,7 @@ router.post("/agency", authenticate, requireAdmin, async (req: AuthRequest, res:
     });
 
     const data = schema.parse(req.body);
-    const config = await createAgencyConfig({ ...data, createdBy: req.user!.id });
+    const config = await createAgencyConfig({ ...data, createdBy: req.user!.id } as any);
     res.status(201).json(config);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
@@ -338,7 +338,7 @@ router.post("/policies", authenticate, requireAdmin, async (req: AuthRequest, re
     });
 
     const data = schema.parse(req.body);
-    const rule = await createPolicyRule({ ...data, createdBy: req.user!.id });
+    const rule = await createPolicyRule({ ...data, createdBy: req.user!.id } as any);
     res.status(201).json(rule);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });

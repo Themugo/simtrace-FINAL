@@ -5,12 +5,7 @@ import { Device, Alert, Ping, Partner } from "../db/index.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
+type AuthRequest = Request & { user?: { id: string; role: string } }
 
 // GET /api/telecom-analytics/overview — telecom analytics overview
 router.get("/overview", authenticate, requireRole("telecom"), async (req: AuthRequest, res: Response, next: NextFunction) => {

@@ -10,7 +10,7 @@ export async function connectDB(): Promise<void> {
     socketTimeoutMS: 45000,
     retryWrites: true,
     w: 'majority',
-  });
+  } as any);
 
   mongoose.connection.on('disconnected', () => {
     console.warn('[MongoDB] Disconnected — Mongoose will auto-reconnect');

@@ -156,7 +156,7 @@ router.patch("/organizations/:id/members/:userId", authenticate, requireOrgAdmin
 
     const { id, userId } = req.params;
     const { role, permissions } = schema.parse(req.body);
-    const member = await updateMemberRole(id as string, userId as string, role, permissions);
+    const member = await updateMemberRole(id as string, userId as string, role, permissions ?? []);
 
     res.json(member);
   } catch (err) {

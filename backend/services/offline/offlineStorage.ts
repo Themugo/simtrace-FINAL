@@ -24,7 +24,7 @@ export interface OfflineCache {
 
 export class OfflineStorageService {
   private storage: Map<string, OfflineData> = new Map();
-  private cache: Map<string, OfflineCache> = new Map();
+  private cacheStore: Map<string, OfflineCache> = new Map();
   private maxSize: number = 50 * 1024 * 1024; // 50MB
   private currentSize: number = 0;
 
@@ -149,7 +149,7 @@ export class OfflineStorageService {
   /**
    * Cache data for quick access
    */
-  cache(key: string, data: any, ttl?: number): OfflineCache {
+  setCache(key: string, data: any, ttl?: number): OfflineCache {
     const cacheId = crypto.randomBytes(16).toString('hex');
     const dataSize = JSON.stringify(data).length;
 
@@ -168,7 +168,7 @@ export class OfflineStorageService {
       expiresAt: ttl ? Date.now() + ttl : undefined
     };
 
-    this.cache.set(cacheId, offlineCache);
+    this.cacheStore.set(cacheId, offlineCache);
     this.currentSize += dataSize;
 
     return offlineCache;
@@ -178,18 +178,18 @@ export class OfflineStorageService {
    * Get cached data
    */
   getCached(key: string): any | null {
-    for (const [cacheId, cache] of this.cache.entries()) {
+    for (const [cacheId, cache] of this.cacheStore.entries()) {
       if (cache.key === key) {
         // Check if expired
         if (cache.expiresAt && Date.now() > cache.expiresAt) {
-          this.cache.delete(cacheId);
+          this.cacheStore.delete(cacheId);
           this.currentSize -= cache.size;
           return null;
         }
 
         // Increment hit count
         cache.hits++;
-        this.cache.set(cacheId, cache);
+        this.cacheStore.set(cacheId, cache);
 
         return cache.data;
       }
@@ -202,10 +202,10 @@ export class OfflineStorageService {
    * Clear cache
    */
   clearCache(): void {
-    for (const [cacheId, cache] of this.cache.entries()) {
+    for (const [cacheId, cache] of this.cacheStore.entries()) {
       this.currentSize -= cache.size;
     }
-    this.cache.clear();
+    this.cacheStore.clear();
   }
 
   /**
@@ -228,13 +228,13 @@ export class OfflineStorageService {
    * Evict old cache based on LRU
    */
   private evictOldCache(): void {
-    const sortedCache = Array.from(this.cache.entries())
+    const sortedCache = Array.from(this.cacheStore.entries())
       .sort((a, b) => a[1].hits - b[1].hits);
 
     const toRemove = sortedCache.slice(0, Math.ceil(sortedCache.length * 0.1));
 
     for (const [cacheId, cache] of toRemove) {
-      this.cache.delete(cacheId);
+      this.cacheStore.delete(cacheId);
       this.currentSize -= cache.size;
     }
   }
@@ -255,9 +255,9 @@ export class OfflineStorageService {
       }
     }
 
-    for (const [cacheId, cache] of this.cache.entries()) {
+    for (const [cacheId, cache] of this.cacheStore.entries()) {
       if (cache.expiresAt && now > cache.expiresAt) {
-        this.cache.delete(cacheId);
+        this.cacheStore.delete(cacheId);
         this.currentSize -= cache.size;
         cleared++;
       }
@@ -289,7 +289,7 @@ export class OfflineStorageService {
 
     return {
       totalData: data.length,
-      totalCache: this.cache.size,
+      totalCache: this.cacheStore.size,
       currentSize: this.currentSize,
       maxSize: this.maxSize,
       usagePercentage: (this.currentSize / this.maxSize) * 100,
@@ -334,7 +334,7 @@ export class OfflineStorageService {
    */
   clearAll(): void {
     this.storage.clear();
-    this.cache.clear();
+    this.cacheStore.clear();
     this.currentSize = 0;
   }
 }

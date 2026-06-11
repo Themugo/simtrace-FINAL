@@ -56,7 +56,7 @@ class ThreatDetector {
   // Block an IP address
   async blockIP(ipAddress: string, duration: number): Promise<void> {
     const redis = getRedisClient();
-    await redis.set(`threat:blocked:${ipAddress}`, '1', { EX: duration });
+    await (redis as any).set(`threat:blocked:${ipAddress}`, '1', { EX: duration });
   }
 
   // Unblock an IP address

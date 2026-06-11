@@ -13,13 +13,7 @@ import {
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-    organizationId?: string;
-  };
-}
+type AuthRequest = Request & { user?: { id: string; role: string; organizationId?: string } }
 
 // POST /api/ai/orchestrate — trigger AI orchestration
 router.post("/orchestrate", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {

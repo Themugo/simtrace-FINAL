@@ -1,7 +1,7 @@
 // ── Predefined Automation Workflows ─────────────────────────────────────────────────
 // Common automation workflows for escalation, recovery, and alerts
 
-import { createWorkflow } from './engine.js';
+import { createWorkflow, WorkflowStep } from './engine.js';
 
 export interface EscalationChainConfig {
   imei: string;
@@ -25,7 +25,7 @@ export interface AlertWorkflowConfig {
 
 // ── Escalation Chain Workflow ─────────────────────────────────────────────────────
 export function createEscalationChain(config: EscalationChainConfig): string {
-  const steps = [];
+  const steps: WorkflowStep[] = [];
 
   for (let level = config.initialLevel; level <= config.maxLevel; level++) {
     steps.push({
@@ -42,18 +42,16 @@ export function createEscalationChain(config: EscalationChainConfig): string {
   }
 
   return createWorkflow({
+    id: '',
     name: `Escalation Chain for ${config.imei}`,
     type: 'escalation',
     steps,
-    status: 'active' as const,
-    currentStep: 0,
-    startTime: new Date(),
   });
 }
 
 // ── Recovery Workflow ─────────────────────────────────────────────────────────────
 export function createRecoveryWorkflow(config: RecoveryWorkflowConfig): string {
-  const steps = [
+  const steps: WorkflowStep[] = [
     {
       id: 'recovery_step_1',
       name: 'Notify Recovery Team',
@@ -89,18 +87,16 @@ export function createRecoveryWorkflow(config: RecoveryWorkflowConfig): string {
   ];
 
   return createWorkflow({
+    id: '',
     name: `Recovery Workflow for ${config.imei}`,
     type: 'recovery',
     steps,
-    status: 'active' as const,
-    currentStep: 0,
-    startTime: new Date(),
   });
 }
 
 // ── Alert Workflow ─────────────────────────────────────────────────────────────────
 export function createAlertWorkflow(config: AlertWorkflowConfig): string {
-  const steps = [
+  const steps: WorkflowStep[] = [
     {
       id: 'alert_step_1',
       name: 'Send Alert Notification',
@@ -139,18 +135,16 @@ export function createAlertWorkflow(config: AlertWorkflowConfig): string {
   }
 
   return createWorkflow({
+    id: '',
     name: `Alert Workflow for ${config.alertType}`,
     type: 'alert',
     steps,
-    status: 'active' as const,
-    currentStep: 0,
-    startTime: new Date(),
   });
 }
 
 // ── SIM Swap Investigation Workflow ─────────────────────────────────────────────────
 export function createSIMSwapInvestigationWorkflow(imei: string, oldSimIccid: string, newSimIccid: string): string {
-  const steps = [
+  const steps: WorkflowStep[] = [
     {
       id: 'sim_swap_step_1',
       name: 'Log SIM Swap Event',
@@ -197,18 +191,16 @@ export function createSIMSwapInvestigationWorkflow(imei: string, oldSimIccid: st
   ];
 
   return createWorkflow({
+    id: '',
     name: `SIM Swap Investigation for ${imei}`,
     type: 'custom',
     steps,
-    status: 'active' as const,
-    currentStep: 0,
-    startTime: new Date(),
   });
 }
 
 // ── High Risk Device Workflow ───────────────────────────────────────────────────────
 export function createHighRiskDeviceWorkflow(imei: string, riskScore: number, threatLevel: string): string {
-  const steps = [
+  const steps: WorkflowStep[] = [
     {
       id: 'high_risk_step_1',
       name: 'Log High Risk Event',
@@ -247,11 +239,9 @@ export function createHighRiskDeviceWorkflow(imei: string, riskScore: number, th
   }
 
   return createWorkflow({
+    id: '',
     name: `High Risk Device Workflow for ${imei}`,
     type: 'alert',
     steps,
-    status: 'active' as const,
-    currentStep: 0,
-    startTime: new Date(),
   });
 }

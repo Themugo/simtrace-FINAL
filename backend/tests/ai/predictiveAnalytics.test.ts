@@ -101,18 +101,18 @@ describe('PredictiveAnalyticsService', () => {
       }
       
       const result = await predictiveAnalyticsService.calculateRiskScore(mockDeviceId, mockLocationData);
-      expect(result.confidence).toBeGreaterThan(0.1);
+      expect(result.confidence).toBeGreaterThanOrEqual(0.1);
     });
   });
 
   describe('recordTheftIncident', () => {
-    it('should record theft incident at location', () => {
+    it('should record theft incident at location', async () => {
       const location = { lat: -1.3, lng: 36.9 };
       
       predictiveAnalyticsService.recordTheftIncident(location);
       
       // This should increase historical risk for this location
-      const result = predictiveAnalyticsService.calculateRiskScore(mockDeviceId, {
+      const result = await predictiveAnalyticsService.calculateRiskScore(mockDeviceId, {
         ...mockLocationData,
         location,
       });

@@ -7,12 +7,7 @@ import { generateApiKey, bulkImeiCheck, getPartnerStats, validatePartnerKey } fr
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
+type AuthRequest = Request & { user?: { id: string; role: string } }
 
 interface PartnerRequest extends Request {
   partner?: Record<string, unknown>;
@@ -23,7 +18,8 @@ async function partnerAuth(req: PartnerRequest, res: Response, next: NextFunctio
   const key = req.headers["x-partner-key"] as string;
   if (!key) return res.status(401).json({ error: "Partner API key required" });
   try {
-    req.partner = await validatePartnerKey(key);
+    const partnerData = await validatePartnerKey(key);
+    req.partner = partnerData as unknown as Record<string, unknown> | undefined;
     if (!req.partner) return res.status(401).json({ error: "Invalid partner key" });
     next();
   } catch (err) {

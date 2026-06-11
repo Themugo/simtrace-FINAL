@@ -20,6 +20,24 @@ interface AdEventDoc {
   timestamp: Date;
 }
 
+interface CampaignEditable {
+  status: string;
+  submittedAt: Date | null;
+  reviewedAt: Date | null;
+  reviewedBy: string | null;
+  rejectionReason: string | null;
+  schedule: { startDate?: Date; endDate?: Date | null };
+  metrics: Record<string, number>;
+  budget: { total: number; daily: number };
+  bidding: { currentBid: number; maxBid: number };
+  creatives: unknown[];
+  optimization: {
+    autoOptimize: boolean;
+    learningModel: string | null;
+    lastOptimized: Date | null;
+  };
+}
+
 // ── Campaign Management ─────────────────────────────────────────────────────────────
 export async function createAdCampaign(data: Record<string, unknown>) {
   const name = data.name as string | undefined;
@@ -85,12 +103,13 @@ export async function submitCampaignForReview(campaignId: string) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  if ((campaign as any).status !== "draft") {
+  const c = campaign as unknown as CampaignEditable;
+  if (c.status !== "draft") {
     throw new Error("Only draft campaigns can be submitted");
   }
 
-  (campaign as any).status = "pending";
-  (campaign as any).submittedAt = new Date();
+  c.status = "pending";
+  c.submittedAt = new Date();
   await campaign.save();
 
   return campaign;
@@ -100,16 +119,17 @@ export async function reviewCampaign(campaignId: string, approved: boolean, reje
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  if ((campaign as any).status !== "pending") {
+  const c = campaign as unknown as CampaignEditable;
+  if (c.status !== "pending") {
     throw new Error("Only pending campaigns can be reviewed");
   }
 
-  (campaign as any).status = approved ? "active" : "rejected";
-  (campaign as any).reviewedAt = new Date();
-  (campaign as any).rejectionReason = rejectionReason;
+  c.status = approved ? "active" : "rejected";
+  c.reviewedAt = new Date();
+  c.rejectionReason = rejectionReason;
 
   if (approved) {
-    (campaign as any).schedule.startDate = (campaign as any).schedule.startDate || new Date();
+    c.schedule.startDate = c.schedule.startDate || new Date();
   }
 
   await campaign.save();
@@ -121,6 +141,7 @@ export async function updateCampaignStatus(campaignId: string, status: string) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
+  const c = campaign as unknown as CampaignEditable;
   const validTransitions: Record<string, string[]> = {
     draft: ["pending", "paused"],
     pending: ["active", "rejected"],
@@ -131,11 +152,11 @@ export async function updateCampaignStatus(campaignId: string, status: string) {
     exhausted: [],
   };
 
-  if (!validTransitions[(campaign as any).status].includes(status)) {
-    throw new Error(`Invalid status transition from ${(campaign as any).status} to ${status}`);
+  if (!validTransitions[c.status].includes(status)) {
+    throw new Error(`Invalid status transition from ${c.status} to ${status}`);
   }
 
-  (campaign as any).status = status;
+  c.status = status;
   campaign.updatedAt = new Date();
   await campaign.save();
 
@@ -212,33 +233,34 @@ async function updateCampaignMetrics(campaignId: string, eventType: string, reve
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) return;
 
+  const c = campaign as unknown as CampaignEditable;
   switch (eventType) {
     case "impression":
-      (campaign as any).metrics.impressions += 1;
+      c.metrics.impressions += 1;
       break;
     case "click":
-      (campaign as any).metrics.clicks += 1;
+      c.metrics.clicks += 1;
       break;
     case "conversion":
-      (campaign as any).metrics.conversions += 1;
+      c.metrics.conversions += 1;
       if (revenue) {
-        (campaign as any).metrics.spend += revenue;
+        c.metrics.spend += revenue;
       }
       break;
   }
 
   // Recalculate derived metrics
-  if ((campaign as any).metrics.impressions > 0) {
-    (campaign as any).metrics.ctr = ((campaign as any).metrics.clicks / (campaign as any).metrics.impressions) * 100;
+  if (c.metrics.impressions > 0) {
+    c.metrics.ctr = (c.metrics.clicks / c.metrics.impressions) * 100;
   }
 
-  if ((campaign as any).metrics.conversions > 0 && (campaign as any).metrics.spend > 0) {
-    (campaign as any).metrics.cpa = (campaign as any).metrics.spend / (campaign as any).metrics.conversions;
+  if (c.metrics.conversions > 0 && c.metrics.spend > 0) {
+    c.metrics.cpa = c.metrics.spend / c.metrics.conversions;
   }
 
   // Check budget exhaustion
-  if ((campaign as any).metrics.spend >= (campaign as any).budget.total) {
-    (campaign as any).status = "exhausted";
+  if (c.metrics.spend >= c.budget.total) {
+    c.status = "exhausted";
   }
 
   campaign.updatedAt = new Date();
@@ -338,8 +360,9 @@ export async function deliverAd(campaignId: string, context: Record<string, unkn
   });
 
   // Select creative (rotate through creatives)
-  const creativeIndex = (campaign as any).metrics.impressions % (campaign as any).creatives.length;
-  const creative = (campaign as any).creatives[creativeIndex];
+  const c = campaign as unknown as CampaignEditable;
+  const creativeIndex = c.metrics.impressions % c.creatives.length;
+  const creative = c.creatives[creativeIndex];
 
   return {
     campaignId,
@@ -353,7 +376,8 @@ export async function optimizeCampaign(campaignId: string) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  if (!(campaign as any).optimization.autoOptimize) {
+  const c = campaign as unknown as CampaignEditable;
+  if (!c.optimization.autoOptimize) {
     throw new Error("Auto-optimization is not enabled for this campaign");
   }
 
@@ -369,20 +393,18 @@ export async function optimizeCampaign(campaignId: string) {
 
   // Adjust bid based on performance
   if (ctr > 2) {
-    // Good performance, increase bid
-    (campaign as any).bidding.currentBid = Math.min(
-      (campaign as any).bidding.currentBid * 1.1,
-      (campaign as any).bidding.maxBid
+    c.bidding.currentBid = Math.min(
+      c.bidding.currentBid * 1.1,
+      c.bidding.maxBid
     );
   } else if (ctr < 0.5) {
-    // Poor performance, decrease bid
-    (campaign as any).bidding.currentBid = Math.max(
-      (campaign as any).bidding.currentBid * 0.9,
-      (campaign as any).bidding.maxBid * 0.5
+    c.bidding.currentBid = Math.max(
+      c.bidding.currentBid * 0.9,
+      c.bidding.maxBid * 0.5
     );
   }
 
-  (campaign as any).optimization.lastOptimized = new Date();
+  c.optimization.lastOptimized = new Date();
   campaign.updatedAt = new Date();
   await campaign.save();
 
@@ -393,9 +415,10 @@ export async function enableAutoOptimization(campaignId: string) {
   const campaign = await AdCampaign.findById(campaignId);
   if (!campaign) throw new Error("Campaign not found");
 
-  (campaign as any).optimization.autoOptimize = true;
-  (campaign as any).optimization.learningModel = "v1";
-  (campaign as any).optimization.lastOptimized = new Date();
+  const c = campaign as unknown as CampaignEditable;
+  c.optimization.autoOptimize = true;
+  c.optimization.learningModel = "v1";
+  c.optimization.lastOptimized = new Date();
   await campaign.save();
 
   return campaign;

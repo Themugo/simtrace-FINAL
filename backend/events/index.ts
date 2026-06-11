@@ -23,7 +23,16 @@ export type EventName =
   | 'alert.created'
   | 'organization.created'
   | 'organization.member_added'
-  | 'webhook.triggered';
+  | 'webhook.triggered'
+  | 'automation.notify'
+  | 'automation.alert'
+  | 'automation.freeze_device'
+  | 'automation.create_case'
+  | 'automation.escalate'
+  | 'automation.custom'
+  | 'workflow.completed'
+  | 'workflow.failed'
+  | 'workflow.step_executed';
 
 export interface Event {
   name: EventName;

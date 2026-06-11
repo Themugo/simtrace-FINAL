@@ -24,6 +24,34 @@ const LEGAL_FRAMEWORKS = {
   },
 };
 
+interface CrossBorderRequestEditable {
+  imei: string;
+  status: string;
+  outcome: string | null;
+  outcomeDetails: string;
+  acknowledgedAt: Date;
+  completedAt: Date;
+  expiresAt: Date;
+  priority: string;
+  requestingCountry: string;
+  targetCountry: string;
+  requestingAuthority: string;
+  targetAuthority: string;
+  referenceNumber: string;
+  treaty: string;
+  recoveryCase: string;
+  device: string;
+  requestType: string;
+  evidence: unknown[];
+  ledgerEntry: string;
+}
+
+interface RecoveryCaseEditable {
+  crossBorder: boolean;
+  countriesInvolved: string[];
+  interpolRef: string;
+}
+
 // ── Create Cross-Border Request ─────────────────────────────────────────────────────
 export async function createCrossBorderRequest(data: Record<string, unknown>) {
   const {
@@ -91,13 +119,15 @@ export async function createCrossBorderRequest(data: Record<string, unknown>) {
 
   // Record on blockchain
   const ledgerEntry = await recordCrossBorderRequest(imei, requestingCountry, targetCountry);
-  (request as any).ledgerEntry = ledgerEntry._id;
+  const r = request as unknown as CrossBorderRequestEditable;
+  r.ledgerEntry = ledgerEntry._id;
   await request.save();
 
   // Update recovery case if linked
   if (recoveryCase) {
-    (recoveryCase as any).crossBorder = true;
-    (recoveryCase as any).countriesInvolved = [requestingCountry, targetCountry];
+    const rc = recoveryCase as unknown as RecoveryCaseEditable;
+    rc.crossBorder = true;
+    rc.countriesInvolved = [requestingCountry, targetCountry];
     await recoveryCase.save();
   }
 
@@ -118,15 +148,16 @@ export async function updateRequestStatus(requestId: string, status: string, out
   const request = await CrossBorderRequest.findById(requestId);
   if (!request) throw new Error("Cross-border request not found");
 
-  (request as any).status = status;
-  (request as any).outcome = outcome;
-  (request as any).outcomeDetails = outcomeDetails;
+  const r = request as unknown as CrossBorderRequestEditable;
+  r.status = status;
+  r.outcome = outcome;
+  r.outcomeDetails = outcomeDetails;
   request.updatedAt = new Date();
 
   if (status === "acknowledged") {
-    (request as any).acknowledgedAt = new Date();
+    r.acknowledgedAt = new Date();
   } else if (status === "completed") {
-    (request as any).completedAt = new Date();
+    r.completedAt = new Date();
   }
 
   await request.save();
@@ -135,7 +166,7 @@ export async function updateRequestStatus(requestId: string, status: string, out
   getIO().emit("cross_border_request_updated", {
     requestId,
     status,
-    imei: (request as any).imei,
+    imei: r.imei,
   });
 
   return request;
@@ -146,7 +177,7 @@ export async function addEvidence(requestId: string, evidence: Record<string, un
   const request = await CrossBorderRequest.findById(requestId);
   if (!request) throw new Error("Cross-border request not found");
 
-  (request as any).evidence.push({
+  (request as unknown as CrossBorderRequestEditable).evidence.push({
     ...evidence,
     uploadedAt: new Date(),
   });
@@ -168,14 +199,15 @@ export async function autoAcknowledgeRequest(requestId: string) {
     low: 48,
   };
 
-  const delay = delayHours[(request as any).priority] || 24;
+  const r = request as unknown as CrossBorderRequestEditable;
+  const delay = delayHours[r.priority] || 24;
 
   setTimeout(async () => {
     await updateRequestStatus(
       requestId,
       "acknowledged",
       null,
-      `Request acknowledged by ${(request as any).targetCountry} authorities`
+      `Request acknowledged by ${r.targetCountry} authorities`
     );
   }, delay * 60 * 60 * 1000);
 
@@ -195,7 +227,7 @@ export async function checkRequestExpiry() {
       request._id.toString(),
       "expired",
       "Request expired without resolution",
-      `Request expired on ${(request as any).expiresAt.toISOString()}`
+      `Request expired on ${(request as unknown as CrossBorderRequestEditable).expiresAt.toISOString()}`
     );
   }
 
@@ -346,12 +378,13 @@ export async function submitToInterpol(requestId: string) {
   if (!request) throw new Error("Cross-border request not found");
 
   // Generate Interpol reference number
-  const interpolRef = `INT-${(request as any).requestingCountry}-${Date.now()}-${(request as any).imei.slice(-6)}`;
+  const r = request as unknown as CrossBorderRequestEditable;
+  const interpolRef = `INT-${r.requestingCountry}-${Date.now()}-${r.imei.slice(-6)}`;
 
   // Update request with Interpol details
-  (request as any).treaty = "INTERPOL";
-  (request as any).referenceNumber = interpolRef;
-  (request as any).priority = (request as any).priority === "low" ? "medium" : (request as any).priority; // Upgrade priority for Interpol
+  r.treaty = "INTERPOL";
+  r.referenceNumber = interpolRef;
+  r.priority = r.priority === "low" ? "medium" : r.priority;
   await request.save();
 
   // Simulate Interpol submission
@@ -363,10 +396,10 @@ export async function submitToInterpol(requestId: string) {
   );
 
   // Update recovery case if linked
-  if ((request as any).recoveryCase) {
-    const recoveryCase = await RecoveryCase.findById((request as any).recoveryCase);
+  if (r.recoveryCase) {
+    const recoveryCase = await RecoveryCase.findById(r.recoveryCase);
     if (recoveryCase) {
-      (recoveryCase as any).interpolRef = interpolRef;
+      (recoveryCase as unknown as RecoveryCaseEditable).interpolRef = interpolRef;
       await recoveryCase.save();
     }
   }
@@ -383,30 +416,31 @@ export async function generateMlatRequest(requestId: string) {
   if (!request) throw new Error("Cross-border request not found");
 
   // Generate MLAT document structure
+  const r = request as unknown as CrossBorderRequestEditable;
   const mlatDocument = {
     documentType: "Mutual Legal Assistance Treaty Request",
-    referenceNumber: (request as any).referenceNumber,
+    referenceNumber: r.referenceNumber,
     date: new Date().toISOString(),
     
-    requestingCountry: (request as any).requestingCountry,
-    requestingAuthority: (request as any).requestingAuthority,
+    requestingCountry: r.requestingCountry,
+    requestingAuthority: r.requestingAuthority,
     
-    targetCountry: (request as any).targetCountry,
-    targetAuthority: (request as any).targetAuthority,
+    targetCountry: r.targetCountry,
+    targetAuthority: r.targetAuthority,
     
     subject: {
-      imei: (request as any).imei,
-      device: (request as any).device,
-      recoveryCase: (request as any).recoveryCase,
+      imei: r.imei,
+      device: r.device,
+      recoveryCase: r.recoveryCase,
     },
     
-    requestType: (request as any).requestType,
-    priority: (request as any).priority,
+    requestType: r.requestType,
+    priority: r.priority,
     
-    evidence: (request as any).evidence,
+    evidence: r.evidence,
     
     legalBasis: {
-      treaty: (request as any).treaty,
+      treaty: r.treaty,
       applicableLaw: "Domestic theft and fraud legislation",
     },
     

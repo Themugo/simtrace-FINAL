@@ -13,7 +13,7 @@ export async function initiateDeviceTransfer(data: Record<string, unknown>) {
   // Verify device ownership
   const device = await Device.findById(data.deviceId);
   if (!device) throw new Error("Device not found");
-  if (device.owner?.toString() !== data.fromUserId.toString()) {
+  if (device.owner?.toString() !== (data.fromUserId as string).toString()) {
     throw new Error("You don't own this device");
   }
 

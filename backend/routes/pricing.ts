@@ -114,7 +114,7 @@ router.patch("/admin/custom/:id", authenticate, requireAdmin, async (req: AuthRe
       isActive: z.boolean().optional(),
     });
 
-    const data = schema.parse(req.body);
+    const data = schema.parse(req.body) as Record<string, unknown>;
     data.updatedAt = new Date();
 
     const customPricing = await PricingConfig.findByIdAndUpdate(id, data, { new: true });

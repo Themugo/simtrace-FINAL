@@ -19,12 +19,7 @@ import {
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
+type AuthRequest = Request & { user?: { id: string; role: string } }
 
 // ── API Key Management ───────────────────────────────────────────────────────────
 router.post("/keys", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {

@@ -29,17 +29,18 @@ export class OfflineManager {
   private setupNetworkListeners(): void {
     // In a browser environment, this would use navigator.onLine
     // For Node.js, we simulate network status
-    if (typeof window !== 'undefined' && 'navigator' in window) {
-      window.addEventListener('online', () => {
+    const g = globalThis as any;
+    if (g?.navigator?.onLine !== undefined) {
+      g.addEventListener('online', () => {
         this.isOnline = true;
         this.triggerSync();
       });
 
-      window.addEventListener('offline', () => {
+      g.addEventListener('offline', () => {
         this.isOnline = false;
       });
 
-      this.isOnline = navigator.onLine;
+      this.isOnline = g.navigator.onLine;
     }
   }
 

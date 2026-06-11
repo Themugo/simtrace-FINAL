@@ -12,16 +12,9 @@ import { slaMonitoringService } from "../services/enterprise/slaMonitoring.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
-
 // ── Multi-Tenant Architecture ─────────────────────────────────────────────────────
 
-router.post("/tenants", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/tenants", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       name: z.string(),
@@ -34,12 +27,12 @@ router.post("/tenants", authenticate, requireAdmin, async (req: AuthRequest, res
     const tenant = multiTenantService.createTenant(data.name, data.slug, data.domain, data.plan || 'free');
     res.json({ tenant });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/tenants", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/tenants", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const tenants = multiTenantService.getAllTenants();
     res.json({ tenants });
@@ -48,10 +41,10 @@ router.get("/tenants", authenticate, requireAdmin, async (req: AuthRequest, res:
   }
 });
 
-router.get("/tenants/:tenantId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/tenants/:tenantId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const tenant = multiTenantService.getTenant(tenantId);
+    const tenant = multiTenantService.getTenant(tenantId as string);
     
     if (!tenant) {
       return res.status(404).json({ error: "Tenant not found" });
@@ -63,12 +56,12 @@ router.get("/tenants/:tenantId", authenticate, requireAdmin, async (req: AuthReq
   }
 });
 
-router.put("/tenants/:tenantId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.put("/tenants/:tenantId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
     const updates = req.body;
 
-    const tenant = multiTenantService.updateTenant(tenantId, updates);
+    const tenant = multiTenantService.updateTenant(tenantId as string, updates);
     
     if (!tenant) {
       return res.status(404).json({ error: "Tenant not found" });
@@ -80,10 +73,10 @@ router.put("/tenants/:tenantId", authenticate, requireAdmin, async (req: AuthReq
   }
 });
 
-router.delete("/tenants/:tenantId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete("/tenants/:tenantId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const success = multiTenantService.deleteTenant(tenantId);
+    const success = multiTenantService.deleteTenant(tenantId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Tenant not found" });
@@ -95,7 +88,7 @@ router.delete("/tenants/:tenantId", authenticate, requireAdmin, async (req: Auth
   }
 });
 
-router.post("/tenants/:tenantId/users", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/tenants/:tenantId/users", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
     const schema = z.object({
@@ -105,18 +98,18 @@ router.post("/tenants/:tenantId/users", authenticate, requireAdmin, async (req: 
     });
     const data = schema.parse(req.body);
 
-    const user = multiTenantService.addUserToTenant(data.userId, tenantId, data.email, data.role || 'user');
+    const user = multiTenantService.addUserToTenant(data.userId, tenantId as string, data.email, data.role || 'user');
     res.json({ user });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.delete("/tenants/:tenantId/users/:userId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete("/tenants/:tenantId/users/:userId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId, userId } = req.params;
-    const success = multiTenantService.removeUserFromTenant(userId, tenantId);
+    const success = multiTenantService.removeUserFromTenant(userId as string, tenantId as string);
     
     if (!success) {
       return res.status(404).json({ error: "User not found in tenant" });
@@ -128,10 +121,10 @@ router.delete("/tenants/:tenantId/users/:userId", authenticate, requireAdmin, as
   }
 });
 
-router.get("/tenants/:tenantId/quota", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/tenants/:tenantId/quota", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const quota = multiTenantService.getQuota(tenantId);
+    const quota = multiTenantService.getQuota(tenantId as string);
     
     if (!quota) {
       return res.status(404).json({ error: "Quota not found" });
@@ -143,7 +136,7 @@ router.get("/tenants/:tenantId/quota", authenticate, requireAdmin, async (req: A
   }
 });
 
-router.get("/tenants/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/tenants/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = multiTenantService.getStatistics();
     res.json({ statistics });
@@ -154,7 +147,7 @@ router.get("/tenants/statistics", authenticate, requireAdmin, async (req: AuthRe
 
 // ── SSO Integration ────────────────────────────────────────────────────────────────
 
-router.post("/sso/providers", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/sso/providers", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -176,27 +169,27 @@ router.post("/sso/providers", authenticate, requireAdmin, async (req: AuthReques
     const provider = ssoIntegrationService.registerProvider(data);
     res.json({ provider });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/sso/providers/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/sso/providers/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const providers = ssoIntegrationService.getProvidersForTenant(tenantId);
+    const providers = ssoIntegrationService.getProvidersForTenant(tenantId as string);
     res.json({ providers });
   } catch (err) {
     next(err);
   }
 });
 
-router.put("/sso/providers/:providerId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.put("/sso/providers/:providerId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { providerId } = req.params;
     const updates = req.body;
 
-    const provider = ssoIntegrationService.updateProvider(providerId, updates);
+    const provider = ssoIntegrationService.updateProvider(providerId as string, updates);
     
     if (!provider) {
       return res.status(404).json({ error: "Provider not found" });
@@ -208,10 +201,10 @@ router.put("/sso/providers/:providerId", authenticate, requireAdmin, async (req:
   }
 });
 
-router.delete("/sso/providers/:providerId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete("/sso/providers/:providerId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { providerId } = req.params;
-    const success = ssoIntegrationService.deleteProvider(providerId);
+    const success = ssoIntegrationService.deleteProvider(providerId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Provider not found" });
@@ -228,7 +221,7 @@ router.post("/sso/saml/:providerId/url", async (req: Request, res: Response, nex
     const { providerId } = req.params;
     const { relayState } = req.body;
 
-    const url = ssoIntegrationService.generateSAMLSSOUrl(providerId, relayState);
+    const url = ssoIntegrationService.generateSAMLSSOUrl(providerId as string, relayState);
     res.json({ url });
   } catch (err) {
     next(err);
@@ -244,10 +237,10 @@ router.post("/sso/oauth2/:providerId/url", async (req: Request, res: Response, n
     });
     const data = schema.parse(req.body);
 
-    const url = ssoIntegrationService.generateOAuth2Url(providerId, data.redirectUri, data.state);
+    const url = ssoIntegrationService.generateOAuth2Url(providerId as string, data.redirectUri, data.state);
     res.json({ url });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
@@ -261,15 +254,15 @@ router.post("/sso/oauth2/:providerId/token", async (req: Request, res: Response,
     });
     const data = schema.parse(req.body);
 
-    const tokens = await ssoIntegrationService.exchangeOAuth2Code(providerId, data.code, data.redirectUri);
+    const tokens = await ssoIntegrationService.exchangeOAuth2Code(providerId as string, data.code, data.redirectUri);
     res.json({ tokens });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/sso/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/sso/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = ssoIntegrationService.getStatistics();
     res.json({ statistics });
@@ -280,7 +273,7 @@ router.get("/sso/statistics", authenticate, requireAdmin, async (req: AuthReques
 
 // ── RBAC ─────────────────────────────────────────────────────────────────────────
 
-router.post("/rbac/roles", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/rbac/roles", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -293,27 +286,27 @@ router.post("/rbac/roles", authenticate, requireAdmin, async (req: AuthRequest, 
     const role = rbacService.createRole(data.tenantId, data.name, data.description, data.permissions);
     res.json({ role });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/rbac/roles/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/rbac/roles/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const roles = rbacService.getRolesForTenant(tenantId);
+    const roles = rbacService.getRolesForTenant(tenantId as string);
     res.json({ roles });
   } catch (err) {
     next(err);
   }
 });
 
-router.put("/rbac/roles/:roleId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.put("/rbac/roles/:roleId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { roleId } = req.params;
     const updates = req.body;
 
-    const role = rbacService.updateRole(roleId, updates);
+    const role = rbacService.updateRole(roleId as string, updates);
     
     if (!role) {
       return res.status(404).json({ error: "Role not found" });
@@ -325,10 +318,10 @@ router.put("/rbac/roles/:roleId", authenticate, requireAdmin, async (req: AuthRe
   }
 });
 
-router.delete("/rbac/roles/:roleId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete("/rbac/roles/:roleId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { roleId } = req.params;
-    const success = rbacService.deleteRole(roleId);
+    const success = rbacService.deleteRole(roleId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Role not found" });
@@ -340,7 +333,7 @@ router.delete("/rbac/roles/:roleId", authenticate, requireAdmin, async (req: Aut
   }
 });
 
-router.post("/rbac/assign", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/rbac/assign", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       userId: z.string(),
@@ -352,15 +345,15 @@ router.post("/rbac/assign", authenticate, requireAdmin, async (req: AuthRequest,
     const userRole = rbacService.assignRole(data.userId, data.tenantId, data.roleId, req.user!.id);
     res.json({ userRole });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.delete("/rbac/assign/:userId/:tenantId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete("/rbac/assign/:userId/:tenantId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { userId, tenantId } = req.params;
-    const success = rbacService.removeRole(userId, tenantId);
+    const success = rbacService.removeRole(userId as string, tenantId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Role assignment not found" });
@@ -381,17 +374,17 @@ router.get("/rbac/permissions", async (req: Request, res: Response, next: NextFu
   }
 });
 
-router.get("/rbac/check/:userId/:tenantId/:permissionId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/rbac/check/:userId/:tenantId/:permissionId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { userId, tenantId, permissionId } = req.params;
-    const hasPermission = rbacService.hasPermission(userId, tenantId, permissionId);
+    const hasPermission = rbacService.hasPermission(userId as string, tenantId as string, permissionId as string);
     res.json({ hasPermission });
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/rbac/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/rbac/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = rbacService.getStatistics();
     res.json({ statistics });
@@ -402,7 +395,7 @@ router.get("/rbac/statistics", authenticate, requireAdmin, async (req: AuthReque
 
 // ── API Rate Limiting ─────────────────────────────────────────────────────────────
 
-router.post("/rate-limits/rules", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/rate-limits/rules", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -426,27 +419,27 @@ router.post("/rate-limits/rules", authenticate, requireAdmin, async (req: AuthRe
     );
     res.json({ rule });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/rate-limits/rules/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/rate-limits/rules/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const rules = apiRateLimitingService.getRulesForTenant(tenantId);
+    const rules = apiRateLimitingService.getRulesForTenant(tenantId as string);
     res.json({ rules });
   } catch (err) {
     next(err);
   }
 });
 
-router.put("/rate-limits/rules/:ruleId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.put("/rate-limits/rules/:ruleId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { ruleId } = req.params;
     const updates = req.body;
 
-    const rule = apiRateLimitingService.updateRule(ruleId, updates);
+    const rule = apiRateLimitingService.updateRule(ruleId as string, updates);
     
     if (!rule) {
       return res.status(404).json({ error: "Rule not found" });
@@ -458,10 +451,10 @@ router.put("/rate-limits/rules/:ruleId", authenticate, requireAdmin, async (req:
   }
 });
 
-router.delete("/rate-limits/rules/:ruleId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete("/rate-limits/rules/:ruleId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { ruleId } = req.params;
-    const success = apiRateLimitingService.deleteRule(ruleId);
+    const success = apiRateLimitingService.deleteRule(ruleId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Rule not found" });
@@ -473,38 +466,38 @@ router.delete("/rate-limits/rules/:ruleId", authenticate, requireAdmin, async (r
   }
 });
 
-router.get("/rate-limits/usage/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/rate-limits/usage/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const usage = apiRateLimitingService.getUsageForTenant(tenantId);
+    const usage = apiRateLimitingService.getUsageForTenant(tenantId as string);
     res.json({ usage });
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/rate-limits/violations/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/rate-limits/violations/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
-    const violations = apiRateLimitingService.getViolationsForTenant(tenantId, limit);
+    const violations = apiRateLimitingService.getViolationsForTenant(tenantId as string, limit);
     res.json({ violations });
   } catch (err) {
     next(err);
   }
 });
 
-router.post("/rate-limits/reset/:tenantId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/rate-limits/reset/:tenantId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const reset = apiRateLimitingService.resetUsage(tenantId);
+    const reset = apiRateLimitingService.resetUsage(tenantId as string);
     res.json({ reset });
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/rate-limits/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/rate-limits/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = apiRateLimitingService.getStatistics();
     res.json({ statistics });
@@ -515,7 +508,7 @@ router.get("/rate-limits/statistics", authenticate, requireAdmin, async (req: Au
 
 // ── Enterprise Reporting ─────────────────────────────────────────────────────────
 
-router.post("/reports", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/reports", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -545,27 +538,27 @@ router.post("/reports", authenticate, async (req: AuthRequest, res: Response, ne
     );
     res.json({ report });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/reports/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/reports/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const reports = enterpriseReportingService.getReportsForTenant(tenantId);
+    const reports = enterpriseReportingService.getReportsForTenant(tenantId as string);
     res.json({ reports });
   } catch (err) {
     next(err);
   }
 });
 
-router.put("/reports/:reportId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.put("/reports/:reportId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { reportId } = req.params;
     const updates = req.body;
 
-    const report = enterpriseReportingService.updateReport(reportId, updates);
+    const report = enterpriseReportingService.updateReport(reportId as string, updates);
     
     if (!report) {
       return res.status(404).json({ error: "Report not found" });
@@ -577,10 +570,10 @@ router.put("/reports/:reportId", authenticate, async (req: AuthRequest, res: Res
   }
 });
 
-router.delete("/reports/:reportId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete("/reports/:reportId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { reportId } = req.params;
-    const success = enterpriseReportingService.deleteReport(reportId);
+    const success = enterpriseReportingService.deleteReport(reportId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Report not found" });
@@ -592,28 +585,28 @@ router.delete("/reports/:reportId", authenticate, async (req: AuthRequest, res: 
   }
 });
 
-router.post("/reports/:reportId/generate", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/reports/:reportId/generate", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { reportId } = req.params;
-    const generation = await enterpriseReportingService.generateReport(reportId);
+    const generation = await enterpriseReportingService.generateReport(reportId as string);
     res.json({ generation });
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/reports/:reportId/generations", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/reports/:reportId/generations", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { reportId } = req.params;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-    const generations = enterpriseReportingService.getReportGenerations(reportId, limit);
+    const generations = enterpriseReportingService.getReportGenerations(reportId as string, limit);
     res.json({ generations });
   } catch (err) {
     next(err);
   }
 });
 
-router.post("/reports/templates", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/reports/templates", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -628,22 +621,22 @@ router.post("/reports/templates", authenticate, async (req: AuthRequest, res: Re
     const template = enterpriseReportingService.createTemplate(data.tenantId, data.name, data.description, data.layout);
     res.json({ template });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/reports/templates/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/reports/templates/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const templates = enterpriseReportingService.getTemplatesForTenant(tenantId);
+    const templates = enterpriseReportingService.getTemplatesForTenant(tenantId as string);
     res.json({ templates });
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/reports/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/reports/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = enterpriseReportingService.getStatistics();
     res.json({ statistics });
@@ -654,7 +647,7 @@ router.get("/reports/statistics", authenticate, requireAdmin, async (req: AuthRe
 
 // ── White-Label Customization ─────────────────────────────────────────────────────
 
-router.post("/white-label/config", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/white-label/config", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -694,7 +687,7 @@ router.post("/white-label/config", authenticate, async (req: AuthRequest, res: R
     );
     res.json({ config });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
@@ -702,7 +695,7 @@ router.post("/white-label/config", authenticate, async (req: AuthRequest, res: R
 router.get("/white-label/config/:tenantId", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const config = whiteLabelService.getConfig(tenantId);
+    const config = whiteLabelService.getConfig(tenantId as string);
     
     if (!config) {
       return res.status(404).json({ error: "Config not found" });
@@ -714,12 +707,12 @@ router.get("/white-label/config/:tenantId", async (req: Request, res: Response, 
   }
 });
 
-router.put("/white-label/config/:configId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.put("/white-label/config/:configId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { configId } = req.params;
     const updates = req.body;
 
-    const config = whiteLabelService.updateConfig(configId, updates);
+    const config = whiteLabelService.updateConfig(configId as string, updates);
     
     if (!config) {
       return res.status(404).json({ error: "Config not found" });
@@ -731,7 +724,7 @@ router.put("/white-label/config/:configId", authenticate, async (req: AuthReques
   }
 });
 
-router.post("/white-label/assets", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/white-label/assets", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -751,22 +744,22 @@ router.post("/white-label/assets", authenticate, async (req: AuthRequest, res: R
     );
     res.json({ asset });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/white-label/assets/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/white-label/assets/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const assets = whiteLabelService.getAssetsForTenant(tenantId);
+    const assets = whiteLabelService.getAssetsForTenant(tenantId as string);
     res.json({ assets });
   } catch (err) {
     next(err);
   }
 });
 
-router.post("/white-label/themes", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/white-label/themes", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -792,25 +785,25 @@ router.post("/white-label/themes", authenticate, async (req: AuthRequest, res: R
     );
     res.json({ theme });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/white-label/themes/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/white-label/themes/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const themes = whiteLabelService.getThemesForTenant(tenantId);
+    const themes = whiteLabelService.getThemesForTenant(tenantId as string);
     res.json({ themes });
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/white-label/themes/:themeId/css", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/white-label/themes/:themeId/css", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { themeId } = req.params;
-    const css = whiteLabelService.exportThemeAsCSS(themeId);
+    const css = whiteLabelService.exportThemeAsCSS(themeId as string);
     
     res.setHeader('Content-Type', 'text/css');
     res.send(css);
@@ -819,7 +812,7 @@ router.get("/white-label/themes/:themeId/css", authenticate, async (req: AuthReq
   }
 });
 
-router.get("/white-label/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/white-label/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = whiteLabelService.getStatistics();
     res.json({ statistics });
@@ -830,7 +823,7 @@ router.get("/white-label/statistics", authenticate, requireAdmin, async (req: Au
 
 // ── SLA Monitoring ────────────────────────────────────────────────────────────────
 
-router.post("/sla", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/sla", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const schema = z.object({
       tenantId: z.string(),
@@ -867,27 +860,27 @@ router.post("/sla", authenticate, requireAdmin, async (req: AuthRequest, res: Re
     );
     res.json({ sla });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/sla/:tenantId", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/sla/:tenantId", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { tenantId } = req.params;
-    const slas = slaMonitoringService.getSLAsForTenant(tenantId);
+    const slas = slaMonitoringService.getSLAsForTenant(tenantId as string);
     res.json({ slas });
   } catch (err) {
     next(err);
   }
 });
 
-router.put("/sla/:slaId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.put("/sla/:slaId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { slaId } = req.params;
     const updates = req.body;
 
-    const sla = slaMonitoringService.updateSLA(slaId, updates);
+    const sla = slaMonitoringService.updateSLA(slaId as string, updates);
     
     if (!sla) {
       return res.status(404).json({ error: "SLA not found" });
@@ -899,10 +892,10 @@ router.put("/sla/:slaId", authenticate, requireAdmin, async (req: AuthRequest, r
   }
 });
 
-router.delete("/sla/:slaId", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete("/sla/:slaId", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { slaId } = req.params;
-    const success = slaMonitoringService.deleteSLA(slaId);
+    const success = slaMonitoringService.deleteSLA(slaId as string);
     
     if (!success) {
       return res.status(404).json({ error: "SLA not found" });
@@ -914,7 +907,7 @@ router.delete("/sla/:slaId", authenticate, requireAdmin, async (req: AuthRequest
   }
 });
 
-router.post("/sla/:slaId/metrics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/sla/:slaId/metrics", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { slaId } = req.params;
     const schema = z.object({
@@ -928,7 +921,7 @@ router.post("/sla/:slaId/metrics", authenticate, async (req: AuthRequest, res: R
     const data = schema.parse(req.body);
 
     const metric = slaMonitoringService.recordMetric(
-      slaId,
+      slaId as string,
       data.uptime,
       data.responseTime,
       data.errorRate,
@@ -938,26 +931,26 @@ router.post("/sla/:slaId/metrics", authenticate, async (req: AuthRequest, res: R
     );
     res.json({ metric });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/sla/:slaId/violations", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/sla/:slaId/violations", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { slaId } = req.params;
     const includeResolved = req.query.includeResolved === 'true';
-    const violations = slaMonitoringService.getViolationsForSLA(slaId, includeResolved);
+    const violations = slaMonitoringService.getViolationsForSLA(slaId as string, includeResolved);
     res.json({ violations });
   } catch (err) {
     next(err);
   }
 });
 
-router.post("/sla/violations/:violationId/resolve", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/sla/violations/:violationId/resolve", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { violationId } = req.params;
-    const success = slaMonitoringService.resolveViolation(violationId);
+    const success = slaMonitoringService.resolveViolation(violationId as string);
     
     if (!success) {
       return res.status(404).json({ error: "Violation not found" });
@@ -969,7 +962,7 @@ router.post("/sla/violations/:violationId/resolve", authenticate, async (req: Au
   }
 });
 
-router.post("/sla/:slaId/report", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/sla/:slaId/report", authenticate, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const { slaId } = req.params;
     const schema = z.object({
@@ -978,15 +971,15 @@ router.post("/sla/:slaId/report", authenticate, async (req: AuthRequest, res: Re
     });
     const data = schema.parse(req.body);
 
-    const report = slaMonitoringService.generateSLAReport(slaId, data);
+    const report = slaMonitoringService.generateSLAReport(slaId as string, data);
     res.json({ report });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as Record<string, unknown>).errors });
     next(err);
   }
 });
 
-router.get("/sla/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/sla/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = slaMonitoringService.getStatistics();
     res.json({ statistics });

@@ -13,12 +13,7 @@ import {
 
 const router = Router();
 
-interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-}
+type AuthRequest = Request & { user?: { id: string; role: string } }
 
 // POST /api/external-marketplace/verify/jiji — verify Jiji listing
 router.post("/verify/jiji", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {

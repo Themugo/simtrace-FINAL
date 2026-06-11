@@ -76,8 +76,8 @@ router.post("/ping", authenticate, async (req: Request, res: Response, next: Nex
       networkType: z.string().optional(),
     });
 
-    const data = schema.parse(req.body);
-    const ping = await recordSatellitePing(data);
+    const data = schema.parse(req.body) as Record<string, unknown>;
+    const ping = await recordSatellitePing(data as any);
     res.status(201).json(ping);
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });

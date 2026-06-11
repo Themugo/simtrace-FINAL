@@ -40,7 +40,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const mongooseModule = await import('mongoose');
       const mongoose: Record<string, unknown> = (mongooseModule as Record<string, unknown>).default as Record<string, unknown> ?? mongooseModule as Record<string, unknown>;
-      healthCheck.services.database = mongoose.connection?.readyState === 1 ? 'connected' : 'disconnected';
+      healthCheck.services.database = (mongoose as any).connection?.readyState === 1 ? 'connected' : 'disconnected';
     } catch (error) {
       healthCheck.services.database = 'error';
     }

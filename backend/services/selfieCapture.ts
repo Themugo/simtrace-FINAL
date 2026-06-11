@@ -49,7 +49,7 @@ export async function captureSelfie(data: Record<string, unknown>) {
   });
 
   // Record unlock attempt on lock
-  await recordUnlockAttempt((lock as { lockId: string }).lockId, d.captureLocation);
+  await recordUnlockAttempt((lock as { lockId: string }).lockId, d.captureLocation as Record<string, unknown>);
 
   // Trigger AI analysis
   await analyzeSelfie(captureId);

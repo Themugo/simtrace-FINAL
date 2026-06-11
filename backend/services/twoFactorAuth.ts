@@ -1,5 +1,7 @@
 // services/twoFactorAuth.ts - Two-Factor Authentication service
+// @ts-expect-error no types
 import speakeasy from 'speakeasy';
+// @ts-expect-error no types
 import QRCode from 'qrcode';
 import { User } from '../db/index.js';
 
@@ -105,17 +107,19 @@ export async function verifyTwoFactorAuth(userId: string, token: string): Promis
     return { valid: false, message: 'User not found' };
   }
 
-  if (!user.twoFactorEnabled) {
+  const u = user as unknown as { twoFactorEnabled?: boolean; twoFactorSecret?: string; twoFactorBackupCodes?: string[] };
+
+  if (!u.twoFactorEnabled) {
     return { valid: true, message: '2FA not enabled for this user' };
   }
 
   // Check TOTP token
-  if (user.twoFactorSecret && verifyToken(token, user.twoFactorSecret)) {
+  if (u.twoFactorSecret && verifyToken(token, u.twoFactorSecret)) {
     return { valid: true, message: '2FA verified successfully' };
   }
 
   // Check backup codes
-  if (user.twoFactorBackupCodes && verifyBackupCode(token, user.twoFactorBackupCodes)) {
+  if (u.twoFactorBackupCodes && verifyBackupCode(token, u.twoFactorBackupCodes)) {
     // Remove used backup code
     await User.findByIdAndUpdate(userId, {
       $pull: { twoFactorBackupCodes: token },
@@ -142,5 +146,6 @@ export async function regenerateBackupCodes(userId: string): Promise<string[]> {
  */
 export async function hasTwoFactorEnabled(userId: string): Promise<boolean> {
   const user = await User.findById(userId);
-  return user?.twoFactorEnabled || false;
+  const u = user as unknown as { twoFactorEnabled?: boolean } | null;
+  return u?.twoFactorEnabled || false;
 }

@@ -72,36 +72,37 @@ router.get("/google/callback", async (req: Request, res: Response, next: NextFun
         grant_type: "authorization_code",
       }),
     });
-    const tokens: Record<string, unknown> = await tokenRes.json();
+    const tokens = await tokenRes.json() as Record<string, unknown>;
     if (!tokens.access_token) return res.status(401).json({ error: "Google token exchange failed." });
 
     // Fetch the verified profile.
     const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    const profile: Record<string, unknown> = await profileRes.json();
-    if (!profile.email) return res.status(401).json({ error: "Could not read Google profile." });
+    const profile = await profileRes.json() as Record<string, unknown>;
+    const profileEmail = profile.email as string | undefined;
+    if (!profileEmail) return res.status(401).json({ error: "Could not read Google profile." });
 
     // Find-or-create / link the account.
-    let user = await User.findOne({ email: profile.email.toLowerCase() });
+    let user = await User.findOne({ email: profileEmail.toLowerCase() });
     if (!user) {
       user = await User.create({
-        name: profile.name || profile.email.split("@")[0],
-        email: profile.email.toLowerCase(),
+        name: (profile.name as string) || profileEmail.split("@")[0],
+        email: profileEmail.toLowerCase(),
         role: "user",
         authProvider: "google",
-        providerId: profile.sub,
+        providerId: profile.sub as string,
         emailVerified: !!profile.email_verified,
       });
       await Subscription.create({ user: user._id, plan: "free", status: "active" });
     } else if (!user.providerId) {
       user.authProvider = "google";
-      user.providerId = profile.sub;
+      user.providerId = profile.sub as string;
       if (profile.email_verified) user.emailVerified = true;
       await user.save();
     }
 
-    const token = signToken(user);
+    const token = signToken(user as any);
     const sep = SUCCESS_REDIRECT.includes("?") ? "&" : "?";
     res.redirect(`${SUCCESS_REDIRECT}${sep}token=${encodeURIComponent(token)}`);
   } catch (err) {

@@ -6,7 +6,7 @@ import { computeRiskScore }            from "../services/intelligence.js";
 
 const router = Router();
 
-interface AuthRequest extends Request {
+type AuthRequest = Request & {
   user?: {
     id: string;
     role: string;
@@ -78,7 +78,7 @@ router.get("/:id", authenticate, async (req: AuthRequest, res: Response, next: N
     const device = await Device.findById(req.params.id).populate("owner", "name email");
     if (!device) return res.status(404).json({ error: "Device not found" });
 
-    const isOwner = device.owner?._id.toString() === req.user!.id;
+    const isOwner = (device.owner as any)?._id?.toString() === req.user!.id;
     if (!isOwner && req.user!.role !== "admin" && req.user!.role !== "law_enforcement") {
       return res.status(403).json({ error: "Access denied" });
     }
