@@ -27,7 +27,7 @@ class APIKeyManager {
     return keyHash === storedHash;
   }
 
-  rotateKey(oldKey: string): { newKey: string; newHash: string } {
+  rotateKey(_oldKey: string): { newKey: string; newHash: string } {
     const newKey = this.generateKey();
     const newHash = this.hashKey(newKey);
     return { newKey, newHash };
@@ -81,8 +81,8 @@ export function requireIPWhitelist(whitelistedIPs: string[]) {
 }
 
 // Rate Limit by API Key
-export function createAPIKeyRateLimit(limiter: Record<string, unknown>) {
-  return (req: Request & { rateLimitKey?: string }, res: Response, next: NextFunction) => {
+export function createAPIKeyRateLimit(_limiter: Record<string, unknown>) {
+  return (req: Request & { rateLimitKey?: string }, _res: Response, next: NextFunction) => {
     const apiKey = req.headers['x-api-key'] as string;
     
     if (apiKey) {

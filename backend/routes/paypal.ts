@@ -148,7 +148,7 @@ router.post("/currency/rates", authenticate, requireAdmin, async (req: Request, 
   }
 });
 
-router.get("/currency/rates", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/currency/rates", authenticate, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const rates = await getCurrencyRates();
     res.json({ rates, count: rates.length });
@@ -156,7 +156,7 @@ router.get("/currency/rates", authenticate, async (req: Request, res: Response, 
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getPayPalStatistics();
     res.json(stats);

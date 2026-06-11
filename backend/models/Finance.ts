@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const oid = mongoose.Schema.Types.ObjectId;
-const Mixed = mongoose.Schema.Types.Mixed;
+
 const opts = { strict: false as const, timestamps: true };
 
 const financialProjectionSchema = new mongoose.Schema({

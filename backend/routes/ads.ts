@@ -64,7 +64,7 @@ router.get("/mine", authenticate, async (req: AuthRequest, res: Response, next: 
 
 
 // GET /api/ads/admin/all — all ads for review
-router.get("/admin/all", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/admin/all", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const ads = await Ad.find().populate("advertiser", "name email").sort({ createdAt: -1 });
     res.json(ads);

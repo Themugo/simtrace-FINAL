@@ -148,7 +148,7 @@ router.post("/batch-verify", authenticate, async (req: Request, res: Response, n
 });
 
 // ── GET /api/dna/stats ────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getDnaStatistics();
     res.json(stats);

@@ -5,6 +5,12 @@ import {
   LawEnforcementAgency,
 } from "../db/index.js";
 
+interface LawEnforcementDashboardFields {
+  allowedUsers: string[];
+  updatedBy: string;
+  agencyId?: string;
+}
+
 // ── Law Enforcement Dashboard Management ───────────────────────────────────────────────
 export async function createLawEnforcementDashboard(data: Record<string, unknown>) {
   const dashboardId = `ldash_${crypto.randomBytes(16).toString("hex")}`;
@@ -81,9 +87,9 @@ export async function addLawEnforcementDashboardUser(dashboardId: string, userId
   const dashboard = await LawEnforcementDashboard.findOne({ dashboardId });
   if (!dashboard) throw new Error("Law enforcement dashboard not found");
 
-  if (!(dashboard as any).allowedUsers.includes(userId)) {
-    (dashboard as any).allowedUsers.push(userId);
-    (dashboard as any).updatedBy = updatedBy;
+  if (!(dashboard as unknown as LawEnforcementDashboardFields).allowedUsers.includes(userId)) {
+    (dashboard as unknown as LawEnforcementDashboardFields).allowedUsers.push(userId);
+    (dashboard as unknown as LawEnforcementDashboardFields).updatedBy = updatedBy;
     dashboard.updatedAt = new Date();
     await dashboard.save();
   }
@@ -95,15 +101,15 @@ export async function removeLawEnforcementDashboardUser(dashboardId: string, use
   const dashboard = await LawEnforcementDashboard.findOne({ dashboardId });
   if (!dashboard) throw new Error("Law enforcement dashboard not found");
 
-  (dashboard as any).allowedUsers = (dashboard as any).allowedUsers.filter((id: string) => id.toString() !== userId.toString());
-  (dashboard as any).updatedBy = updatedBy;
+  (dashboard as unknown as LawEnforcementDashboardFields).allowedUsers = (dashboard as unknown as LawEnforcementDashboardFields).allowedUsers.filter((id: string) => id.toString() !== userId.toString());
+  (dashboard as unknown as LawEnforcementDashboardFields).updatedBy = updatedBy;
   dashboard.updatedAt = new Date();
   await dashboard.save();
 
   return dashboard;
 }
 
-export async function deleteLawEnforcementDashboard(dashboardId: string, deletedBy: string) {
+export async function deleteLawEnforcementDashboard(dashboardId: string, _deletedBy: string) {
   const dashboard = await LawEnforcementDashboard.findOneAndDelete({ dashboardId });
   if (!dashboard) throw new Error("Law enforcement dashboard not found");
   return dashboard;
@@ -119,7 +125,7 @@ export async function getLawEnforcementDashboardData(dashboardId: string) {
   const dashboard = await LawEnforcementDashboard.findById(dashboardId);
   if (!dashboard) throw new Error("Law enforcement dashboard not found");
 
-  const agency = await LawEnforcementAgency.findById((dashboard as any).agencyId);
+  const agency = await LawEnforcementAgency.findById((dashboard as unknown as LawEnforcementDashboardFields).agencyId);
   if (!agency) throw new Error("Law enforcement agency not found");
 
   // TODO: Aggregate data based on widgets

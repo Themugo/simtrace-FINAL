@@ -139,7 +139,7 @@ export function incrementImeiCheck(result: string) {
 }
 
 // Metrics endpoint
-export async function metricsEndpoint(req: Request, res: Response) {
+export async function metricsEndpoint(_req: Request, res: Response) {
   res.set('Content-Type', register.contentType);
   res.end(await register.metrics());
 }

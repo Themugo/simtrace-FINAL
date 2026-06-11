@@ -156,7 +156,7 @@ router.get("/rewards/nearby", async (req: Request, res: Response, next: NextFunc
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getRewardStatistics();
     res.json(stats);
@@ -164,7 +164,7 @@ router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Respo
 });
 
 // ── Expiry Check ───────────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.post("/check-expiry", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const expiredCount = await checkRewardExpiry();
     res.json({ message: "Expiry check completed", expiredCount });

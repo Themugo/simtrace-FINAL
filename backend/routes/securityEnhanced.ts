@@ -26,6 +26,10 @@ import {
   getSecurityStatistics,
 } from "../services/securityEnhanced.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 interface AuthRequest extends Request {
@@ -58,7 +62,7 @@ router.post("/nearby-devices/detect", authenticate, async (req: AuthRequest, res
 
     res.status(201).json(detection);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -93,7 +97,7 @@ router.post("/nearby-devices/:id/witness", authenticate, async (req: AuthRequest
     const detection = await addPotentialWitness(id as string, witnessData);
     res.json(detection);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -123,7 +127,7 @@ router.post("/guardians", authenticate, async (req: AuthRequest, res: Response, 
 
     res.status(201).json(guardian);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -157,7 +161,7 @@ router.patch("/guardians/:guardianId/permissions", authenticate, async (req: Aut
     const guardian = await updateGuardianPermissions(req.user!.id, guardianId as string, permissions as unknown as Record<string, unknown>);
     res.json(guardian);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -174,7 +178,7 @@ router.post("/guardians/:guardianId/report-theft", authenticate, async (req: Aut
     const result = await guardianReportTheft(guardianId as string, deviceId, reason);
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -200,7 +204,7 @@ router.post("/children", authenticate, async (req: AuthRequest, res: Response, n
 
     res.status(201).json(parentChild);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -224,7 +228,7 @@ router.post("/children/:id/live-tracking", authenticate, async (req: AuthRequest
     const parentChild = await enableLiveTracking(id as string, reason, durationHours);
     res.json(parentChild);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -253,7 +257,7 @@ router.post("/children/:id/geofences", authenticate, async (req: AuthRequest, re
     const parentChild = await addGeofence(id as string, geofenceData);
     res.json(parentChild);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -295,7 +299,7 @@ router.post("/panic", authenticate, async (req: AuthRequest, res: Response, next
 
     res.status(201).json(panicMode);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -326,7 +330,7 @@ router.post("/panic/:id/resolve", authenticate, async (req: AuthRequest, res: Re
     const panicMode = await resolvePanicMode(id as string, req.user!.id, resolutionNotes);
     res.json(panicMode);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -340,7 +344,7 @@ router.post("/panic/:id/cancel", authenticate, async (req: AuthRequest, res: Res
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getSecurityStatistics();
     res.json(stats);

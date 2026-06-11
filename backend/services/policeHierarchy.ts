@@ -10,9 +10,9 @@ import {
   CooperationAlert,
   SeniorConfirmation,
   MissingPersonRule,
-  User,
-  PoliceReport,
-  Device,
+  
+  
+  
 } from "../db/index.js";
 import { getIO } from "./socket.js";
 
@@ -491,7 +491,7 @@ export async function createCooperationAlert(data: Record<string, unknown>) {
   return alert;
 }
 
-export async function respondToCooperationAlert(alertId: string, response: string, respondedBy: string) {
+export async function respondToCooperationAlert(alertId: string, response: string, _respondedBy: string) {
   const alert = await CooperationAlert.findById(alertId);
   if (!alert) throw new Error("Cooperation alert not found");
 
@@ -743,3 +743,4 @@ export async function getHierarchyStatistics() {
     },
   };
 }
+

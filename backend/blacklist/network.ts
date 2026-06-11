@@ -196,7 +196,7 @@ class BlacklistNetwork {
   }
 
   // Sync with partner network
-  async syncWithPartner(partnerId: string, partnerUrl: string): Promise<void> {
+  async syncWithPartner(partnerId: string, _partnerUrl: string): Promise<void> {
     // In production, this would make an HTTP request to the partner's API
     // For now, we'll simulate the sync
     

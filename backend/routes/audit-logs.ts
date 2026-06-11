@@ -49,7 +49,7 @@ router.get("/", authenticate, requireAdmin, async (req: AuthRequest, res: Respon
 });
 
 // GET /api/audit-logs/statistics — get audit log statistics (admin only)
-router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const [
       totalLogs,

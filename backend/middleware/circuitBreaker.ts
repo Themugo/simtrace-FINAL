@@ -21,7 +21,7 @@ export const telecomApiBreaker = new CircuitBreaker(
 );
 
 export const aiApiBreaker = new CircuitBreaker(
-  async (imei: string, operation: string) => {
+  async (imei: string, _operation: string) => {
     // Simulate AI API call
     await new Promise(resolve => setTimeout(resolve, 2000));
     return { imei, riskScore: Math.random() * 100 };
@@ -30,7 +30,7 @@ export const aiApiBreaker = new CircuitBreaker(
 );
 
 export const paymentApiBreaker = new CircuitBreaker(
-  async (paymentData: Record<string, unknown>) => {
+  async (_paymentData: Record<string, unknown>) => {
     // Simulate payment API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     return { success: true, transactionId: 'tx_' + Date.now() };
@@ -108,17 +108,17 @@ const telecomFallback = (imei: string, provider: string) => {
   return { imei, isBlacklisted: false, provider, cached: true };
 };
 
-const aiFallback = (imei: string, operation: string) => {
+const aiFallback = (imei: string, _operation: string) => {
   console.log('[Fallback] Using default AI assessment for IMEI:', imei);
   return { imei, riskScore: 50, fallback: true };
 };
 
-const paymentFallback = (paymentData: Record<string, unknown>) => {
+const paymentFallback = (_paymentData: Record<string, unknown>) => {
   console.log('[Fallback] Payment service unavailable');
   return { success: false, error: 'Payment service temporarily unavailable' };
 };
 
-const webhookFallback = (url: string, payload: Record<string, unknown>) => {
+const webhookFallback = (_url: string, _payload: Record<string, unknown>) => {
   console.log('[Fallback] Webhook delivery failed, queued for retry');
   return { success: false, queued: true };
 };

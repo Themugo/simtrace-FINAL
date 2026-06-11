@@ -291,8 +291,7 @@ class EnterpriseAuditSystem {
   }
 
   // Export JSON
-  private async exportJSON(events: AuditEvent[]): Promise<string> {
-    const json = JSON.stringify(events, null, 2);
+  private async exportJSON(_events: AuditEvent[]): Promise<string> {
     const url = `https://storage.example.com/audit/${Date.now()}.json`;
     // In production, upload to storage
     return url;
@@ -302,25 +301,13 @@ class EnterpriseAuditSystem {
   private async exportCSV(events: AuditEvent[]): Promise<string> {
     if (events.length === 0) return '';
 
-    const headers = ['id', 'eventType', 'category', 'userId', 'resourceType', 'resourceId', 'timestamp'];
-    const rows = events.map(e => [
-      e.id,
-      e.eventType,
-      e.category,
-      e.actor.userId || '',
-      e.resource.type,
-      e.resource.id,
-      e.timestamp.toISOString(),
-    ]);
-
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const url = `https://storage.example.com/audit/${Date.now()}.csv`;
     // In production, upload to storage
     return url;
   }
 
   // Export PDF
-  private async exportPDF(events: AuditEvent[]): Promise<string> {
+  private async exportPDF(_events: AuditEvent[]): Promise<string> {
     // In production, use PDF generation library
     const url = `https://storage.example.com/audit/${Date.now()}.pdf`;
     return url;

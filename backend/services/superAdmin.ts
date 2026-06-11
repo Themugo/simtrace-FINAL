@@ -3,8 +3,8 @@ import crypto from "crypto";
 import {
   SuperAdmin,
   Admin,
-  OfficialEmail,
-  SecurityOtp,
+  
+  
 } from "../db/index.js";
 
 interface IOfficialEmail {
@@ -302,3 +302,4 @@ export async function getLoginHistory(superAdminId: string, limit = 50) {
 
   return superAdmin.loginHistory.slice(-limit).reverse();
 }
+

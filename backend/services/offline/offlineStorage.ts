@@ -202,7 +202,7 @@ export class OfflineStorageService {
    * Clear cache
    */
   clearCache(): void {
-    for (const [cacheId, cache] of this.cacheStore.entries()) {
+    for (const [_cacheId, cache] of this.cacheStore.entries()) {
       this.currentSize -= cache.size;
     }
     this.cacheStore.clear();

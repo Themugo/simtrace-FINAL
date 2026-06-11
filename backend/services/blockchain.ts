@@ -4,15 +4,6 @@
 import crypto from "crypto";
 import { BlockchainLedger, Device } from "../db/index.js";
 
-// ── Blockchain Configuration ───────────────────────────────────────────────────────
-const BLOCKCHAIN_CONFIG = {
-  // In production, this would connect to actual blockchain (Ethereum, Polygon, etc.)
-  // For now, we simulate with cryptographic signatures
-  network: process.env.BLOCKCHAIN_NETWORK || "simtrace-testnet",
-  chainId: process.env.BLOCKCHAIN_CHAIN_ID || "1337",
-  contractAddress: process.env.BLOCKCHAIN_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000",
-};
-
 // ── Transaction Hash Generation ───────────────────────────────────────────────────
 function generateTransactionHash(data: {
   timestamp: Date;

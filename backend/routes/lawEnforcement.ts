@@ -222,7 +222,7 @@ router.get("/:agencyId/statistics", authenticate, async (req: AuthRequest, res: 
   } catch (err) { next(err); }
 });
 
-router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getLawEnforcementAgencyStatistics();
     res.json(stats);

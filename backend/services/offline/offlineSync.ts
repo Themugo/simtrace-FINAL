@@ -143,7 +143,7 @@ export class OfflineSyncService {
   /**
    * Sync individual operation
    */
-  private async syncOperation(operation: OfflineOperation): Promise<boolean> {
+  private async syncOperation(_operation: OfflineOperation): Promise<boolean> {
     // In production, this would make actual API calls to the backend
     // For now, we simulate the sync with a delay
     await new Promise(resolve => setTimeout(resolve, 100));

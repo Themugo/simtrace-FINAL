@@ -154,32 +154,32 @@ class WorkerManager extends EventEmitter {
   }
 
   // Job processors (to be implemented)
-  private async processAIJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async processAIJob(_data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // AI processing logic
     return { success: true };
   }
 
-  private async processExportJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async processExportJob(_data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Export logic
     return { success: true };
   }
 
-  private async processTelemetryJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async processTelemetryJob(_data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Telemetry analysis logic
     return { success: true };
   }
 
-  private async processEmailJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async processEmailJob(_data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Email fanout logic
     return { success: true };
   }
 
-  private async processReportJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async processReportJob(_data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Report generation logic
     return { success: true };
   }
 
-  private async processAnalyticsJob(data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  private async processAnalyticsJob(_data: Record<string, unknown>): Promise<Record<string, unknown>> {
     // Analytics aggregation logic
     return { success: true };
   }

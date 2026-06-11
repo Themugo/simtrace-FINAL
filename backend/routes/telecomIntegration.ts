@@ -134,7 +134,7 @@ router.get("/sim-cards/msisdn/:msisdn", authenticate, async (req: AuthRequest, r
   } catch (err) { next(err); }
 });
 
-router.get("/sim-cards/flagged", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/sim-cards/flagged", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const tracking = await getFlaggedSimCards();
     res.json({ tracking, count: tracking.length });

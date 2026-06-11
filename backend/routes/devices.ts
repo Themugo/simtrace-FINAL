@@ -26,7 +26,7 @@ router.get("/", authenticate, async (req: AuthRequest, res: Response, next: Next
 
 // GET /api/devices/public-stats — public homepage stats (no auth required)
 // ⚠️  MUST be before /:id or "public-stats" gets matched as an id
-router.get("/public-stats", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/public-stats", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [total, recovered, recentPings, openReports, telecomPartners] = await Promise.all([
       Device.countDocuments(),
@@ -41,7 +41,7 @@ router.get("/public-stats", async (req: Request, res: Response, next: NextFuncti
 
 // GET /api/devices/stats — admin dashboard stats
 // ⚠️  MUST be before /:id or "stats" gets matched as an id
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const [total, stolen, recovered, blacklisted, recentPings, openReports] = await Promise.all([
       Device.countDocuments(),

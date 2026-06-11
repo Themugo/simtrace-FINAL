@@ -217,7 +217,7 @@ export class GlobalLawEnforcementService {
   /**
    * Reject enforcement request
    */
-  rejectRequest(requestId: string, rejectingAgency: string, reason?: string): boolean {
+  rejectRequest(requestId: string, _rejectingAgency: string, reason?: string): boolean {
     const request = this.requests.get(requestId);
     
     if (!request || request.status !== 'pending') {

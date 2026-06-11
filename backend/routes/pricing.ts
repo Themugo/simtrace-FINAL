@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
-import { PricingConfig, User, Subscription } from "../db/index.js";
+import { PricingConfig, User, } from "../db/index.js";
 import { PLANS } from "../services/billing.js";
 
 const router = Router();
@@ -47,7 +47,7 @@ router.get("/plans", authenticate, async (req: AuthRequest, res: Response, next:
 });
 
 // ── GET /api/pricing/admin/plans — Admin: Get all plans with all custom configs ───────
-router.get("/admin/plans", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/admin/plans", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const customConfigs = await PricingConfig.find().populate('customForUser', 'name email');
     const plans = PLANS.map(plan => ({
@@ -225,7 +225,7 @@ router.get("/admin/users/:userId", authenticate, requireAdmin, async (req: AuthR
 });
 
 // ── GET /api/pricing/admin/stats — Admin: Get pricing statistics ─────────────────────
-router.get("/admin/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/admin/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const [totalCustom, activeWaivers, activeDiscounts, expiringSoon] = await Promise.all([
       PricingConfig.countDocuments(),
@@ -247,3 +247,4 @@ router.get("/admin/stats", authenticate, requireAdmin, async (req: AuthRequest, 
 });
 
 export default router;
+

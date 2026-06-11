@@ -31,7 +31,7 @@ class ThreatDetector {
   private config: ThreatConfig = defaultConfig;
 
   // Track failed login attempts
-  async trackFailedAttempt(ipAddress: string, userId?: string): Promise<boolean> {
+  async trackFailedAttempt(ipAddress: string, _userId?: string): Promise<boolean> {
     const redis = getRedisClient();
     const key = `threat:failed:${ipAddress}`;
     
@@ -83,7 +83,7 @@ class ThreatDetector {
 
   // Detect suspicious session (unusual location, device change)
   async detectSuspiciousSession(
-    userId: string,
+    _userId: string,
     currentIP: string,
     previousIPs: string[]
   ): Promise<boolean> {
@@ -105,7 +105,7 @@ class ThreatDetector {
   }
 
   // Get country from IP (placeholder - integrate with IP geolocation service)
-  private async getIPCountry(ip: string): Promise<string | null> {
+  private async getIPCountry(_ip: string): Promise<string | null> {
     // In production, integrate with MaxMind GeoIP2 or similar
     // For now, return null
     return null;
@@ -145,7 +145,7 @@ class ThreatDetector {
 export const threatDetector = new ThreatDetector();
 
 // ── Middleware Helpers ─────────────────────────────────────────────────────────
-export async function checkThreat(ipAddress: string, userId?: string): Promise<{
+export async function checkThreat(ipAddress: string, _userId?: string): Promise<{
   blocked: boolean;
   reason?: string;
 }> {

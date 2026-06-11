@@ -50,6 +50,10 @@ import {
   getDashboardStatistics,
 } from "../services/dashboardSecurity.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 interface AuthRequest extends Request {
@@ -76,7 +80,7 @@ router.post("/official-emails", authenticate, requireAdmin, async (req: AuthRequ
     const officialEmail = await createOfficialEmail({ ...data, createdBy: req.user!.id });
     res.status(201).json(officialEmail);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -92,7 +96,7 @@ router.post("/official-emails/:emailId/verify", authenticate, async (req: AuthRe
     const officialEmail = await verifyOfficialEmail(emailId as string, data.token);
     res.json(officialEmail);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -146,7 +150,7 @@ router.post("/security-otps", authenticate, requireAdmin, async (req: AuthReques
     const securityOtp = await createSecurityOtp({ ...data, createdBy: req.user!.id });
     res.status(201).json(securityOtp);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -162,7 +166,7 @@ router.post("/security-otps/:otpId/verify", authenticate, async (req: AuthReques
     const securityOtp = await verifySecurityOtp(otpId as string, data.otpNumber);
     res.json(securityOtp);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -216,7 +220,7 @@ router.post("/password-resets", authenticate, async (req: AuthRequest, res: Resp
     const resetRequest = await initiatePasswordReset(data);
     res.status(201).json(resetRequest);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -234,7 +238,7 @@ router.post("/password-resets/:requestId/verify", authenticate, async (req: Auth
     const resetRequest = await verifyPasswordReset(requestId as string, data.verificationMethod, data.code ?? "", data.otpNumber ?? "");
     res.json(resetRequest);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -250,7 +254,7 @@ router.post("/password-resets/:requestId/approve", authenticate, requireRole("ad
     const resetRequest = await approvePasswordReset(requestId as string, req.user!.id, data.approvalReason);
     res.json(resetRequest);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -266,7 +270,7 @@ router.post("/password-resets/:requestId/reject", authenticate, requireRole("adm
     const resetRequest = await rejectPasswordReset(requestId as string, req.user!.id, data.rejectionReason);
     res.json(resetRequest);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -282,7 +286,7 @@ router.post("/password-resets/:requestId/complete", authenticate, requireRole("a
     const resetRequest = await completePasswordReset(requestId as string, data.newPassword);
     res.json(resetRequest);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -329,7 +333,7 @@ router.post("/network-changes", authenticate, requireRole("telecom", "admin", "s
     const networkChange = await initiateNetworkChange(data);
     res.status(201).json(networkChange);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -346,7 +350,7 @@ router.post("/network-changes/:requestId/verify", authenticate, async (req: Auth
     const networkChange = await verifyNetworkChange(requestId as string, data.verificationMethod, data.otpNumber ?? "");
     res.json(networkChange);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -364,7 +368,7 @@ router.post("/network-changes/:requestId/approve", authenticate, requireRole("te
     const networkChange = await approveNetworkChange(requestId as string, req.user!.id, data.approverEmailId ?? "", data.approverOtpId ?? "", data.comment ?? "");
     res.json(networkChange);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -380,7 +384,7 @@ router.post("/network-changes/:requestId/reject", authenticate, requireRole("tel
     const networkChange = await rejectNetworkChange(requestId as string, req.user!.id, data.rejectionReason);
     res.json(networkChange);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -396,7 +400,7 @@ router.post("/network-changes/:requestId/execute", authenticate, requireRole("te
     const networkChange = await executeNetworkChange(requestId as string, req.user!.id, data.executionLog);
     res.json(networkChange);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -412,7 +416,7 @@ router.post("/network-changes/:requestId/rollback", authenticate, requireRole("t
     const networkChange = await rollbackNetworkChange(requestId as string, data.rollbackReason);
     res.json(networkChange);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -464,7 +468,7 @@ router.post("/access-logs", authenticate, async (req: AuthRequest, res: Response
     const accessLog = await logDashboardAccess(data);
     res.status(201).json(accessLog);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -528,7 +532,7 @@ router.post("/dashboards/minister", authenticate, requireRole("admin", "super_ad
     const dashboard = await createMinisterDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -582,7 +586,7 @@ router.post("/dashboards/police-general", authenticate, requireRole("admin", "su
     const dashboard = await createPoliceGeneralDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -637,7 +641,7 @@ router.post("/dashboards/station-admin", authenticate, requireRole("admin", "sup
     const dashboard = await createStationAdminDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -685,7 +689,7 @@ router.post("/dashboards/user", authenticate, async (req: AuthRequest, res: Resp
     const dashboard = await createUserDashboard(data);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -719,13 +723,13 @@ router.post("/dashboards/check-access", authenticate, async (req: AuthRequest, r
     const result = await checkDashboardAccess(data.userId, data.dashboardLevel, data.ipAddress);
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getDashboardStatistics();
     res.json(stats);

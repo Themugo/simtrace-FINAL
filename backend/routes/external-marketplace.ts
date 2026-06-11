@@ -117,7 +117,7 @@ router.post("/report", authenticate, async (req: AuthRequest, res: Response, nex
 });
 
 // GET /api/external-marketplace/statistics — get marketplace verification statistics (admin only)
-router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = getMarketplaceStatistics();
     res.json(stats);

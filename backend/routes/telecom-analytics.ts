@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { z } from "zod";
+import { } from "zod";
 import { authenticate, requireRole } from "../middleware/auth.js";
 import { Device, Alert, Ping, Partner } from "../db/index.js";
 
@@ -17,7 +17,6 @@ router.get("/overview", authenticate, requireRole("telecom"), async (req: AuthRe
 
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     // Get fraud pattern stats
     const fraudAlerts = await Alert.countDocuments({
@@ -256,3 +255,4 @@ router.get("/geographic", authenticate, requireRole("telecom"), async (req: Auth
 });
 
 export default router;
+

@@ -73,7 +73,7 @@ router.post("/sync/retry", authenticate, async (req: AuthRequest, res: Response,
   }
 });
 
-router.post("/sync/cancel", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/sync/cancel", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     offlineSyncService.cancelSync();
     res.json({ success: true });
@@ -183,7 +183,7 @@ router.get("/storage/statistics", authenticate, async (req: AuthRequest, res: Re
   }
 });
 
-router.post("/storage/clear-expired", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/storage/clear-expired", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const cleared = offlineStorageService.clearExpired();
     res.json({ cleared });
@@ -236,7 +236,7 @@ router.post("/retry-failed", authenticate, async (req: AuthRequest, res: Respons
   }
 });
 
-router.post("/clear-old", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/clear-old", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     offlineManager.clearOldData();
     res.json({ success: true });

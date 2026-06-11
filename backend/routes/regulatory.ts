@@ -196,7 +196,7 @@ router.post("/ceir/remove/:imei", authenticate, requireRole("telecom", "admin", 
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireRole("telecom", "admin", "super_admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireRole("telecom", "admin", "super_admin"), async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getRegulatoryStatistics();
     res.json(stats);
@@ -204,7 +204,7 @@ router.get("/stats", authenticate, requireRole("telecom", "admin", "super_admin"
 });
 
 // ── Block Expiry Check ─────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireRole("telecom", "admin", "super_admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/check-expiry", authenticate, requireRole("telecom", "admin", "super_admin"), async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const expiredCount = await checkBlockExpiry();
     res.json({ message: "Expiry check completed", expiredCount });

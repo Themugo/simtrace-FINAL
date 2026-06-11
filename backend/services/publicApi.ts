@@ -158,8 +158,6 @@ export async function checkApiKeyRateLimit(apiKey: string): Promise<boolean> {
   if (!key) return false;
 
   // Simple rate limiting - in production use Redis
-  const now = new Date();
-  const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
   // This is a simplified check - in production use a proper rate limiter
   // For now, we'll just check if the key is active

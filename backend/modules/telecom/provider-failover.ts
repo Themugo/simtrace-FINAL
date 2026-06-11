@@ -81,8 +81,6 @@ class TelecomProviderManager {
         throw new Error('No healthy providers available');
       }
 
-      const provider = this.providers.get(providerId);
-
       try {
         const result = await this.callProvider(providerId, operation, data);
         this.updateHealth(providerId, true);
@@ -99,7 +97,6 @@ class TelecomProviderManager {
 
   // Call specific provider
   async callProvider(providerId: string, operation: string, data: unknown): Promise<any> {
-    const provider = this.providers.get(providerId);
     
     // In production, this would call actual telecom provider APIs
     // For now, simulate the call
@@ -121,7 +118,7 @@ class TelecomProviderManager {
   // Start health monitoring
   startHealthMonitoring() {
     setInterval(async () => {
-      for (const [providerId, provider] of this.providers.entries()) {
+      for (const [providerId, _provider] of this.providers.entries()) {
         try {
           // Perform health check
           await this.healthCheck(providerId);
@@ -137,7 +134,6 @@ class TelecomProviderManager {
 
   // Health check for provider
   async healthCheck(providerId: string): Promise<void> {
-    const provider = this.providers.get(providerId);
     
     // In production, this would call the provider's health endpoint
     // For now, simulate health check

@@ -224,7 +224,7 @@ export class EnterpriseReportingService {
   /**
    * Generate device summary
    */
-  private generateDeviceSummary(report: Report): any {
+  private generateDeviceSummary(_report: Report): any {
     return {
       summary: {
         totalDevices: Math.floor(Math.random() * 1000) + 100,
@@ -255,7 +255,7 @@ export class EnterpriseReportingService {
   /**
    * Generate usage analytics
    */
-  private generateUsageAnalytics(report: Report): any {
+  private generateUsageAnalytics(_report: Report): any {
     return {
       totalUsers: Math.floor(Math.random() * 500) + 100,
       activeUsers: Math.floor(Math.random() * 400) + 80,
@@ -277,7 +277,7 @@ export class EnterpriseReportingService {
   /**
    * Generate security audit
    */
-  private generateSecurityAudit(report: Report): any {
+  private generateSecurityAudit(_report: Report): any {
     return {
       securityScore: Math.floor(Math.random() * 20) + 80,
       vulnerabilities: {
@@ -302,7 +302,7 @@ export class EnterpriseReportingService {
   /**
    * Generate cost analysis
    */
-  private generateCostAnalysis(report: Report): any {
+  private generateCostAnalysis(_report: Report): any {
     return {
       totalCost: Math.floor(Math.random() * 10000) + 1000,
       costByCategory: {
@@ -323,7 +323,7 @@ export class EnterpriseReportingService {
   /**
    * Generate performance report
    */
-  private generatePerformanceReport(report: Report): any {
+  private generatePerformanceReport(_report: Report): any {
     return {
       uptime: (Math.random() * 0.01 + 0.99).toFixed(4),
       averageResponseTime: Math.floor(Math.random() * 200) + 50,

@@ -6,7 +6,7 @@ import { getRedisClient } from '../services/redis.js';
 // ── Event Subscribers ───────────────────────────────────────────────────────────
 // These functions subscribe to events and perform actions in response
 
-const audit = (a: string, userId?: string, orgId?: string, resourceType?: string, resourceId?: string, details?: Record<string, any>) =>
+const audit = (a: string, userId?: string, _orgId?: string, resourceType?: string, resourceId?: string, details?: Record<string, any>) =>
   createAuditLog({ action: a as any, userId: userId || '', resourceType, resourceId, details: details as any });
 
 // Audit logging subscriber
@@ -67,7 +67,7 @@ on('location.detected', async (event) => {
 
 // SIM change alert subscriber
 on('sim.changed', async (event) => {
-  const { imei, oldSimIccid, newSimIccid } = event.data;
+  const { imei, oldSimIccid: _oldSimIccid, newSimIccid: _newSimIccid } = event.data;
   
   audit('sim_changed', event.userId, event.organizationId, 'device', imei, event.data);
   

@@ -23,6 +23,10 @@ import {
   getEnterpriseStatistics,
 } from "../services/enterprise.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 interface AuthRequest extends Request {
@@ -59,7 +63,7 @@ router.post("/organizations", authenticate, async (req: AuthRequest, res: Respon
 
     res.status(201).json(organization);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -110,7 +114,7 @@ router.post("/organizations/:id/upgrade", authenticate, requireOrgAdmin("id"), a
 
     res.json(organization);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -134,7 +138,7 @@ router.post("/organizations/:id/members", authenticate, requireOrgAdmin("id"), a
 
     res.status(201).json(member);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -160,7 +164,7 @@ router.patch("/organizations/:id/members/:userId", authenticate, requireOrgAdmin
 
     res.json(member);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -201,7 +205,7 @@ router.post("/fleets", authenticate, async (req: AuthRequest, res: Response, nex
 
     res.status(201).json(fleet);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -239,7 +243,7 @@ router.post("/fleets/:id/devices", authenticate, async (req: AuthRequest, res: R
 
     res.json(fleet);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -269,7 +273,7 @@ router.get("/fleets/:id/analytics", authenticate, async (req: AuthRequest, res: 
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getEnterpriseStatistics();
     res.json(stats);

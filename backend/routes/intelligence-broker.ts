@@ -16,6 +16,10 @@ import {
   STAKEHOLDER_ROLE_MAP
 } from "../middleware/intelligence-rbac.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 type AuthRequest = Request & {
@@ -72,7 +76,7 @@ router.post("/analyze", authenticate, async (req: AuthRequest, res: Response, ne
 
     return res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -136,7 +140,7 @@ router.post("/device-intelligence", authenticate, canPerformOperation("device_in
 
     return res.json(result.data);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -167,7 +171,7 @@ router.post("/risk-scoring", authenticate, canPerformOperation("risk_scoring", "
 
     return res.json(result.data);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -198,7 +202,7 @@ router.post("/fraud-detection", authenticate, canPerformOperation("fraud_detecti
 
     return res.json(result.data);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -233,7 +237,7 @@ router.post("/recovery-alert", authenticate, canPerformOperation("recovery_alert
 
     return res.json(result.data);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -260,7 +264,7 @@ router.post("/recovery-actions/:imei", authenticate, canPerformOperation("recove
 
     return res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });

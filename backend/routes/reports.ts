@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { z } from "zod";
+import { } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { Device, User, Partner, TheftReport, Alert, Subscription } from "../db/index.js";
 
@@ -14,7 +14,7 @@ interface AuthRequest extends Request {
 }
 
 // ── GET /api/reports/stats — Get real statistics for reports tab ─────────────────────
-router.get("/stats", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const [
       totalDevices,
@@ -82,7 +82,7 @@ router.get("/stats", authenticate, async (req: AuthRequest, res: Response, next:
 });
 
 // ── GET /api/reports/devices — Get device statistics breakdown ───────────────────────
-router.get("/devices", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/devices", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const devicesByStatus = await Device.aggregate([
       { $group: { _id: "$status", count: { $sum: 1 } } },
@@ -110,7 +110,7 @@ router.get("/devices", authenticate, async (req: AuthRequest, res: Response, nex
 });
 
 // ── GET /api/reports/theft — Get theft report statistics ─────────────────────────────
-router.get("/theft", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/theft", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const theftReportsByStatus = await TheftReport.aggregate([
       { $group: { _id: "$status", count: { $sum: 1 } } },
@@ -137,7 +137,7 @@ router.get("/theft", authenticate, async (req: AuthRequest, res: Response, next:
 });
 
 // ── GET /api/reports/partners — Get partner statistics ───────────────────────────────
-router.get("/partners", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/partners", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const partnersByType = await Partner.aggregate([
       { $group: { _id: "$orgType", count: { $sum: 1 } } },
@@ -164,7 +164,7 @@ router.get("/partners", authenticate, async (req: AuthRequest, res: Response, ne
 });
 
 // ── GET /api/reports/alerts — Get alert statistics ───────────────────────────────────
-router.get("/alerts", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/alerts", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const alertsByType = await Alert.aggregate([
       { $group: { _id: "$type", count: { $sum: 1 } } },
@@ -187,10 +187,11 @@ router.get("/alerts", authenticate, async (req: AuthRequest, res: Response, next
 });
 
 // ── GET /api/reports/admin/summary — Admin: Get comprehensive report summary ─────────
-router.get("/admin/summary", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/admin/summary", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     res.json({ message: "Summary endpoint" });
   } catch (err) { next(err); }
 });
 
 export default router;
+

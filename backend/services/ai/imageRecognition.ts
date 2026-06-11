@@ -199,7 +199,7 @@ class ImageRecognitionService {
     return Math.max(0, similarity);
   }
 
-  public async detectDeviceType(imageData: Buffer): Promise<{ type: string; confidence: number }> {
+  public async detectDeviceType(_imageData: Buffer): Promise<{ type: string; confidence: number }> {
     // In production, use a trained classifier
     // For now, return a placeholder
     return {
@@ -208,7 +208,7 @@ class ImageRecognitionService {
     };
   }
 
-  public async detectDeviceBrand(imageData: Buffer): Promise<{ brand: string; confidence: number }> {
+  public async detectDeviceBrand(_imageData: Buffer): Promise<{ brand: string; confidence: number }> {
     // In production, use a trained classifier
     // For now, return a placeholder
     return {

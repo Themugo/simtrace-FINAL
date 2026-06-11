@@ -96,7 +96,7 @@ router.get("/history/:deviceId", authenticate, async (req: Request, res: Respons
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getCellTowerStatistics();
     res.json(stats);

@@ -9,7 +9,7 @@ import {
   suspendInstance,
   terminateInstance,
   regenerateApiKey,
-  validateApiKey,
+  
   updateInstanceMetrics,
   getWhiteLabelInstance,
   getInstancesByOwner,
@@ -228,7 +228,7 @@ router.post("/instances/:templateId/clone", authenticate, async (req: AuthReques
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getWhiteLabelStatistics();
     res.json(stats);
@@ -236,3 +236,4 @@ router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: R
 });
 
 export default router;
+

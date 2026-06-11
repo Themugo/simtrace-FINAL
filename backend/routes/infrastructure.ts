@@ -5,8 +5,13 @@ import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { satelliteCommunicationService } from "../services/infrastructure/satelliteCommunication.js";
 import { multiRegionDataService } from "../services/infrastructure/multiRegionData.js";
 import { globalLawEnforcementService } from "../services/infrastructure/globalLawEnforcement.js";
+import type { LawEnforcementAgency } from "../services/infrastructure/globalLawEnforcement.js";
 
 const router = Router();
+
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
 
 type AuthRequest = Request & {
   user?: {
@@ -29,7 +34,7 @@ router.post("/satellite/register", authenticate, async (req: AuthRequest, res: R
     const device = satelliteCommunicationService.registerDevice(deviceId, imei, networkId);
     res.json({ device });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -52,7 +57,7 @@ router.post("/satellite/send", authenticate, async (req: AuthRequest, res: Respo
     const message = await satelliteCommunicationService.sendMessage(deviceId, userId, messageType, payload, priority);
     res.json({ message });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -95,12 +100,12 @@ router.put("/satellite/device/:deviceId/signal", authenticate, async (req: AuthR
     satelliteCommunicationService.updateDeviceSignal(deviceId as string, signalStrength, batteryLevel);
     res.json({ success: true });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
-router.get("/satellite/networks", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/satellite/networks", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const networks = satelliteCommunicationService.getAvailableNetworks();
     res.json({ networks });
@@ -109,7 +114,7 @@ router.get("/satellite/networks", authenticate, async (req: AuthRequest, res: Re
   }
 });
 
-router.get("/satellite/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/satellite/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = satelliteCommunicationService.getStatistics();
     res.json({ statistics });
@@ -138,7 +143,7 @@ router.post("/data-residency/rules", authenticate, async (req: AuthRequest, res:
     const rule = multiRegionDataService.setResidencyRule(userId, entityType, requiredRegion, deviceId, ttl);
     res.json({ rule });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -190,7 +195,7 @@ router.post("/data-residency/store", authenticate, async (req: AuthRequest, res:
     const result = multiRegionDataService.storeData(dataId, userId, entityType, data, deviceId);
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -222,7 +227,7 @@ router.post("/data-residency/transfer", authenticate, async (req: AuthRequest, r
     const transfer = await multiRegionDataService.initiateTransfer(dataId, destinationRegion, transferType);
     res.json({ transfer });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -242,7 +247,7 @@ router.get("/data-residency/transfer/:transferId", authenticate, async (req: Aut
   }
 });
 
-router.get("/data-residency/regions", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/data-residency/regions", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const regions = multiRegionDataService.getActiveRegions();
     res.json({ regions });
@@ -251,7 +256,7 @@ router.get("/data-residency/regions", authenticate, async (req: AuthRequest, res
   }
 });
 
-router.get("/data-residency/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/data-residency/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const distribution = multiRegionDataService.getDataDistribution();
     const transferStats = multiRegionDataService.getTransferStatistics();
@@ -279,10 +284,10 @@ router.post("/law-enforcement/register", authenticate, requireAdmin, async (req:
     });
     const data = schema.parse(req.body);
 
-    const agency = globalLawEnforcementService.registerAgency(data as any);
+    const agency = globalLawEnforcementService.registerAgency(data as unknown as Omit<LawEnforcementAgency, 'agencyId'>);
     res.json({ agency });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -311,7 +316,7 @@ router.post("/law-enforcement/request", authenticate, async (req: AuthRequest, r
     );
     res.json({ request });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -365,7 +370,7 @@ router.post("/law-enforcement/request/:requestId/reject", authenticate, requireA
 
     res.json({ success });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -388,12 +393,12 @@ router.post("/law-enforcement/response", authenticate, async (req: AuthRequest, 
     );
     res.json({ response });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
-router.get("/law-enforcement/agencies", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/law-enforcement/agencies", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const agencies = globalLawEnforcementService.getActiveAgencies();
     res.json({ agencies });
@@ -402,7 +407,7 @@ router.get("/law-enforcement/agencies", authenticate, async (req: AuthRequest, r
   }
 });
 
-router.get("/law-enforcement/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/law-enforcement/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = globalLawEnforcementService.getStatistics();
     res.json({ statistics });

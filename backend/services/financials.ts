@@ -1,7 +1,7 @@
 // services/financials.ts - Financial Projections & Revenue Tracking
 // Business analytics and financial forecasting
 
-import { FinancialProjection, User, Device, Subscription, Payment, AdCampaign, AdEvent } from "../db/index.js";
+import { FinancialProjection, User, Device, Payment, AdEvent } from "../db/index.js";
 
 interface ProjectionMetrics {
   totalUsers: number; newUsers: number; churnedUsers: number;
@@ -224,7 +224,7 @@ export async function calculateUserMetrics(startDate: Date, endDate: Date) {
 }
 
 // ── Cost Estimation ───────────────────────────────────────────────────────────
-export async function estimateCosts(period: string) {
+export async function estimateCosts(_period: string) {
   // Simplified cost estimation based on user count
   const totalUsers = await User.countDocuments();
   

@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import crypto from "crypto";
-import { authenticate, requireAdmin, requireRole } from "../middleware/auth.js";
-import { Partner, User } from "../db/index.js";
+import { authenticate } from "../middleware/auth.js";
+import { Partner } from "../db/index.js";
 import { generateApiKey, bulkImeiCheck, getPartnerStats, validatePartnerKey } from "../services/partner.js";
 
 const router = Router();

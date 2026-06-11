@@ -147,48 +147,6 @@ class AnomalyDetectionService {
     return Math.min(zScore / 3, 1);
   }
 
-  private extractUsageFeatures(data: DeviceBehaviorData): number[] {
-    // Extract 10 features from app usage
-    const features = new Array(10).fill(0);
-    
-    // Top 5 apps by duration
-    const sortedApps = [...data.appUsage].sort((a, b) => b.duration - a.duration);
-    for (let i = 0; i < Math.min(5, sortedApps.length); i++) {
-      features[i] = sortedApps[i].duration / data.screenTime;
-    }
-
-    // Total screen time normalized
-    features[5] = data.screenTime / 1440; // minutes per day
-
-    // Number of apps used
-    features[6] = data.appUsage.length / 50;
-
-    // Data usage normalized
-    features[7] = data.dataUsage / 1024; // MB
-
-    // App diversity (entropy-like measure)
-    const totalDuration = data.appUsage.reduce((sum, app) => sum + app.duration, 0);
-    const entropy = data.appUsage.reduce((sum, app) => {
-      const p = app.duration / totalDuration;
-      return sum - p * Math.log(p);
-    }, 0);
-    features[8] = entropy / 5;
-
-    // Peak usage time (hour of day)
-    features[9] = (new Date(data.timestamp).getHours()) / 24;
-
-    return features;
-  }
-
-  private extractNetworkFeatures(data: DeviceBehaviorData): number[] {
-    // Extract 3 network features
-    return [
-      data.networkType === 'wifi' ? 1 : 0,
-      data.dataUsage / 1024, // MB
-      data.appUsage.length / 50
-    ];
-  }
-
   public getBehaviorHistory(deviceId: string): DeviceBehaviorData[] {
     return this.behaviorHistory.get(deviceId) || [];
   }

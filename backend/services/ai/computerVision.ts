@@ -75,7 +75,7 @@ export class ComputerVisionService {
   /**
    * Extract features from device image
    */
-  private extractFeatures(imageData: string, deviceId: string): DeviceFeatures {
+  private extractFeatures(imageData: string, _deviceId: string): DeviceFeatures {
     // Simulate feature extraction using image hash
     const hash = crypto.createHash('sha256').update(imageData).digest('hex');
     

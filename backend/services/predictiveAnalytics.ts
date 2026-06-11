@@ -212,7 +212,7 @@ function getRiskLevel(riskScore: number): string {
   return "low";
 }
 
-function predictEvent(riskScore: number, factors: RiskFactor[]): { event: string; confidence: number } {
+function predictEvent(riskScore: number, _factors: RiskFactor[]): { event: string; confidence: number } {
   if (riskScore >= 75) {
     return { event: "theft", confidence: 0.8 };
   }

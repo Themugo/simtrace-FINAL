@@ -21,7 +21,7 @@ import {
   updatePolicyRule,
   enablePolicyRule,
   disablePolicyRule,
-  getEffectiveConfig,
+  
   checkRateLimit,
   checkIPAccess,
   checkTimeBasedAccess,
@@ -32,6 +32,10 @@ import {
   mapFields,
   getConfigurationStatistics,
 } from "../services/configurationManagement.js";
+
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
 
 const router = Router();
 
@@ -196,10 +200,10 @@ router.post("/agency", authenticate, requireAdmin, async (req: AuthRequest, res:
     });
 
     const data = schema.parse(req.body);
-    const config = await createAgencyConfig({ ...data, createdBy: req.user!.id } as any);
+    const config = await createAgencyConfig({ ...data, createdBy: req.user!.id } as Parameters<typeof createAgencyConfig>[0]);
     res.status(201).json(config);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -254,7 +258,7 @@ router.post("/validate-api-key", async (req: Request, res: Response, next: NextF
     const result = await validateApiKey(data.apiKey);
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -288,7 +292,7 @@ router.post("/country", authenticate, requireAdmin, async (req: AuthRequest, res
     const config = await createCountryConfig({ ...data, createdBy: req.user!.id });
     res.status(201).json(config);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -301,7 +305,7 @@ router.get("/country/:countryCode", authenticate, async (req: AuthRequest, res: 
   } catch (err) { next(err); }
 });
 
-router.get("/countries", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/countries", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const configs = await getAllCountryConfigs();
     res.json({ configs, count: configs.length });
@@ -338,10 +342,10 @@ router.post("/policies", authenticate, requireAdmin, async (req: AuthRequest, re
     });
 
     const data = schema.parse(req.body);
-    const rule = await createPolicyRule({ ...data, createdBy: req.user!.id } as any);
+    const rule = await createPolicyRule({ ...data, createdBy: req.user!.id } as unknown as Parameters<typeof createPolicyRule>[0]);
     res.status(201).json(rule);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -370,7 +374,7 @@ router.get("/policies/scope", authenticate, async (req: AuthRequest, res: Respon
     const rules = await getPolicyRulesByScope(scope);
     res.json({ rules, count: rules.length });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -386,7 +390,7 @@ router.post("/policies/evaluate", authenticate, async (req: AuthRequest, res: Re
     const result = await evaluatePolicy(data.context, data.eventType);
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -428,7 +432,7 @@ router.post("/security/check-rate-limit", authenticate, async (req: AuthRequest,
     const result = await checkRateLimit(String(data.agencyId), String(data.endpoint), String(data.userIp));
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -444,7 +448,7 @@ router.post("/security/check-ip-access", authenticate, async (req: AuthRequest, 
     const result = await checkIPAccess(data.agencyId, data.userIp);
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -459,7 +463,7 @@ router.post("/security/check-time-access", authenticate, async (req: AuthRequest
     const result = await checkTimeBasedAccess(data.agencyId);
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -475,7 +479,7 @@ router.post("/security/validate-password", authenticate, async (req: AuthRequest
     const result = await validatePassword(String(data.password), String(data.agencyId));
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -491,7 +495,7 @@ router.post("/security/mask-data", authenticate, async (req: AuthRequest, res: R
     const masked = await maskData(data.data, data.agencyId);
     res.json({ masked });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -516,7 +520,7 @@ router.post("/integration/map-fields", authenticate, async (req: AuthRequest, re
     const mapped = await mapFields(data.data, data.mapping);
     res.json({ mapped });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -533,13 +537,13 @@ router.post("/webhooks/trigger", authenticate, async (req: AuthRequest, res: Res
     await triggerWebhooks(data.agencyId, data.event, data.payload);
     res.json({ success: true });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getConfigurationStatistics();
     res.json(stats);
@@ -547,3 +551,4 @@ router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: R
 });
 
 export default router;
+

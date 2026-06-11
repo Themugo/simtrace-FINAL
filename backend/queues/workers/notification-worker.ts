@@ -2,7 +2,6 @@
 // Handles email, SMS, and push notifications
 
 import { Worker, Job } from 'bullmq';
-import { queues, JobTypes } from '../index.js';
 
 const notificationWorker = new Worker(
   'notification',

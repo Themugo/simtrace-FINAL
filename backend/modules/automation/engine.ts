@@ -48,7 +48,6 @@ export interface WorkflowStep {
 class AutomationEngine {
   private rules: Map<string, Rule> = new Map();
   private workflows: Map<string, Workflow> = new Map();
-  private running = false;
 
   constructor() {
     this.setupDefaultRules();
@@ -401,13 +400,13 @@ class AutomationEngine {
   }
 
   // Start engine
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   start(): void {
-    this.running = true;
   }
 
   // Stop engine
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   stop(): void {
-    this.running = false;
   }
 }
 

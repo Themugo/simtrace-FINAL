@@ -103,14 +103,14 @@ router.get("/user/:userId", authenticate, requireSelfOrAdmin("userId"), async (r
   } catch (err) { next(err); }
 });
 
-router.get("/pending", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/pending", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const captures = await getPendingCaptures();
     res.json({ captures, count: captures.length });
   } catch (err) { next(err); }
 });
 
-router.get("/thieves", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/thieves", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const captures = await getThiefCaptures();
     res.json({ captures, count: captures.length });
@@ -195,14 +195,14 @@ router.get("/reports/user/:userId", authenticate, requireSelfOrAdmin("userId"), 
   } catch (err) { next(err); }
 });
 
-router.get("/reports/pending", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/reports/pending", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const reports = await getPendingThiefReports();
     res.json({ reports, count: reports.length });
   } catch (err) { next(err); }
 });
 
-router.get("/reports/investigating", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/reports/investigating", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const reports = await getInvestigatingThiefReports();
     res.json({ reports, count: reports.length });

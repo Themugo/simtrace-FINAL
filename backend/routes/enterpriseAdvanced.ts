@@ -32,7 +32,7 @@ router.post("/tenants", authenticate, requireAdmin, async (req: Request & { user
   }
 });
 
-router.get("/tenants", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
+router.get("/tenants", authenticate, requireAdmin, async (_req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const tenants = multiTenantService.getAllTenants();
     res.json({ tenants });
@@ -136,7 +136,7 @@ router.get("/tenants/:tenantId/quota", authenticate, requireAdmin, async (req: R
   }
 });
 
-router.get("/tenants/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
+router.get("/tenants/statistics", authenticate, requireAdmin, async (_req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = multiTenantService.getStatistics();
     res.json({ statistics });
@@ -262,7 +262,7 @@ router.post("/sso/oauth2/:providerId/token", async (req: Request, res: Response,
   }
 });
 
-router.get("/sso/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
+router.get("/sso/statistics", authenticate, requireAdmin, async (_req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = ssoIntegrationService.getStatistics();
     res.json({ statistics });
@@ -365,7 +365,7 @@ router.delete("/rbac/assign/:userId/:tenantId", authenticate, requireAdmin, asyn
   }
 });
 
-router.get("/rbac/permissions", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/rbac/permissions", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const permissions = rbacService.getAllPermissions();
     res.json({ permissions });
@@ -384,7 +384,7 @@ router.get("/rbac/check/:userId/:tenantId/:permissionId", authenticate, async (r
   }
 });
 
-router.get("/rbac/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
+router.get("/rbac/statistics", authenticate, requireAdmin, async (_req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = rbacService.getStatistics();
     res.json({ statistics });
@@ -497,7 +497,7 @@ router.post("/rate-limits/reset/:tenantId", authenticate, requireAdmin, async (r
   }
 });
 
-router.get("/rate-limits/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
+router.get("/rate-limits/statistics", authenticate, requireAdmin, async (_req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = apiRateLimitingService.getStatistics();
     res.json({ statistics });
@@ -636,7 +636,7 @@ router.get("/reports/templates/:tenantId", authenticate, async (req: Request & {
   }
 });
 
-router.get("/reports/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
+router.get("/reports/statistics", authenticate, requireAdmin, async (_req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = enterpriseReportingService.getStatistics();
     res.json({ statistics });
@@ -812,7 +812,7 @@ router.get("/white-label/themes/:themeId/css", authenticate, async (req: Request
   }
 });
 
-router.get("/white-label/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
+router.get("/white-label/statistics", authenticate, requireAdmin, async (_req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = whiteLabelService.getStatistics();
     res.json({ statistics });
@@ -979,7 +979,7 @@ router.post("/sla/:slaId/report", authenticate, async (req: Request & { user?: {
   }
 });
 
-router.get("/sla/statistics", authenticate, requireAdmin, async (req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
+router.get("/sla/statistics", authenticate, requireAdmin, async (_req: Request & { user?: { id: string; role: string } }, res: Response, next: NextFunction) => {
   try {
     const statistics = slaMonitoringService.getStatistics();
     res.json({ statistics });

@@ -8,6 +8,10 @@ import { smartContractBountyService } from "../services/networkEffects/smartCont
 import { socialNetworkAnalysisService } from "../services/networkEffects/socialNetworkAnalysis.js";
 import { droneIntegrationService } from "../services/networkEffects/droneIntegration.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 interface AuthRequest extends Request {
@@ -57,7 +61,7 @@ router.post("/crowd/sighting", authenticate, async (req: AuthRequest, res: Respo
     const sighting = crowdSourcedTrackingService.submitSighting(deviceId, imei, reporterId, location, photo, notes);
     res.json({ sighting });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -78,7 +82,7 @@ router.post("/crowd/sighting/:sightingId/verify", authenticate, requireAdmin, as
 
     res.json({ success });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -101,7 +105,7 @@ router.post("/crowd/campaign", authenticate, async (req: AuthRequest, res: Respo
     const campaign = crowdSourcedTrackingService.createCampaign(deviceId, imei, ownerId, rewardAmount, ttl);
     res.json({ campaign });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -137,7 +141,7 @@ router.get("/crowd/leaderboard", authenticate, async (req: AuthRequest, res: Res
   }
 });
 
-router.get("/crowd/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/crowd/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = crowdSourcedTrackingService.getStatistics();
     res.json({ statistics });
@@ -166,7 +170,7 @@ router.post("/insurance/provider", authenticate, requireAdmin, async (req: AuthR
     const provider = insuranceIntegrationService.registerProvider(data);
     res.json({ provider });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -203,7 +207,7 @@ router.post("/insurance/policy", authenticate, async (req: AuthRequest, res: Res
     );
     res.json({ policy });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -232,7 +236,7 @@ router.post("/insurance/claim", authenticate, async (req: AuthRequest, res: Resp
     );
     res.json({ claim });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -275,7 +279,7 @@ router.get("/insurance/claims", authenticate, async (req: AuthRequest, res: Resp
   }
 });
 
-router.get("/insurance/providers", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/insurance/providers", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const providers = insuranceIntegrationService.getActiveProviders();
     res.json({ providers });
@@ -284,7 +288,7 @@ router.get("/insurance/providers", authenticate, async (req: AuthRequest, res: R
   }
 });
 
-router.get("/insurance/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/insurance/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = insuranceIntegrationService.getStatistics();
     res.json({ statistics });
@@ -323,7 +327,7 @@ router.post("/bounty/contract", authenticate, async (req: AuthRequest, res: Resp
     );
     res.json({ contract });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -353,7 +357,7 @@ router.post("/bounty/claim", authenticate, async (req: AuthRequest, res: Respons
     );
     res.json({ claim });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -374,7 +378,7 @@ router.post("/bounty/claim/:claimId/verify", authenticate, requireAdmin, async (
 
     res.json({ success });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -393,7 +397,7 @@ router.get("/bounty/contracts", authenticate, async (req: AuthRequest, res: Resp
   }
 });
 
-router.get("/bounty/active", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/bounty/active", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const contracts = smartContractBountyService.getActiveContracts();
     res.json({ contracts });
@@ -402,7 +406,7 @@ router.get("/bounty/active", authenticate, async (req: AuthRequest, res: Respons
   }
 });
 
-router.get("/bounty/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/bounty/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = smartContractBountyService.getStatistics();
     res.json({ statistics });
@@ -425,7 +429,7 @@ router.post("/sna/node", authenticate, async (req: AuthRequest, res: Response, n
     const node = socialNetworkAnalysisService.addNode(type, data, riskScore);
     res.json({ node });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -443,12 +447,12 @@ router.post("/sna/edge", authenticate, async (req: AuthRequest, res: Response, n
     const edge = socialNetworkAnalysisService.addEdge(sourceId, targetId, edgeType, weight);
     res.json({ edge });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
-router.post("/sna/analyze", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/sna/analyze", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const patterns = socialNetworkAnalysisService.analyzePatterns();
     res.json({ patterns });
@@ -477,7 +481,7 @@ router.get("/sna/node/:nodeId/patterns", authenticate, async (req: AuthRequest, 
   }
 });
 
-router.get("/sna/clusters", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/sna/clusters", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const clusters = socialNetworkAnalysisService.detectClusters();
     res.json({ clusters });
@@ -486,7 +490,7 @@ router.get("/sna/clusters", authenticate, requireAdmin, async (req: AuthRequest,
   }
 });
 
-router.get("/sna/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/sna/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = socialNetworkAnalysisService.getStatistics();
     res.json({ statistics });
@@ -516,7 +520,7 @@ router.post("/drone/register", authenticate, async (req: AuthRequest, res: Respo
     const drone = droneIntegrationService.registerDrone(name, model, operatorId, capabilities, maxRange, maxFlightTime);
     res.json({ drone });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -537,7 +541,7 @@ router.post("/drone/mission", authenticate, async (req: AuthRequest, res: Respon
     const mission = droneIntegrationService.createMission(deviceId, targetLocation, missionType, priority);
     res.json({ mission });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -574,7 +578,7 @@ router.post("/drone/mission/:missionId/complete", authenticate, async (req: Auth
 
     res.json({ success });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -636,7 +640,7 @@ router.get("/drone/drones", authenticate, async (req: AuthRequest, res: Response
   }
 });
 
-router.get("/drone/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/drone/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = droneIntegrationService.getStatistics();
     res.json({ statistics });

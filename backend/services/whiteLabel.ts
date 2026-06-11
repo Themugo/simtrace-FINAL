@@ -2,7 +2,7 @@
 // Multi-tenant white-label instances for partners
 
 import crypto from "crypto";
-import { WhiteLabelInstance, User, Partner, Device, Subscription } from "../db/index.js";
+import { WhiteLabelInstance, User, Partner, Subscription } from "../db/index.js";
 
 interface WhiteLabelDoc {
   instanceId: string;
@@ -54,7 +54,7 @@ export async function createWhiteLabelInstance(data: Record<string, unknown>) {
   const user = await User.findById(owner);
   if (!user) throw new Error("User not found");
 
-  const partnerOrg = partner ? await Partner.findById(partner) : null;
+  if (partner) { await Partner.findById(partner); }
 
   const instanceId = generateInstanceId();
   const apiKey = generateApiKey();
@@ -167,7 +167,7 @@ export async function activateInstance(instanceId: string) {
   return instance;
 }
 
-export async function suspendInstance(instanceId: string, reason: string) {
+export async function suspendInstance(instanceId: string, _reason: string) {
   const instance = await WhiteLabelInstance.findOne({ instanceId });
   if (!instance) throw new Error("White label instance not found");
 

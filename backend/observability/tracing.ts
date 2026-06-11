@@ -14,7 +14,7 @@ if (process.env.ENABLE_OTEL_SDK === 'true' && !process.env.SENTRY_DSN) {
 // Export tracer for manual instrumentation. Falls back to a no-op when no SDK is
 // running (the common case — Sentry handles tracing in production).
 export const tracer = (sdk as any)?.tracerProvider?.getTracer('simtrace-backend') || {
-  startSpan: (name: string, options?: any) => ({
+  startSpan: (_name: string, _options?: any) => ({
     setAttribute: () => {},
     setStatus: () => {},
     recordException: () => {},

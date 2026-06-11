@@ -301,7 +301,7 @@ class DigitalTwinManager {
     for (const loc of locations) {
       let foundCluster = false;
 
-      for (const [key, cluster] of clusters) {
+      for (const [_key, cluster] of clusters) {
         const distance = this.haversineDistance(
           cluster.center.lat,
           cluster.center.lng,
@@ -351,7 +351,7 @@ class DigitalTwinManager {
   }
 
   // Generate location name
-  private generateLocationName(cluster: LocationCluster, type: string): string {
+  private generateLocationName(_cluster: LocationCluster, type: string): string {
     const typeNames = {
       home: 'Home',
       work: 'Work',
@@ -467,7 +467,7 @@ class DigitalTwinManager {
     return (avgConfidence + (1 - locationDiversity)) / 2;
   }
 
-  private async countAnomalies(imei: string, locations: DeviceLocationDoc[]): Promise<number> {
+  private async countAnomalies(imei: string, _locations: DeviceLocationDoc[]): Promise<number> {
     // Count events flagged as anomalies
     const events = await TrackingEvent.find({ imei, anomaly: true });
     return events.length;
@@ -475,7 +475,7 @@ class DigitalTwinManager {
 
   // Calculate recovery likelihood
   private async calculateRecoveryLikelihood(
-    imei: string,
+    _imei: string,
     riskHistory: RiskHistoryEntry[],
     behaviorProfile: BehaviorProfile
   ): Promise<number> {

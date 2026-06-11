@@ -4,6 +4,20 @@
 import { RegulatoryBlock, Device } from "../db/index.js";
 import { getIO } from "./socket.js";
 
+interface IRegulatoryBlockDoc {
+  status: string;
+  imei: string;
+  syncedWith: Array<Record<string, unknown>>;
+  authority: string;
+  appealStatus: string;
+  appealDate: Date;
+  appealNotes: string;
+  blockType: string;
+  blockReason: string;
+  blockReference: string;
+  blockedAt: Date;
+}
+
 // ── Block Management ─────────────────────────────────────────────────────────────
 export async function createRegulatoryBlock(data: Record<string, unknown>) {
   const imei = data.imei as string;
@@ -85,7 +99,7 @@ export async function updateBlockStatus(blockId: string, status: string) {
   const block = await RegulatoryBlock.findById(blockId);
   if (!block) throw new Error("Block not found");
 
-  (block as any).status = status;
+  (block as IRegulatoryBlockDoc).status = status;
   block.updatedAt = new Date();
   await block.save();
 
@@ -93,7 +107,7 @@ export async function updateBlockStatus(blockId: string, status: string) {
   getIO().emit("regulatory_block_updated", {
     blockId,
     status,
-    imei: (block as any).imei,
+    imei: (block as IRegulatoryBlockDoc).imei,
   });
 
   return block;
@@ -111,7 +125,7 @@ async function syncWithAuthority(blockId: string, authority: string) {
     status: "success",
   };
 
-  (block as any).syncedWith.push(syncResult);
+  (block as IRegulatoryBlockDoc).syncedWith.push(syncResult);
   await block.save();
 
   return syncResult;
@@ -135,7 +149,7 @@ export async function syncWithNationalRegulator(country: string, imei: string) {
   });
   
   for (const block of blocks) {
-    await syncWithAuthority(block._id.toString(), (block as any).authority);
+    await syncWithAuthority(block._id.toString(), (block as IRegulatoryBlockDoc).authority);
   }
 
   return { synced: blocks.length };
@@ -146,20 +160,20 @@ export async function submitAppeal(blockId: string, appealNotes: string) {
   const block = await RegulatoryBlock.findById(blockId);
   if (!block) throw new Error("Block not found");
 
-  if ((block as any).status !== "active") {
+  if ((block as IRegulatoryBlockDoc).status !== "active") {
     throw new Error("Can only appeal active blocks");
   }
 
-  (block as any).appealStatus = "submitted";
-  (block as any).appealDate = new Date();
-  (block as any).appealNotes = appealNotes;
+  (block as IRegulatoryBlockDoc).appealStatus = "submitted";
+  (block as IRegulatoryBlockDoc).appealDate = new Date();
+  (block as IRegulatoryBlockDoc).appealNotes = appealNotes;
   block.updatedAt = new Date();
   await block.save();
 
   // Notify via socket
   getIO().emit("regulatory_appeal_submitted", {
     blockId,
-    imei: (block as any).imei,
+    imei: (block as IRegulatoryBlockDoc).imei,
   });
 
   return block;
@@ -169,11 +183,11 @@ export async function updateAppealStatus(blockId: string, appealStatus: string) 
   const block = await RegulatoryBlock.findById(blockId);
   if (!block) throw new Error("Block not found");
 
-  (block as any).appealStatus = appealStatus;
+  (block as IRegulatoryBlockDoc).appealStatus = appealStatus;
   block.updatedAt = new Date();
 
   if (appealStatus === "approved") {
-    (block as any).status = "lifted";
+    (block as IRegulatoryBlockDoc).status = "lifted";
   }
 
   await block.save();
@@ -261,10 +275,10 @@ export async function checkCeirStatus(imei: string) {
   return {
     imei,
     blocked: !!block,
-    blockType: (block as any)?.blockType || null,
-    blockReason: (block as any)?.blockReason || null,
-    blockReference: (block as any)?.blockReference || null,
-    blockedAt: (block as any)?.blockedAt || null,
+    blockType: (block as IRegulatoryBlockDoc | null)?.blockType || null,
+    blockReason: (block as IRegulatoryBlockDoc | null)?.blockReason || null,
+    blockReference: (block as IRegulatoryBlockDoc | null)?.blockReference || null,
+    blockedAt: (block as IRegulatoryBlockDoc | null)?.blockedAt || null,
   };
 }
 

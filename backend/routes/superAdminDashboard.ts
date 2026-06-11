@@ -130,7 +130,7 @@ router.delete("/:dashboardId", authenticate, async (req: Request, res: Response,
   } catch (err) { next(err); }
 });
 
-router.get("/", authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/", authenticate, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const dashboards = await getAllSuperAdminDashboards();
     res.json({ dashboards, count: dashboards.length });

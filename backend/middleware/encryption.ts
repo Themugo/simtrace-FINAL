@@ -6,7 +6,7 @@ import { encrypt, decrypt, encryptObject, decryptObject } from '../services/encr
  * Encrypt sensitive fields in request body before saving
  */
 export function encryptRequestBody(fields: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     if (req.body && typeof req.body === 'object') {
       try {
         req.body = encryptObject(req.body, fields as any);
@@ -22,7 +22,7 @@ export function encryptRequestBody(fields: string[]) {
  * Decrypt sensitive fields in response before sending
  */
 export function decryptResponse(fields: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (_req: Request, res: Response, next: NextFunction) => {
     const originalJson = res.json.bind(res);
     res.json = (data: unknown) => {
       if (data && typeof data === 'object') {
@@ -42,7 +42,7 @@ export function decryptResponse(fields: string[]) {
  * Encrypt specific field in request
  */
 export function encryptField(fieldName: string) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     if (req.body && req.body[fieldName]) {
       try {
         req.body[fieldName] = encrypt(req.body[fieldName]);
@@ -58,7 +58,7 @@ export function encryptField(fieldName: string) {
  * Decrypt specific field in response
  */
 export function decryptField(fieldName: string) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (_req: Request, res: Response, next: NextFunction) => {
     const originalJson = res.json.bind(res);
     res.json = (data: unknown) => {
       if (data && typeof data === 'object' && data !== null && fieldName in data) {

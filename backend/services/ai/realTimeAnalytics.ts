@@ -276,7 +276,7 @@ export class RealTimeAnalyticsService {
    * Check alert rules
    */
   private checkAlertRules(metric: AnalyticsMetric): void {
-    for (const [ruleId, rule] of this.alertRules.entries()) {
+    for (const [_ruleId, rule] of this.alertRules.entries()) {
       if (!rule.enabled || rule.metricName !== metric.name) {
         continue;
       }
@@ -311,8 +311,7 @@ export class RealTimeAnalyticsService {
     const alertId = crypto.randomBytes(16).toString('hex');
 
     const alert = {
-      alertId,
-      ruleId: rule.ruleId,
+      alertId: rule.ruleId,
       metric,
       severity: rule.severity,
       timestamp: Date.now(),
@@ -487,3 +486,4 @@ export class RealTimeAnalyticsService {
 }
 
 export const realTimeAnalyticsService = new RealTimeAnalyticsService();
+

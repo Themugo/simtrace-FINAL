@@ -16,7 +16,7 @@ interface AuthRequest extends Request {
 
 // ── Languages ────────────────────────────────────────────────────────────────────
 
-router.get("/languages", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/languages", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const languages = multiLanguageService.getLanguages();
     res.json({ languages });
@@ -239,7 +239,7 @@ router.get("/preferences/translations", authenticate, async (req: AuthRequest, r
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
 
-router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = multiLanguageService.getStatistics();
     res.json({ statistics });

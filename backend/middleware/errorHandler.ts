@@ -8,7 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 // Generate unique request ID for tracking
 export const generateRequestId = (): string => crypto.randomUUID();
 
-export const errorHandler = (err: unknown, req: Request & { id?: string; user?: Record<string, unknown> }, res: Response, next: NextFunction) => {
+export const errorHandler = (err: unknown, req: Request & { id?: string; user?: Record<string, unknown> }, res: Response, _next: NextFunction) => {
   const requestId = req.id || generateRequestId();
   const isDev = process.env.NODE_ENV !== 'production';
   const e = err as Record<string, unknown>;
@@ -124,7 +124,7 @@ export const errorHandler = (err: unknown, req: Request & { id?: string; user?: 
 /**
  * 404 Not Found handler
  */
-export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
+export const notFoundHandler = (req: Request, res: Response, _next: NextFunction) => {
   const requestId = (req as any).id || generateRequestId();
   
   res.status(404).json({

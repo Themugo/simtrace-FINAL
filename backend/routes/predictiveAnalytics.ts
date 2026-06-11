@@ -63,7 +63,7 @@ router.get("/anomalies/:deviceId", authenticate, async (req: Request, res: Respo
   } catch (err) { next(err); }
 });
 
-router.get("/anomalies/unresolved", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/anomalies/unresolved", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const anomalies = await getUnresolvedAnomalies();
     res.json({ anomalies, count: anomalies.length });
@@ -88,7 +88,7 @@ router.patch("/anomalies/:id/resolve", authenticate, requireAdmin, async (req: R
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getPredictiveAnalyticsStatistics();
     res.json(stats);

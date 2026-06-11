@@ -17,8 +17,8 @@
     "declaration": false,
     "declarationMap": false,
     "sourceMap": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
     "types": ["node"]

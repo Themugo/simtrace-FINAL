@@ -1,7 +1,7 @@
 // Queue Infrastructure Foundation
 // BullMQ-based job queue system with Redis backend
 
-import { Queue, Worker, QueueOptions, ConnectionOptions } from 'bullmq';
+import { Queue, QueueOptions, ConnectionOptions } from 'bullmq';
 import IORedis from 'ioredis';
 
 // Redis connection

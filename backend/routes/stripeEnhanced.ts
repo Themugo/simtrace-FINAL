@@ -148,7 +148,7 @@ router.get("/exchange-rate", async (req: Request, res: Response, next: NextFunct
   } catch (err) { next(err); }
 });
 
-router.get("/currencies", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/currencies", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const currencies = getSupportedCurrencies();
     res.json({ currencies });
@@ -156,7 +156,7 @@ router.get("/currencies", async (req: Request, res: Response, next: NextFunction
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getCardTypeStatistics();
     res.json(stats);

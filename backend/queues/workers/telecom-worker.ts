@@ -2,8 +2,6 @@
 // Handles telecom provider API calls for device information
 
 import { Worker, Job } from 'bullmq';
-import { queues, JobTypes } from '../index.js';
-import { assessDeviceRisk } from '../../modules/risk/engine.js';
 
 const telecomWorker = new Worker(
   'telecom-lookup',

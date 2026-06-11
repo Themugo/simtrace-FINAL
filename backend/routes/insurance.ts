@@ -19,6 +19,10 @@ import {
   renewPolicy,
 } from "../services/insurance.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 interface AuthRequest extends Request {
@@ -53,7 +57,7 @@ router.post("/policies", authenticate, async (req: AuthRequest, res: Response, n
 
     res.status(201).json(policy);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -90,7 +94,7 @@ router.patch("/policies/:id/status", authenticate, requireAdmin, async (req: Aut
 
     res.json(policy);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -107,7 +111,7 @@ router.post("/policies/:id/renew", authenticate, async (req: AuthRequest, res: R
 
     res.json(policy);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -145,7 +149,7 @@ router.post("/claims", authenticate, async (req: AuthRequest, res: Response, nex
 
     res.status(201).json(claim);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -184,7 +188,7 @@ router.patch("/claims/:id/status", authenticate, requireAdmin, async (req: AuthR
 
     res.json(claim);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -203,7 +207,7 @@ router.post("/claims/:id/evidence", authenticate, async (req: AuthRequest, res: 
 
     res.json(claim);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -217,7 +221,7 @@ router.post("/claims/:id/recovered", authenticate, async (req: AuthRequest, res:
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getInsuranceStatistics();
     res.json(stats);
@@ -233,7 +237,7 @@ router.get("/stats/provider/:providerId", authenticate, async (req: AuthRequest,
 });
 
 // ── Policy Expiry Check ─────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/check-expiry", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await checkPolicyExpiry();
     res.json(result);

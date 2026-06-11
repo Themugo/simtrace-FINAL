@@ -27,7 +27,7 @@ const Sighting = (mongoose.models.Sighting || mongoose.model("Sighting", sightin
 const sightingLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: "Too many sightings submitted" } });
 
 // GET /api/community/sightings — public
-router.get("/sightings", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/sightings", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const sightings = await Sighting.find()
       .sort({ createdAt: -1 })
@@ -39,7 +39,7 @@ router.get("/sightings", async (req: Request, res: Response, next: NextFunction)
 });
 
 // GET /api/community/stats — Get community statistics
-router.get("/stats", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [totalSightings, sightingsLast7Days, sightingsLast30Days] = await Promise.all([
       Sighting.countDocuments(),

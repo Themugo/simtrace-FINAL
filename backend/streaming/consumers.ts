@@ -3,7 +3,7 @@
 
 import { getStreamManager, STREAM_TOPICS } from './kafka.js';
 import { emit } from '../events/index.js';
-import { assessDeviceRisk } from '../modules/risk/engine.js';
+import { } from '../modules/risk/engine.js';
 import { createAuditLog } from '../modules/audit/audit.js';
 
 interface TrackingEvent {
@@ -61,14 +61,12 @@ export async function startTrackingEventsConsumer(): Promise<void> {
       emit('location.detected', {
         imei,
         location,
-        timestamp,
-      });
+        timestamp});
 
       emit('device.detected', {
         imei,
         timestamp,
-        location,
-      });
+        location});
     }
   );
 }
@@ -85,14 +83,12 @@ export async function startRiskEventsConsumer(): Promise<void> {
 
       emit('risk.calculated', {
         imei,
-        riskAssessment,
-      });
+        riskAssessment});
 
       if (riskAssessment.threatLevel === 'HIGH' || riskAssessment.threatLevel === 'CRITICAL') {
         emit('risk.high', {
           imei,
-          riskAssessment,
-        });
+          riskAssessment});
       }
     }
   );
@@ -106,7 +102,7 @@ export async function startAuditEventsConsumer(): Promise<void> {
     STREAM_TOPICS.AUDIT_EVENTS,
     'audit-consumer-group',
     async (message) => {
-      const { action, userId, organizationId, resourceType, resourceId, details } = message.value as AuditEvent;
+      const { action, userId, resourceType, resourceId, details } = message.value as AuditEvent;
 
       // Log audit event to database
       await createAuditLog({
@@ -114,8 +110,7 @@ export async function startAuditEventsConsumer(): Promise<void> {
         userId,
         resourceType,
         resourceId,
-        details,
-      });
+        details});
     }
   );
 }
@@ -128,7 +123,7 @@ export async function startNotificationsConsumer(): Promise<void> {
     STREAM_TOPICS.NOTIFICATIONS,
     'notifications-consumer-group',
     async (message) => {
-      const { type, userId, recipients, subject, content } = message.value as NotificationEvent;
+      const { type } = message.value as NotificationEvent;
 
       // Process notification based on type
       switch (type) {
@@ -159,7 +154,7 @@ export async function startAnalyticsEventsConsumer(): Promise<void> {
     STREAM_TOPICS.ANALYTICS_EVENTS,
     'analytics-consumer-group',
     async (message) => {
-      const { type, data } = message.value as AnalyticsEvent;
+      const { type, data: _data } = message.value as AnalyticsEvent;
 
       // Process analytics event
       switch (type) {
@@ -190,7 +185,7 @@ export async function startAIEventsConsumer(): Promise<void> {
     STREAM_TOPICS.AI_EVENTS,
     'ai-consumer-group',
     async (message) => {
-      const { type, data } = message.value as AIEvent;
+      const { type, data: _data } = message.value as AIEvent;
 
       // Process AI event
       switch (type) {
@@ -235,3 +230,4 @@ export async function stopAllConsumers(): Promise<void> {
     manager.unsubscribe(STREAM_TOPICS.AI_EVENTS, 'ai-consumer-group'),
   ]);
 }
+

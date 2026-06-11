@@ -137,7 +137,7 @@ router.post("/trigger", authenticate, requireAdmin, async (req: AuthRequest, res
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getWebhookStatistics();
     res.json(stats);
@@ -145,7 +145,7 @@ router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: R
 });
 
 // ── Available Events ─────────────────────────────────────────────────────────────
-router.get("/events", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/events", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     res.json({ events: WEBHOOK_EVENTS });
   } catch (err) { next(err); }

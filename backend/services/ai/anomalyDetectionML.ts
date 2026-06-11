@@ -359,7 +359,7 @@ export class AnomalyDetectionMLService {
   /**
    * Get historical location data (simulated)
    */
-  private getHistoricalLocationData(deviceId: string): { lat: number; lng: number }[] {
+  private getHistoricalLocationData(_deviceId: string): { lat: number; lng: number }[] {
     // In production, this would fetch from database
     const data: { lat: number; lng: number }[] = [];
     for (let i = 0; i < 10; i++) {
@@ -374,7 +374,7 @@ export class AnomalyDetectionMLService {
   /**
    * Get historical usage data (simulated)
    */
-  private getHistoricalUsageData(deviceId: string): any[] {
+  private getHistoricalUsageData(_deviceId: string): any[] {
     const data: any[] = [];
     for (let i = 0; i < 10; i++) {
       data.push({
@@ -388,7 +388,7 @@ export class AnomalyDetectionMLService {
   /**
    * Get historical network data (simulated)
    */
-  private getHistoricalNetworkData(deviceId: string): any[] {
+  private getHistoricalNetworkData(_deviceId: string): any[] {
     const data: any[] = [];
     for (let i = 0; i < 10; i++) {
       data.push({
@@ -403,7 +403,7 @@ export class AnomalyDetectionMLService {
   /**
    * Get historical behavioral data (simulated)
    */
-  private getHistoricalBehavioralData(deviceId: string): any[] {
+  private getHistoricalBehavioralData(_deviceId: string): any[] {
     const data: any[] = [];
     for (let i = 0; i < 10; i++) {
       data.push({

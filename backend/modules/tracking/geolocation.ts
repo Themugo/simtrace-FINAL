@@ -16,7 +16,7 @@ export interface EnrichedLocation {
 
 // Note: In production, integrate with a geolocation API like MaxMind GeoIP2, IPInfo, or similar
 // This is a placeholder implementation
-export async function enrichLocation(lat: number, lng: number, ipAddress?: string): Promise<EnrichedLocation> {
+export async function enrichLocation(lat: number, lng: number, _ipAddress?: string): Promise<EnrichedLocation> {
   const enriched: EnrichedLocation = {
     lat,
     lng,
@@ -69,7 +69,7 @@ export async function batchEnrichLocations(imei: string, hours = 24) {
 }
 
 // ── Location Risk Assessment ───────────────────────────────────────────────────
-export async function assessLocationRisk(lat: number, lng: number): Promise<'low' | 'medium' | 'high'> {
+export async function assessLocationRisk(_lat: number, _lng: number): Promise<'low' | 'medium' | 'high'> {
   // In production, integrate with crime databases, known fraud hotspots, etc.
   // This is a placeholder implementation
   

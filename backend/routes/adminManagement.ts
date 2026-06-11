@@ -242,7 +242,7 @@ router.get("/:adminId/statistics", authenticate, async (req: AuthRequest, res: R
   } catch (err) { next(err); }
 });
 
-router.get("/statistics", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getAllAdminStatistics();
     res.json(stats);

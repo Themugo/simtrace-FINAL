@@ -12,6 +12,10 @@ import {
 } from "../services/ai.js";
 import { PLANS, getUserSubscription } from "../services/billing.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 type AuthRequest = Request & {
@@ -69,7 +73,7 @@ router.post("/imei-report", async (req: Request, res: Response, next: NextFuncti
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
-        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
+        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as { id: string; role: string }
         userId = payload.id;
       } catch { console.warn("[AI] JWT verify failed — anonymous check allowed"); }
     }
@@ -99,7 +103,7 @@ router.post("/imei-report", async (req: Request, res: Response, next: NextFuncti
 
     res.json({ report, riskScore });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -137,7 +141,7 @@ router.post("/explain-alert", authenticate, async (req: AuthRequest, res: Respon
 
     res.json({ explanation });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -160,7 +164,7 @@ router.post("/chat", async (req: Request, res: Response, next: NextFunction) => 
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
-        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
+        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as { id: string; role: string }
         userId = payload.id;
 
         // Daily chat quota for free users
@@ -196,7 +200,7 @@ router.post("/chat", async (req: Request, res: Response, next: NextFunction) => 
 
     res.json({ reply });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -217,7 +221,7 @@ router.post("/chat/stream", async (req: Request, res: Response, next: NextFuncti
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) {
       try {
-        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as any;
+        const payload = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET!) as { id: string; role: string }
         userId = payload.id;
 
         if (payload.role === "user") {
@@ -298,7 +302,7 @@ router.post("/chat/stream", async (req: Request, res: Response, next: NextFuncti
     if (userId) await recordAiCall(userId, "chat");
     res.end();
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     if (!res.headersSent) next(err);
     else res.end();
   }

@@ -57,7 +57,7 @@ export async function detectFakeGps(imei: string, lat: number, lng: number, accu
 }
 
 // Detect emulator behavior
-export async function detectEmulator(imei: string, deviceInfo: Record<string, unknown>): Promise<SpoofDetectionResult> {
+export async function detectEmulator(_imei: string, deviceInfo: Record<string, unknown>): Promise<SpoofDetectionResult> {
   const suspiciousIndicators: string[] = [];
   let confidence = 0;
   const di = deviceInfo as { model?: string; buildId?: string; buildTags?: string; hasTelephony?: boolean; hasCamera?: boolean };
@@ -104,7 +104,7 @@ export async function detectEmulator(imei: string, deviceInfo: Record<string, un
 }
 
 // Detect rooted devices
-export async function detectRooted(imei: string, deviceInfo: Record<string, unknown>): Promise<SpoofDetectionResult> {
+export async function detectRooted(_imei: string, deviceInfo: Record<string, unknown>): Promise<SpoofDetectionResult> {
   const suspiciousIndicators: string[] = [];
   let confidence = 0;
   const di = deviceInfo as { installedApps?: string[]; canWriteSystemPartition?: boolean; kernelVersion?: string };
@@ -150,9 +150,8 @@ export async function detectRooted(imei: string, deviceInfo: Record<string, unkn
 }
 
 // Detect VPN/Proxy usage
-export async function detectVpnProxy(ipAddress: string): Promise<SpoofDetectionResult> {
+export async function detectVpnProxy(_ipAddress: string): Promise<SpoofDetectionResult> {
   const suspiciousIndicators: string[] = [];
-  let confidence = 0;
   
   // In production, integrate with IP intelligence services like:
   // - IPQualityScore

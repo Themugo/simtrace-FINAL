@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Organization, OrganizationMember, OrganizationRole, OrganizationInvite, Team, TeamMember, User } from '../../db/index.js';
+import { Organization, OrganizationMember, OrganizationRole, OrganizationInvite, Team, TeamMember } from '../../db/index.js';
 
 // ── Organization Operations ────────────────────────────────────────────────────
 export async function createOrganization(data: {

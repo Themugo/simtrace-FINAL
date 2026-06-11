@@ -68,6 +68,10 @@ interface AppDashboard {
   updatedAt: Date;
 }
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 type AuthRequest = Request & {
@@ -87,12 +91,12 @@ router.get("/extensions", authenticate, async (req: AuthRequest, res: Response, 
     if (search && typeof search === 'string') {
       extensions = enterpriseMarketplace.searchExtensions(search);
     } else if (type && typeof type === 'string') {
-      extensions = enterpriseMarketplace.getExtensionsByType(type as any);
+      extensions = enterpriseMarketplace.getExtensionsByType(type as AppExtension['type']);
     } else if (category && typeof category === 'string') {
       extensions = enterpriseMarketplace.getExtensionsByCategory(category);
     } else {
-      extensions = [...(enterpriseMarketplace as any).extensions.values() as any[]]
-        .filter((e: Record<string, unknown>) => (e.status as string) === 'published');
+      extensions = [...(enterpriseMarketplace as unknown as { extensions: Map<string, AppExtension> }).extensions.values()]
+        .filter((e: AppExtension) => e.status === 'published');
     }
 
     res.json({ extensions });
@@ -144,7 +148,7 @@ router.post("/extensions", authenticate, requireAdmin, async (req: AuthRequest, 
 
     res.status(201).json(extension);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -163,7 +167,7 @@ router.post("/install", authenticate, async (req: AuthRequest, res: Response, ne
 
     res.status(201).json(installation);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -208,7 +212,7 @@ router.post("/reviews", authenticate, async (req: AuthRequest, res: Response, ne
 
     res.status(201).json(review);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -247,7 +251,7 @@ router.post("/workflows", authenticate, async (req: AuthRequest, res: Response, 
     const workflow = createAppWorkflow(data);
     res.status(201).json(workflow);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -290,13 +294,13 @@ router.post("/dashboards", authenticate, async (req: AuthRequest, res: Response,
     const dashboard = createAppDashboard(data as Omit<AppDashboard, 'id' | 'createdAt' | 'updatedAt'>);
     res.status(201).json(dashboard);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
 // GET /api/marketplace/dashboards — get public dashboards
-router.get("/dashboards", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/dashboards", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const dashboards = enterpriseMarketplace.getPublicDashboards();
     res.json({ dashboards });
@@ -304,7 +308,7 @@ router.get("/dashboards", authenticate, async (req: AuthRequest, res: Response, 
 });
 
 // GET /api/marketplace/statistics — get marketplace statistics (admin only)
-router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = getMarketplaceStatistics();
     res.json(stats);

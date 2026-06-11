@@ -141,7 +141,7 @@ router.post("/context/:organizationId/behavior", authenticate, async (req: AuthR
 });
 
 // GET /api/ai/statistics — get AI orchestrator statistics (admin only)
-router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = getAIOrchestratorStatistics();
     res.json(stats);

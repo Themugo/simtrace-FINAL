@@ -1,6 +1,5 @@
 import { TrackingEvent, Device } from '../../db/index.js';
 import { detectImpossibleTravel } from '../tracking/session.js';
-import { runAntiSpoofCheck } from '../tracking/antispoof.js';
 
 // ── Risk Signal Definitions ─────────────────────────────────────────────────────
 export interface RiskSignal {
@@ -94,7 +93,7 @@ export async function detectImpossibleTravelSignal(imei: string): Promise<RiskSi
   };
 }
 
-export async function detectVpnSignal(ipAddress: string): Promise<RiskSignal | null> {
+export async function detectVpnSignal(_ipAddress: string): Promise<RiskSignal | null> {
   // In production, integrate with IP intelligence services
   // For now, return null
   return null;
@@ -184,7 +183,7 @@ export async function detectFingerprintChangeSignal(imei: string): Promise<RiskS
 }
 
 // ── Comprehensive Risk Assessment ───────────────────────────────────────────────
-export async function assessDeviceRisk(imei: string, ipAddress?: string, deviceInfo?: Record<string, unknown>): Promise<RiskAssessment> {
+export async function assessDeviceRisk(imei: string, ipAddress?: string, _deviceInfo?: Record<string, unknown>): Promise<RiskAssessment> {
   const signals: RiskSignal[] = [];
   
   // Run all risk signal detections

@@ -2,7 +2,6 @@
 // SOC-style dashboard for realtime monitoring and threat detection
 
 import { emit, eventBus, Event, EventName } from '../../events/index.js';
-import { getRedisClient } from '../../services/redis.js';
 
 export interface DashboardWidget {
   id: string;

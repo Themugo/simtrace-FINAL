@@ -231,7 +231,7 @@ class ExportReportingEngine {
   }
 
   // Get report data
-  private getReportData(template: ReportTemplate, parameters: Record<string, any>): any[] {
+  private getReportData(_template: ReportTemplate, _parameters: Record<string, any>): any[] {
     // In production, query database based on template type and parameters
     return [
       { id: 1, name: 'Device 1', risk: 'high' },

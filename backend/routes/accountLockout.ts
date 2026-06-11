@@ -39,7 +39,7 @@ router.post('/unlock/:userId', authenticate, requireAdmin, async (req: AuthReque
       reason: z.string().optional(),
     });
 
-    const { reason } = schema.parse(req.body);
+    schema.parse(req.body);
 
     await unlockAccount(userId);
 
@@ -79,7 +79,7 @@ router.post('/reset/:userId', authenticate, requireAdmin, async (req: AuthReques
       reason: z.string().optional(),
     });
 
-    const { reason } = schema.parse(req.body);
+    schema.parse(req.body);
 
     await User.findByIdAndUpdate(userId, {
       loginAttempts: 0,

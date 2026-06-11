@@ -21,7 +21,7 @@ export class RetryHandler {
     this.backoffMultiplier = options.backoffMultiplier || 2;
   }
 
-  async execute<T>(operation: () => Promise<T>, context: Record<string, unknown> = {}): Promise<T> {
+  async execute<T>(operation: () => Promise<T>, _context: Record<string, unknown> = {}): Promise<T> {
     let lastError: unknown;
     let delay = this.initialDelay;
 
@@ -109,7 +109,7 @@ export const timeoutConfig = {
 
 // Decorator for automatic retry
 export function withRetry(retryType: keyof typeof retryHandlers = 'externalApi') {
-  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const handler = retryHandlers[retryType];
 
@@ -123,7 +123,7 @@ export function withRetry(retryType: keyof typeof retryHandlers = 'externalApi')
 
 // Decorator for timeout
 export function withTimeout(timeoutMs: number) {
-  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: unknown[]) {

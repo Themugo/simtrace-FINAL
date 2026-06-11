@@ -425,7 +425,7 @@ class EnterpriseMarketplace {
     });
 
     // Create sample workflow for auto-recovery
-    const recoveryWorkflow = this.createWorkflow({
+    this.createWorkflow({
       extensionId: 'ext_4',
       name: 'Device Recovery Automation',
       description: 'Automatically initiate recovery when device is marked as stolen',

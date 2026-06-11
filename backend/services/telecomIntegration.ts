@@ -68,7 +68,7 @@ export async function flagSimCardAsStolen(trackingId: string, flaggedBy: string)
   return tracking;
 }
 
-export async function unflagSimCard(trackingId: string, unflaggedBy: string) {
+export async function unflagSimCard(trackingId: string, _unflaggedBy: string) {
   const tracking = await SimCardTracking.findOne({ trackingId });
   if (!tracking) throw new Error("SIM card tracking not found");
 
@@ -195,7 +195,7 @@ export async function triangulateDeviceLocation(deviceId: string) {
 }
 
 // ── Commission Calculation ────────────────────────────────────────────────────────────
-export async function calculateCommission(companyId: string, deviceId: string, recovery: boolean) {
+export async function calculateCommission(companyId: string, _deviceId: string, recovery: boolean) {
   const company = await TelecomCompany.findById(companyId);
   if (!company) throw new Error("Telecom company not found");
 

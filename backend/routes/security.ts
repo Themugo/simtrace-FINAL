@@ -19,8 +19,13 @@ import {
   multiFactorBiometricsService
 } from "../services/security/multiFactorBiometrics.js";
 import {
-  securityAuditService
+  securityAuditService,
+  AuditQuery
 } from "../services/security/securityAudit.js";
+
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
 
 const router = Router();
 
@@ -56,7 +61,7 @@ router.post("/zk/ownership-proof", authenticate, async (req: AuthRequest, res: R
 
     res.json({ proof });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -88,7 +93,7 @@ router.post("/zk/verify-proof", authenticate, async (req: AuthRequest, res: Resp
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -116,7 +121,7 @@ router.post("/quantum/generate-keypair", authenticate, async (req: AuthRequest, 
 
     res.json({ keyPair });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -144,7 +149,7 @@ router.post("/quantum/encrypt", authenticate, async (req: AuthRequest, res: Resp
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -176,7 +181,7 @@ router.post("/quantum/decrypt", authenticate, async (req: AuthRequest, res: Resp
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -206,7 +211,7 @@ router.post("/enclave/generate-key", authenticate, async (req: AuthRequest, res:
 
     res.json({ key });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -234,7 +239,7 @@ router.post("/enclave/encrypt", authenticate, async (req: AuthRequest, res: Resp
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -275,12 +280,12 @@ router.post("/enclave/decrypt", authenticate, async (req: AuthRequest, res: Resp
       metadata: {}
     });
     
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
-router.get("/enclave/attestation", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/enclave/attestation", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const attestation = await secureEnclaveService.attestEnclave();
     res.json({ attestation });
@@ -322,7 +327,7 @@ router.post("/blockchain/add-evidence", authenticate, async (req: AuthRequest, r
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -352,7 +357,7 @@ router.get("/blockchain/device/:deviceId", authenticate, async (req: AuthRequest
   }
 });
 
-router.get("/blockchain/verify", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/blockchain/verify", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const isValid = blockchainEvidenceService.verifyChain();
     res.json({ isValid, chainLength: blockchainEvidenceService.getChainLength() });
@@ -361,7 +366,7 @@ router.get("/blockchain/verify", authenticate, requireAdmin, async (req: AuthReq
   }
 });
 
-router.get("/blockchain/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/blockchain/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = blockchainEvidenceService.getStatistics();
     res.json({ stats });
@@ -395,7 +400,7 @@ router.post("/biometrics/enroll-face", authenticate, async (req: AuthRequest, re
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -423,7 +428,7 @@ router.post("/biometrics/enroll-voice", authenticate, async (req: AuthRequest, r
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -451,7 +456,7 @@ router.post("/biometrics/enroll-fingerprint", authenticate, async (req: AuthRequ
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -479,7 +484,7 @@ router.post("/biometrics/authenticate-face", authenticate, async (req: AuthReque
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -507,7 +512,7 @@ router.post("/biometrics/authenticate-voice", authenticate, async (req: AuthRequ
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -535,7 +540,7 @@ router.post("/biometrics/authenticate-fingerprint", authenticate, async (req: Au
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -568,7 +573,7 @@ router.post("/biometrics/multi-factor", authenticate, async (req: AuthRequest, r
 
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -581,8 +586,8 @@ router.get("/audit/logs", authenticate, requireAdmin, async (req: AuthRequest, r
       userId: req.query.userId as string | undefined,
       deviceId: req.query.deviceId as string | undefined,
       eventType: req.query.eventType as string | undefined,
-      eventCategory: req.query.eventCategory as any,
-      severity: req.query.severity as any,
+      eventCategory: req.query.eventCategory as AuditQuery['eventCategory'],
+      severity: req.query.severity as AuditQuery['severity'],
       startTime: req.query.startTime ? parseInt(req.query.startTime as string) : undefined,
       endTime: req.query.endTime ? parseInt(req.query.endTime as string) : undefined,
       limit: req.query.limit ? parseInt(req.query.limit as string) : undefined
@@ -600,7 +605,7 @@ router.get("/audit/statistics", authenticate, requireAdmin, async (req: AuthRequ
     const query = {
       userId: req.query.userId as string | undefined,
       deviceId: req.query.deviceId as string | undefined,
-      eventCategory: req.query.eventCategory as any,
+      eventCategory: req.query.eventCategory as AuditQuery['eventCategory'],
       startTime: req.query.startTime ? parseInt(req.query.startTime as string) : undefined,
       endTime: req.query.endTime ? parseInt(req.query.endTime as string) : undefined
     };
@@ -627,7 +632,7 @@ router.get("/audit/report", authenticate, requireAdmin, async (req: AuthRequest,
     const query = {
       userId: req.query.userId as string | undefined,
       deviceId: req.query.deviceId as string | undefined,
-      eventCategory: req.query.eventCategory as any,
+      eventCategory: req.query.eventCategory as AuditQuery['eventCategory'],
       startTime: req.query.startTime ? parseInt(req.query.startTime as string) : undefined,
       endTime: req.query.endTime ? parseInt(req.query.endTime as string) : undefined
     };

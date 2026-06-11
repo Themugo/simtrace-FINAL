@@ -3,6 +3,10 @@ import { z } from "zod";
 import { authenticate, requireRole } from "../middleware/auth.js";
 import { LawEnforcementCase, User } from "../db/index.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 type AuthRequest = Request & { user?: { id: string; role: string } }
@@ -33,7 +37,7 @@ router.get("/", authenticate, requireRole("law_enforcement"), async (req: AuthRe
 
     return res.json({ cases, total: cases.length });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -85,7 +89,7 @@ router.post("/", authenticate, requireRole("law_enforcement"), async (req: AuthR
 
     return res.status(201).json(newCase);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -117,7 +121,7 @@ router.put("/:id", authenticate, requireRole("law_enforcement"), async (req: Aut
 
     return res.json(updatedCase);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -160,7 +164,7 @@ router.post("/:id/evidence", authenticate, requireRole("law_enforcement"), async
 
     return res.status(201).json(newEvidence);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -198,7 +202,7 @@ router.post("/:id/evidence/:evidenceId/custody", authenticate, requireRole("law_
 
     return res.status(201).json(custodyEntry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -233,7 +237,7 @@ router.post("/:id/notes", authenticate, requireRole("law_enforcement"), async (r
 
     return res.status(201).json(newNote);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });
@@ -272,7 +276,7 @@ router.post("/:id/collaborators", authenticate, requireRole("law_enforcement"), 
 
     return res.status(201).json(newCollaborator);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     return next(err);
   }
 });

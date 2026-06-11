@@ -3,6 +3,17 @@
 
 import { PartnerListing, User, Organization } from "../db/index.js";
 
+interface PartnerListingDoc {
+  verified: boolean;
+  verifiedAt: Date;
+  verifiedBy: string;
+  status: string;
+  views: number;
+  clicks: number;
+  inquiries: number;
+  [key: string]: unknown;
+}
+
 // ── Partner Listing Management ───────────────────────────────────────────────────
 export async function createPartnerListing(data: Record<string, unknown>) {
   const {
@@ -99,7 +110,7 @@ export async function updatePartnerListing(listingId: string, updates: Record<st
 
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      (listing as any)[key] = updates[key];
+      (listing as PartnerListingDoc)[key] = updates[key];
     }
   }
 
@@ -121,10 +132,10 @@ export async function verifyPartnerListing(listingId: string, verifiedBy: string
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  (listing as any).verified = true;
-  (listing as any).verifiedAt = new Date();
-  (listing as any).verifiedBy = verifiedBy;
-  (listing as any).status = "approved";
+  (listing as PartnerListingDoc).verified = true;
+  (listing as PartnerListingDoc).verifiedAt = new Date();
+  (listing as PartnerListingDoc).verifiedBy = verifiedBy;
+  (listing as PartnerListingDoc).status = "approved";
   listing.updatedAt = new Date();
   await listing.save();
 
@@ -135,7 +146,7 @@ export async function rejectPartnerListing(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  (listing as any).status = "rejected";
+  (listing as PartnerListingDoc).status = "rejected";
   listing.updatedAt = new Date();
   await listing.save();
 
@@ -146,7 +157,7 @@ export async function suspendPartnerListing(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  (listing as any).status = "suspended";
+  (listing as PartnerListingDoc).status = "suspended";
   listing.updatedAt = new Date();
   await listing.save();
 
@@ -222,7 +233,7 @@ export async function incrementPartnerViews(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  (listing as any).views += 1;
+  (listing as PartnerListingDoc).views += 1;
   listing.updatedAt = new Date();
   await listing.save();
 
@@ -233,7 +244,7 @@ export async function incrementPartnerClicks(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  (listing as any).clicks += 1;
+  (listing as PartnerListingDoc).clicks += 1;
   listing.updatedAt = new Date();
   await listing.save();
 
@@ -244,7 +255,7 @@ export async function incrementPartnerInquiries(listingId: string) {
   const listing = await PartnerListing.findById(listingId);
   if (!listing) throw new Error("Partner listing not found");
 
-  (listing as any).inquiries += 1;
+  (listing as PartnerListingDoc).inquiries += 1;
   listing.updatedAt = new Date();
   await listing.save();
 

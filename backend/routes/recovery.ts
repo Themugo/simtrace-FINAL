@@ -1,14 +1,14 @@
 // routes/recovery.ts - Autonomous Recovery Network API endpoints
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import { authenticate, requireAdmin, requireRole } from "../middleware/auth.js";
+import { authenticate, requireRole } from "../middleware/auth.js";
 import {
   registerRecoveryAgent,
   updateAgentMetrics,
   findAvailableAgents,
   createRecoveryCase,
   autoAssignAgents,
-  assignAgentsToCase,
+  
   updateCaseStatus,
   addCommunication,
   updateCaseLocation,
@@ -133,7 +133,7 @@ router.get("/cases/agent/:agentId", authenticate, async (req: AuthRequest, res: 
   } catch (err) { next(err); }
 });
 
-router.get("/cases/active", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/cases/active", authenticate, requireRole("admin"), async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const cases = await getActiveCases();
     res.json({ cases, count: cases.length });
@@ -215,7 +215,7 @@ router.post("/cases/:id/autonomous", authenticate, requireRole("admin"), async (
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireRole("admin"), async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getRecoveryStatistics();
     res.json(stats);
@@ -223,3 +223,4 @@ router.get("/stats", authenticate, requireRole("admin"), async (req: AuthRequest
 });
 
 export default router;
+

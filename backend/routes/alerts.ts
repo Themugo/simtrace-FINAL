@@ -20,7 +20,7 @@ router.get("/unread-count", authenticate, async (req: AuthRequest, res: Response
 });
 
 // PATCH /api/alerts/read-all  ← MUST be before /:id
-router.patch("/read-all", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.patch("/read-all", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     await Alert.updateMany({ read: false }, { read: true });
     res.json({ message: "All alerts marked read" });

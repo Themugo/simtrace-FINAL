@@ -7,7 +7,7 @@ import { authenticate, requireAdmin } from "../middleware/auth.js";
 import { computeRiskScore } from "../services/intelligence.js";
 import { sendAlert } from "../services/notify.js";
 import { checkDeviceLimit } from "../services/billing.js";
-import { reconstructLocationPath, addTimelineEvent, stitchTimeline } from "../forensics/module.js";
+import { reconstructLocationPath, addTimelineEvent, } from "../forensics/module.js";
 import { predictFraud, predictTheft } from "../ml/pipeline.js";
 
 const router = Router();
@@ -285,3 +285,4 @@ router.get("/:imei/history", authenticate, async (req: AuthRequest, res: Respons
 });
 
 export default router;
+

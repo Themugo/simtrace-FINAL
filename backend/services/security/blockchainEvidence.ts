@@ -33,7 +33,6 @@ export interface BlockchainEvidence {
 
 export class BlockchainEvidenceService {
   private chain: EvidenceBlock[] = [];
-  private pendingEvidence: Map<string, EvidenceData> = new Map();
   private validators: string[] = [];
 
   constructor() {

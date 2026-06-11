@@ -20,7 +20,7 @@ interface HealthCheck {
 }
 
 // GET /api/health - Health check endpoint
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (_req: Request, res: Response, _next: NextFunction) => {
   try {
     const healthCheck: HealthCheck = {
       uptime: process.uptime(),

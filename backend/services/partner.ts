@@ -1,6 +1,6 @@
 // services/partner.ts — SimTrace Telecom & Agency Integration Engine
 import crypto from "crypto";
-import { Partner, Device, Alert, TheftReport } from "../db/index.js";
+import { Partner, Device, Alert, } from "../db/index.js";
 
 type PartnerInfo = {
   _id: { toString(): string };
@@ -115,3 +115,4 @@ export async function getPartnerStats(partnerId: string) {
     recentAlerts,
   };
 }
+

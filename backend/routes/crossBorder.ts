@@ -1,7 +1,7 @@
 // routes/crossBorder.ts - Cross-Border Enforcement API endpoints
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import { authenticate, requireAdmin, requireRole } from "../middleware/auth.js";
+import { authenticate, requireRole } from "../middleware/auth.js";
 import {
   createCrossBorderRequest,
   updateRequestStatus,
@@ -98,7 +98,7 @@ router.get("/requests/country/:country", authenticate, async (req: AuthRequest, 
   } catch (err) { next(err); }
 });
 
-router.get("/requests/pending", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/requests/pending", authenticate, requireRole("admin"), async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const requests = await getPendingRequests();
     res.json({ requests, count: requests.length });
@@ -194,7 +194,7 @@ router.post("/check-compliance", authenticate, async (req: AuthRequest, res: Res
 });
 
 // ── Statistics ─────────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireRole("admin"), async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getCrossBorderStatistics();
     res.json(stats);
@@ -202,7 +202,7 @@ router.get("/stats", authenticate, requireRole("admin"), async (req: AuthRequest
 });
 
 // ── Cron Job Endpoint ───────────────────────────────────────────────────────────────
-router.post("/check-expiry", authenticate, requireRole("admin"), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/check-expiry", authenticate, requireRole("admin"), async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const expiredCount = await checkRequestExpiry();
     res.json({ message: "Expiry check completed", expiredCount });

@@ -263,7 +263,7 @@ router.get("/:shopId/statistics", authenticate, async (req: AuthRequest, res: Re
   } catch (err) { next(err); }
 });
 
-router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getAllRepairShopStatistics();
     res.json(stats);

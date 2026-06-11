@@ -4,7 +4,6 @@ import {
   AgencyConfig,
   CountryConfig,
   PolicyRule,
-  User,
 } from "../db/index.js";
 import { getIO } from "./socket.js";
 
@@ -132,7 +131,7 @@ interface PolicyEvaluationContext {
 // These helper types cast the loose Mongoose document into our known shapes
 type AgencyConfigFields = CreateAgencyConfigInput & { updatedAt: Date };
 type CountryConfigFields = CreateCountryConfigInput & { updatedAt: Date };
-type PolicyRuleFields = CreatePolicyRuleInput & { updatedAt: Date; status: string };
+
 
 // ── Agency Configuration Management ─────────────────────────────────────────────────
 export async function createAgencyConfig(data: CreateAgencyConfigInput) {
@@ -194,7 +193,7 @@ export async function generateApiKey(agencyId: string, keyData: CreateApiKeyInpu
   return { apiKey, key: keys[keys.length - 1] };
 }
 
-export async function revokeApiKey(agencyId: string, keyId: string, revokedBy: string) {
+export async function revokeApiKey(agencyId: string, keyId: string, _revokedBy: string) {
   const config = await AgencyConfig.findOne({ agencyId });
   if (!config) throw new Error("Agency configuration not found");
 
@@ -425,7 +424,7 @@ export async function getEffectiveConfig(agencyId: string, countryCode: string) 
   return effectiveConfig;
 }
 
-export async function checkRateLimit(agencyId: string, endpoint: string, userIp: string) {
+export async function checkRateLimit(agencyId: string, endpoint: string, _userIp: string) {
   const doc = await getAgencyConfig(agencyId).catch(() => { console.warn(`[Config] Rate limit check — no config for ${agencyId}`); return null; });
   const config = doc ? (doc as unknown as AgencyConfigFields) : null;
 

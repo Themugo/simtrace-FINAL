@@ -8,6 +8,10 @@ import { nlpEvidenceAnalysisService } from "../services/ai/nlpEvidenceAnalysis.j
 import { predictiveMaintenanceService } from "../services/ai/predictiveMaintenance.js";
 import { anomalyDetectionMLService } from "../services/ai/anomalyDetectionML.js";
 
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
+
 const router = Router();
 
 type AuthRequest = Request & {
@@ -38,12 +42,12 @@ router.post("/deep-learning/predict", authenticate, async (req: AuthRequest, res
     const prediction = await deepLearningService.predictTheftRisk(deviceId, imei, features);
     res.json({ prediction });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
-router.get("/deep-learning/models", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/deep-learning/models", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const models = deepLearningService.getAllModels();
     res.json({ models });
@@ -73,7 +77,7 @@ router.get("/deep-learning/predictions/:deviceId", authenticate, async (req: Aut
   }
 });
 
-router.get("/deep-learning/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/deep-learning/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = deepLearningService.getStatistics();
     res.json({ statistics });
@@ -100,7 +104,7 @@ router.post("/computer-vision/register", authenticate, async (req: AuthRequest, 
     const image = computerVisionService.registerDeviceImage(deviceId, imageData, metadata);
     res.json({ image });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -115,7 +119,7 @@ router.post("/computer-vision/identify", authenticate, async (req: AuthRequest, 
     const result = await computerVisionService.identifyDevice(imageData);
     res.json({ result });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -130,7 +134,7 @@ router.get("/computer-vision/features/:deviceId", authenticate, async (req: Auth
   }
 });
 
-router.get("/computer-vision/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/computer-vision/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = computerVisionService.getStatistics();
     res.json({ statistics });
@@ -159,7 +163,7 @@ router.post("/nlp/document", authenticate, async (req: AuthRequest, res: Respons
     const document = nlpEvidenceAnalysisService.addDocument(deviceId, documentType, content, metadata || {});
     res.json({ document });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -184,7 +188,7 @@ router.get("/nlp/documents/:deviceId", authenticate, async (req: AuthRequest, re
   }
 });
 
-router.get("/nlp/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/nlp/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = nlpEvidenceAnalysisService.getStatistics();
     res.json({ statistics });
@@ -219,7 +223,7 @@ router.post("/maintenance/metrics", authenticate, async (req: AuthRequest, res: 
     const metrics = predictiveMaintenanceService.recordHealthMetrics({ ...data, timestamp: Date.now() });
     res.json({ metrics });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -235,7 +239,7 @@ router.post("/maintenance/predict", authenticate, async (req: AuthRequest, res: 
     const predictions = await predictiveMaintenanceService.predictMaintenance(deviceId, imei);
     res.json({ predictions });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -262,12 +266,12 @@ router.post("/maintenance/schedule", authenticate, async (req: AuthRequest, res:
     );
     res.json({ schedule });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
-router.get("/maintenance/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/maintenance/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = predictiveMaintenanceService.getStatistics();
     res.json({ statistics });
@@ -296,7 +300,7 @@ router.post("/anomaly/detect", authenticate, async (req: AuthRequest, res: Respo
     const anomalies = await anomalyDetectionMLService.detectAnomalies(deviceId, imei, features);
     res.json({ anomalies });
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -312,7 +316,7 @@ router.get("/anomaly/detections/:deviceId", authenticate, async (req: AuthReques
   }
 });
 
-router.get("/anomaly/models", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/anomaly/models", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const models = anomalyDetectionMLService.getAllModels();
     res.json({ models });
@@ -331,7 +335,7 @@ router.post("/anomaly/retrain/:modelId", authenticate, requireAdmin, async (req:
   }
 });
 
-router.get("/anomaly/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/anomaly/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = anomalyDetectionMLService.getStatistics();
     res.json({ statistics });

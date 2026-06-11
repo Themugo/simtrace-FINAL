@@ -226,7 +226,7 @@ const CELL_TOWER_DATABASE: Record<string, Record<string, { lat: number; lng: num
 
 // ── Triangulation Algorithm ───────────────────────────────────────────────────────
 export async function triangulateFromCellTowers(cellData: CellData) {
-  const { mcc, mnc, cellTowerId, signalStrength, lac, cid } = cellData;
+  const { mcc, mnc, cellTowerId, signalStrength, lac: _lac, cid: _cid } = cellData;
 
   // Get country code from MCC
   const countryCode = getCountryCodeFromMCC(mcc);
@@ -278,7 +278,7 @@ function getCountryCodeFromMCC(mcc: string): string | null {
   return mccMap[mcc] || null;
 }
 
-function getNearbyTowers(countryCode: string, mnc: string, cellTowerId: string): TowerInfo[] {
+function getNearbyTowers(countryCode: string, _mnc: string, _cellTowerId: string): TowerInfo[] {
   const countryTowers = CELL_TOWER_DATABASE[countryCode];
   if (!countryTowers) return [];
 

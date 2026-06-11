@@ -3,7 +3,7 @@ import crypto from "crypto";
 import {
   DeviceLock,
   Device,
-  User,
+  
 } from "../db/index.js";
 
 // ── Device Lock Management ───────────────────────────────────────────────────────────
@@ -193,3 +193,4 @@ export async function expireTemporaryLocks() {
 
   return { expired: expiredLocks.length };
 }
+

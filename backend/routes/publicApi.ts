@@ -10,9 +10,9 @@ import {
   updateApiKey,
   revokeApiKey,
   deleteApiKey,
-  authenticateApiKey,
-  checkApiKeyRateLimit,
-  checkApiKeyScope,
+  
+  
+  
   getApiKeyStatistics,
   API_SCOPES,
 } from "../services/publicApi.js";
@@ -98,7 +98,7 @@ router.delete("/keys/:id", authenticate, async (req: Request, res: Response, nex
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getApiKeyStatistics();
     res.json(stats);
@@ -106,10 +106,11 @@ router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Respo
 });
 
 // ── Available Scopes ─────────────────────────────────────────────────────────────
-router.get("/scopes", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/scopes", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     res.json(API_SCOPES);
   } catch (err) { next(err); }
 });
 
 export default router;
+

@@ -1,6 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import crypto from "crypto";
 import { Ping, Device } from "../db/index.js";
 import { getIO } from "../services/socket.js";
 import { runIntelligence } from "../services/intelligence.js";

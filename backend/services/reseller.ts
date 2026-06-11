@@ -4,6 +4,31 @@
 import { Reseller, Device, User } from "../db/index.js";
 import { getIO } from "./socket.js";
 
+interface IResellerDoc {
+  [key: string]: unknown;
+  verified: boolean;
+  verifiedAt: Date;
+  verifiedBy: string;
+  user: string;
+  businessName: string;
+  status: string;
+  inventory: {
+    push(item: Record<string, unknown>): void;
+    id(id: string): Record<string, unknown> | null;
+    pull(id: string): void;
+  };
+  transactions: {
+    push(item: Record<string, unknown>): void;
+  };
+  rating: number;
+  reviewCount: number;
+}
+
+interface IDeviceCheck {
+  status: string;
+  stolen?: boolean;
+}
+
 // ── Reseller Management ─────────────────────────────────────────────────────────
 export async function createResellerProfile(data: Record<string, unknown>) {
   const {
@@ -75,7 +100,7 @@ export async function updateResellerProfile(resellerId: string, updates: Record<
 
   for (const key of allowedUpdates) {
     if (updates[key] !== undefined) {
-      (reseller as any)[key] = updates[key];
+      (reseller as IResellerDoc)[key] = updates[key];
     }
   }
 
@@ -89,16 +114,16 @@ export async function verifyReseller(resellerId: string, verifiedBy: string) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  (reseller as any).verified = true;
-  (reseller as any).verifiedAt = new Date();
-  (reseller as any).verifiedBy = verifiedBy;
+  (reseller as IResellerDoc).verified = true;
+  (reseller as IResellerDoc).verifiedAt = new Date();
+  (reseller as IResellerDoc).verifiedBy = verifiedBy;
   reseller.updatedAt = new Date();
   await reseller.save();
 
   // Notify via socket
-  getIO().to(`user:${(reseller as any).user}`).emit("reseller_verified", {
+  getIO().to(`user:${(reseller as IResellerDoc).user}`).emit("reseller_verified", {
     resellerId,
-    businessName: (reseller as any).businessName,
+    businessName: (reseller as IResellerDoc).businessName,
   });
 
   return reseller;
@@ -108,7 +133,7 @@ export async function updateResellerStatus(resellerId: string, status: string) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  (reseller as any).status = status;
+  (reseller as IResellerDoc).status = status;
   reseller.updatedAt = new Date();
   await reseller.save();
 
@@ -124,7 +149,7 @@ export async function addInventoryItem(resellerId: string, item: Record<string, 
   const device = await Device.findById(i.deviceId);
   if (!device) throw new Error("Device not found");
 
-  (reseller as any).inventory.push({
+  (reseller as IResellerDoc).inventory.push({
     imei: device.imei,
     device: i.deviceId,
     status: i.status || "in_stock",
@@ -142,7 +167,7 @@ export async function updateInventoryItem(resellerId: string, inventoryId: strin
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  const item = (reseller as any).inventory.id(inventoryId);
+  const item = (reseller as IResellerDoc).inventory.id(inventoryId);
   if (!item) throw new Error("Inventory item not found");
 
   const u = updates as { status: string; price: number };
@@ -159,7 +184,7 @@ export async function removeInventoryItem(resellerId: string, inventoryId: strin
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
-  (reseller as any).inventory.pull(inventoryId);
+  (reseller as IResellerDoc).inventory.pull(inventoryId);
   reseller.updatedAt = new Date();
   await reseller.save();
 
@@ -171,7 +196,7 @@ export async function recordTransaction(resellerId: string, transaction: Record<
   if (!reseller) throw new Error("Reseller not found");
 
   const t = transaction as { type: string; imei: string; amount: number };
-  (reseller as any).transactions.push({
+  (reseller as IResellerDoc).transactions.push({
     type: t.type,
     imei: t.imei,
     amount: t.amount,
@@ -234,14 +259,14 @@ export async function searchResellers(query: string) {
 }
 
 // ── Rating & Reviews ───────────────────────────────────────────────────────────
-export async function addResellerRating(resellerId: string, rating: number, review: string) {
+export async function addResellerRating(resellerId: string, rating: number, _review: string) {
   const reseller = await Reseller.findById(resellerId);
   if (!reseller) throw new Error("Reseller not found");
 
   // Update rating (simplified - in production would store individual reviews)
-  const currentTotal = (reseller as any).rating * (reseller as any).reviewCount;
-  (reseller as any).reviewCount += 1;
-  (reseller as any).rating = (currentTotal + rating) / (reseller as any).reviewCount;
+  const currentTotal = (reseller as IResellerDoc).rating * (reseller as IResellerDoc).reviewCount;
+  (reseller as IResellerDoc).reviewCount += 1;
+  (reseller as IResellerDoc).rating = (currentTotal + rating) / (reseller as IResellerDoc).reviewCount;
 
   reseller.updatedAt = new Date();
   await reseller.save();
@@ -316,7 +341,7 @@ export async function verifyDeviceForReseller(imei: string) {
   }
 
   // Check if device is blacklisted
-  const isBlacklisted = (device as any).status === "blacklisted" || (device as any).stolen;
+  const isBlacklisted = (device as IDeviceCheck).status === "blacklisted" || (device as IDeviceCheck).stolen;
 
   // Check regulatory blocks
   const { RegulatoryBlock } = await import("../db/index.js");
@@ -332,8 +357,8 @@ export async function verifyDeviceForReseller(imei: string) {
       imei: device.imei,
       make: device.make,
       model: device.model,
-      status: (device as any).status,
-      stolen: (device as any).stolen,
+      status: (device as IDeviceCheck).status,
+      stolen: (device as IDeviceCheck).stolen,
     },
     blacklisted: isBlacklisted,
     regulatoryBlocks: blocks.length,

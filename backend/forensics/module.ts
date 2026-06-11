@@ -56,7 +56,7 @@ class ForensicsModule {
   private timelines: Map<string, Timeline> = new Map();
 
   // Extract metadata from evidence
-  extractMetadata(evidenceId: string, evidenceData: any): ForensicsMetadata {
+  extractMetadata(_evidenceId: string, evidenceData: any): ForensicsMetadata {
     const extracted: Record<string, any> = {};
 
     // Extract EXIF data if image

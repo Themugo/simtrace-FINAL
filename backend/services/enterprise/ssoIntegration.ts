@@ -231,8 +231,8 @@ export class SSOIntegrationService {
    */
   async exchangeOAuth2Code(
     providerId: string,
-    code: string,
-    redirectUri: string
+    _code: string,
+    _redirectUri: string
   ): Promise<{ access_token: string; refresh_token?: string; expires_in: number }> {
     const provider = this.providers.get(providerId);
     
@@ -257,7 +257,7 @@ export class SSOIntegrationService {
   /**
    * Get user info from OAuth2 provider
    */
-  async getOAuth2UserInfo(providerId: string, accessToken: string): Promise<{
+  async getOAuth2UserInfo(providerId: string, _accessToken: string): Promise<{
     id: string;
     email: string;
     name: string;

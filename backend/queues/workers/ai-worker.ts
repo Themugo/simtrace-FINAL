@@ -2,8 +2,7 @@
 // Handles AI-based risk assessment and fraud detection
 
 import { Worker, Job } from 'bullmq';
-import { queues, JobTypes } from '../index.js';
-import { assessDeviceRisk } from '../../modules/risk/engine.js';
+
 
 const aiWorker = new Worker(
   'ai-processing',
@@ -50,7 +49,7 @@ const aiWorker = new Worker(
 );
 
 // AI processing functions
-async function performRiskAssessment(imei: string, data: any) {
+async function performRiskAssessment(imei: string, _data: any) {
   // Simulate AI processing
   await new Promise(resolve => setTimeout(resolve, 2000));
   
@@ -65,7 +64,7 @@ async function performRiskAssessment(imei: string, data: any) {
   };
 }
 
-async function performFraudDetection(imei: string, data: any) {
+async function performFraudDetection(imei: string, _data: any) {
   // Simulate AI processing
   await new Promise(resolve => setTimeout(resolve, 3000));
   
@@ -78,7 +77,7 @@ async function performFraudDetection(imei: string, data: any) {
   };
 }
 
-async function performBehaviorAnalysis(imei: string, data: any) {
+async function performBehaviorAnalysis(imei: string, _data: any) {
   // Simulate AI processing
   await new Promise(resolve => setTimeout(resolve, 2500));
   

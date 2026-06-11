@@ -169,10 +169,10 @@ export class MultiRegionDataService {
    * Store data in specified region
    */
   storeData(
-    dataId: string,
+    _dataId: string,
     userId: string,
     entityType: string,
-    data: any,
+    _data: any,
     deviceId?: string
   ): { regionId: string; success: boolean } {
     const requiredRegion = this.getRequiredRegion(userId, entityType, deviceId);
@@ -188,7 +188,7 @@ export class MultiRegionDataService {
     }
 
     // Store data location
-    this.dataLocations.set(dataId, requiredRegion);
+    this.dataLocations.set(_dataId, requiredRegion);
 
     return { regionId: requiredRegion, success: true };
   }
@@ -206,7 +206,7 @@ export class MultiRegionDataService {
   checkTransferCompliance(
     sourceRegion: string,
     destinationRegion: string,
-    dataId: string
+    _dataId: string
   ): { compliant: boolean; reason?: string } {
     const sourceRegionData = this.regions.get(sourceRegion);
     const destRegionData = this.regions.get(destinationRegion);

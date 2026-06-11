@@ -2,7 +2,7 @@
 import crypto from "crypto";
 import mongoose from "mongoose";
 import {
-  User,
+  
   Device,
 } from "../db/index.js";
 
@@ -370,3 +370,4 @@ export async function initializeDefaultPlans() {
 
   return createdPlans;
 }
+

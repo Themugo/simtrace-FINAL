@@ -5,6 +5,12 @@ import {
   TelecomCompany,
 } from "../db/index.js";
 
+interface TelecomDashboardFields {
+  allowedUsers: string[];
+  updatedBy: string;
+  companyId?: string;
+}
+
 // ── Telecom Dashboard Management ─────────────────────────────────────────────────────
 export async function createTelecomDashboard(data: Record<string, unknown>) {
   const dashboardId = `tdash_${crypto.randomBytes(16).toString("hex")}`;
@@ -81,9 +87,9 @@ export async function addDashboardUser(dashboardId: string, userId: string, upda
   const dashboard = await TelecomDashboard.findOne({ dashboardId });
   if (!dashboard) throw new Error("Telecom dashboard not found");
 
-  if (!(dashboard as any).allowedUsers.includes(userId)) {
-    (dashboard as any).allowedUsers.push(userId);
-    (dashboard as any).updatedBy = updatedBy;
+  if (!(dashboard as unknown as TelecomDashboardFields).allowedUsers.includes(userId)) {
+    (dashboard as unknown as TelecomDashboardFields).allowedUsers.push(userId);
+    (dashboard as unknown as TelecomDashboardFields).updatedBy = updatedBy;
     dashboard.updatedAt = new Date();
     await dashboard.save();
   }
@@ -95,15 +101,15 @@ export async function removeDashboardUser(dashboardId: string, userId: string, u
   const dashboard = await TelecomDashboard.findOne({ dashboardId });
   if (!dashboard) throw new Error("Telecom dashboard not found");
 
-  (dashboard as any).allowedUsers = (dashboard as any).allowedUsers.filter((id: string) => id.toString() !== userId.toString());
-  (dashboard as any).updatedBy = updatedBy;
+  (dashboard as unknown as TelecomDashboardFields).allowedUsers = (dashboard as unknown as TelecomDashboardFields).allowedUsers.filter((id: string) => id.toString() !== userId.toString());
+  (dashboard as unknown as TelecomDashboardFields).updatedBy = updatedBy;
   dashboard.updatedAt = new Date();
   await dashboard.save();
 
   return dashboard;
 }
 
-export async function deleteTelecomDashboard(dashboardId: string, deletedBy: string) {
+export async function deleteTelecomDashboard(dashboardId: string, _deletedBy: string) {
   const dashboard = await TelecomDashboard.findOneAndDelete({ dashboardId });
   if (!dashboard) throw new Error("Telecom dashboard not found");
   return dashboard;
@@ -119,7 +125,7 @@ export async function getDashboardData(dashboardId: string) {
   const dashboard = await TelecomDashboard.findById(dashboardId);
   if (!dashboard) throw new Error("Telecom dashboard not found");
 
-  const company = await TelecomCompany.findById((dashboard as any).companyId);
+  const company = await TelecomCompany.findById((dashboard as unknown as TelecomDashboardFields).companyId);
   if (!company) throw new Error("Telecom company not found");
 
   // TODO: Aggregate data based on widgets

@@ -179,7 +179,7 @@ router.get("/:companyId/statistics", authenticate, async (req: Request, res: Res
   } catch (err) { next(err); }
 });
 
-router.get("/statistics", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getTelecomCompanyStatistics();
     res.json(stats);

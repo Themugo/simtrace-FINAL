@@ -159,7 +159,7 @@ export class MultiTenantService {
    * Initialize quota for tenant
    */
   private initializeQuota(tenantId: string, plan: string): void {
-    const planLimits = this.getPlanLimits(plan);
+    this.getPlanLimits(plan);
 
     const quota: TenantQuota = {
       tenantId,

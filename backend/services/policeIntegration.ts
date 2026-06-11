@@ -10,8 +10,8 @@ import {
   CourtCase,
   InterpolCase,
   Device,
-  User,
-  TheftReport,
+  
+  
 } from "../db/index.js";
 import mongoose from "mongoose";
 import { getIO } from "./socket.js";
@@ -827,3 +827,4 @@ export async function getPoliceStatistics() {
     },
   };
 }
+

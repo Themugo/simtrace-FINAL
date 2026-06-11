@@ -3,7 +3,7 @@ import crypto from "crypto";
 import {
   DeviceTransfer,
   Device,
-  User,
+  
 } from "../db/index.js";
 
 // ── Device Transfer Management ───────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ export async function completeDeviceTransfer(transferId: string) {
   return transfer;
 }
 
-export async function cancelDeviceTransfer(transferId: string, userId: string, reason: string) {
+export async function cancelDeviceTransfer(transferId: string, userId: string, _reason: string) {
   const transfer = await DeviceTransfer.findOne({ transferId });
   if (!transfer) throw new Error("Transfer not found");
 
@@ -190,3 +190,4 @@ export async function getDisputedTransfers() {
   }).sort({ transferDate: -1 });
   return transfers;
 }
+

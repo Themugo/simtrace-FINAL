@@ -68,7 +68,7 @@ export function formatErrorResponse(error: unknown, correlationId: string): Reco
 }
 
 // Global error handler middleware
-export function globalErrorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
+export function globalErrorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   const correlationId = (req as any).correlationId || generateCorrelationId();
   const error = err as Error;
   

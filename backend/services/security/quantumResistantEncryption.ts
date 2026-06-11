@@ -184,7 +184,6 @@ export class QuantumResistantEncryptionService {
    * Encrypt symmetric key with public key
    */
   private encryptSymmetricKey(symmetricKey: Buffer, publicKey: string): string {
-    const buffer = Buffer.from(publicKey);
     const encrypted = crypto.publicEncrypt(
       {
         key: publicKey,
@@ -270,3 +269,4 @@ export class QuantumResistantEncryptionService {
 }
 
 export const quantumResistantEncryptionService = new QuantumResistantEncryptionService();
+

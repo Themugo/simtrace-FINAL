@@ -2,12 +2,30 @@
 import crypto from "crypto";
 import {
   TelecomCompany,
-  TelecomDashboard,
+  
   SimCardTracking,
   NetworkActivity,
-  Device,
-  CellTower,
+  
+  
 } from "../db/index.js";
+
+interface ApiKeyEntry {
+  key: string;
+  permissions: unknown;
+  expiresAt?: Date;
+  lastUsed: Date | null;
+}
+
+interface TelecomCompanyDoc {
+  apiKeys: ApiKeyEntry[];
+  permissions: Record<string, boolean>;
+  totalTracked: number;
+  totalRecovered: number;
+  totalCommission: number;
+  commission: { tier: string };
+  verified: boolean;
+  status: string;
+}
 
 // ── Telecom Company Management ───────────────────────────────────────────────────────
 export async function createTelecomCompany(data: Record<string, unknown>) {
@@ -93,7 +111,7 @@ export async function generateApiKey(companyId: string, permissions: unknown, ex
 
   const apiKey = `sk_${crypto.randomBytes(32).toString("hex")}`;
 
-  (company as any).apiKeys.push({
+  (company as TelecomCompanyDoc).apiKeys.push({
     key: apiKey,
     permissions,
     expiresAt,
@@ -110,7 +128,7 @@ export async function revokeApiKey(companyId: string, apiKey: string) {
   const company = await TelecomCompany.findOne({ companyId });
   if (!company) throw new Error("Telecom company not found");
 
-  (company as any).apiKeys = (company as any).apiKeys.filter((k: { key: string }) => k.key !== apiKey);
+  (company as TelecomCompanyDoc).apiKeys = (company as TelecomCompanyDoc).apiKeys.filter((k: { key: string }) => k.key !== apiKey);
   company.updatedAt = new Date();
   await company.save();
 
@@ -125,7 +143,7 @@ export async function validateApiKey(apiKey: string) {
 
   if (!company) return { valid: false };
 
-  const keyObj = (company as any).apiKeys.find((k: { key: string }) => k.key === apiKey);
+  const keyObj = (company as TelecomCompanyDoc).apiKeys.find((k: { key: string }) => k.key === apiKey);
   if (!keyObj) return { valid: false };
 
   // Check expiration
@@ -149,7 +167,7 @@ export async function checkTelecomPermission(companyId: string, permission: stri
   const company = await TelecomCompany.findOne({ companyId, status: "active" });
   if (!company) return { allowed: false, reason: "Telecom company not found or inactive" };
 
-  if (!(company as any).permissions[permission]) {
+  if (!(company as TelecomCompanyDoc).permissions[permission]) {
     return { allowed: false, reason: `Permission '${permission}' not granted` };
   }
 
@@ -166,15 +184,15 @@ export async function getTelecomStatistics(companyId: string) {
   const flaggedSimCards = await SimCardTracking.countDocuments({ companyId, flaggedAsStolen: true });
 
   return {
-    totalTracked: (company as any).totalTracked,
-    totalRecovered: (company as any).totalRecovered,
-    totalCommission: (company as any).totalCommission,
+    totalTracked: (company as TelecomCompanyDoc).totalTracked,
+    totalRecovered: (company as TelecomCompanyDoc).totalRecovered,
+    totalCommission: (company as TelecomCompanyDoc).totalCommission,
     simCardsTracked: simCards,
     networkActivities: networkActivities,
     flaggedSimCards: flaggedSimCards,
-    commissionTier: (company as any).commission.tier,
-    verified: (company as any).verified,
-    status: (company as any).status,
+    commissionTier: (company as TelecomCompanyDoc).commission.tier,
+    verified: (company as TelecomCompanyDoc).verified,
+    status: (company as TelecomCompanyDoc).status,
   };
 }
 
@@ -216,3 +234,4 @@ export async function getTelecomCompanyStatistics() {
     },
   };
 }
+

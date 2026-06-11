@@ -41,7 +41,7 @@ export function requireOrganizationAccess() {
 }
 
 // Middleware to add organizationId filter to queries (tenant isolation)
-export function withTenantIsolation(req: Request, res: Response, next: NextFunction): void {
+export function withTenantIsolation(_req: Request, res: Response, next: NextFunction): void {
   const originalJson = res.json;
   
   res.json = function(this: Response, data: unknown) {

@@ -4,7 +4,7 @@
 import { getDeviceDigitalTwin } from '../modules/device-intelligence/index.js';
 import { getInvestigationGraph } from '../modules/graph-ai/index.js';
 import { emit } from '../events/index.js';
-import { assessDeviceRisk } from '../modules/risk/engine.js';
+
 
 export interface AgentConfig {
   enabled: boolean;
@@ -112,7 +112,7 @@ class RecoveryAgent extends Agent {
     };
   }
 
-  private async monitorDeviceActivity(imei: string): Promise<void> {
+  private async monitorDeviceActivity(_imei: string): Promise<void> {
     // Monitor device for activity patterns
     // Emit events when suspicious activity is detected
   }
@@ -237,7 +237,7 @@ class InvestigationAgent extends Agent {
     return [];
   }
 
-  private async summarizeCase(case_: any): Promise<any> {
+  private async summarizeCase(_case_: any): Promise<any> {
     // Use AI to generate case summary
     return {
       summary: 'AI-generated case summary',
@@ -246,7 +246,7 @@ class InvestigationAgent extends Agent {
     };
   }
 
-  private async draftReport(case_: any, summary: any): Promise<any> {
+  private async draftReport(case_: any, _summary: any): Promise<any> {
     // Use AI to draft investigation report
     return {
       title: `Investigation Report - Case ${case_.id}`,
@@ -254,7 +254,7 @@ class InvestigationAgent extends Agent {
     };
   }
 
-  private async suggestLeads(case_: any): Promise<any[]> {
+  private async suggestLeads(_case_: any): Promise<any[]> {
     // Use AI to suggest investigation leads
     return [];
   }

@@ -177,7 +177,7 @@ export class PredictiveMaintenanceService {
    * Predict system failure
    */
   private predictSystemFailure(deviceId: string, imei: string, metrics: DeviceHealthMetrics): MaintenancePrediction | null {
-    const { cpuUsage, memoryUsage, systemErrors, uptime } = metrics.metrics;
+    const { cpuUsage, memoryUsage, systemErrors } = metrics.metrics;
 
     // System stress indicators
     if (cpuUsage > 90 && memoryUsage > 90 && systemErrors > 15) {
@@ -363,3 +363,4 @@ export class PredictiveMaintenanceService {
 }
 
 export const predictiveMaintenanceService = new PredictiveMaintenanceService();
+

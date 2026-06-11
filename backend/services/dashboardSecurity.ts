@@ -561,7 +561,7 @@ export async function approveNetworkChange(requestId: string, approverId: string
   return networkChange;
 }
 
-export async function rejectNetworkChange(requestId: string, approverId: string, rejectionReason: string) {
+export async function rejectNetworkChange(requestId: string, _approverId: string, rejectionReason: string) {
   const networkChange = await NetworkChangeRequest.findOne({ requestId });
   if (!networkChange) throw new Error("Network change request not found");
 
@@ -652,7 +652,7 @@ export async function getNetworkChangeRequestsByAgency(agencyId: string) {
   return networkChanges;
 }
 
-function getApproverLevel(approverId: string): string {
+function getApproverLevel(_approverId: string): string {
   // TODO: Implement logic to determine approver's level based on their role
   return "station"; // Placeholder
 }

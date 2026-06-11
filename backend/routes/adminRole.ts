@@ -58,7 +58,7 @@ router.get("/:role", authenticate, async (req: AuthRequest, res: Response, next:
   } catch (err) { next(err); }
 });
 
-router.get("/", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const rolePermissions = await getAllAdminRolePermissions();
     res.json({ rolePermissions, count: rolePermissions.length });
@@ -156,7 +156,7 @@ router.post("/:role/check-system-permission", authenticate, async (req: AuthRequ
 });
 
 // ── Initialize Default Roles ───────────────────────────────────────────────────────────
-router.post("/initialize-default-roles", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/initialize-default-roles", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const roles = await initializeDefaultRoles();
     res.json({ roles, count: roles.length });

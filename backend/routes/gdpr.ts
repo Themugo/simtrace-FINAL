@@ -147,7 +147,7 @@ router.get("/compliance", authenticate, async (req: AuthRequest, res: Response, 
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getGdprStatistics();
     res.json(stats);

@@ -53,9 +53,9 @@ export async function createAdCampaign(data: Record<string, unknown>) {
   const user = await User.findById(advertiser);
   if (!user) throw new Error("Advertiser not found");
 
-  const whiteLabelInstance = whiteLabel 
-    ? await WhiteLabelInstance.findById(whiteLabel)
-    : null;
+  if (whiteLabel) {
+    await WhiteLabelInstance.findById(whiteLabel);
+  }
 
   const campaign = await AdCampaign.create({
     name,
@@ -206,7 +206,7 @@ export async function trackAdEvent(data: Record<string, unknown>) {
   return event;
 }
 
-function calculateFraudScore({ type, context, userId }: { type: string; context?: { userAgent?: string }; userId?: string }): number {
+function calculateFraudScore({ type: _type, context, userId }: { type: string; context?: { userAgent?: string }; userId?: string }): number {
   let score = 0;
 
   // High frequency from same user

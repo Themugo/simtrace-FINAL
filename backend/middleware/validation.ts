@@ -139,7 +139,7 @@ export const validationRules = {
  * Sanitization middleware
  * Removes potentially dangerous characters from request inputs
  */
-export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
+export const sanitizeInput = (req: Request, _res: Response, next: NextFunction) => {
   // Sanitize body
   if (req.body) {
     Object.keys(req.body).forEach(key => {
@@ -165,7 +165,7 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
  * Rate limit validation
  * Checks if the request exceeds rate limits
  */
-export const checkRateLimit = (req: Request, res: Response, next: NextFunction) => {
+export const checkRateLimit = (_req: Request, _res: Response, next: NextFunction) => {
   // This is handled by express-rate-limit middleware
   // This middleware can be used for custom rate limiting logic
   next();

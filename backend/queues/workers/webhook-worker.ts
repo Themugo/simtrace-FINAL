@@ -2,7 +2,6 @@
 // Handles webhook delivery with retry logic
 
 import { Worker, Job } from 'bullmq';
-import { queues, JobTypes } from '../index.js';
 
 const webhookWorker = new Worker(
   'webhook-retry',

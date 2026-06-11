@@ -147,7 +147,7 @@ export class SocialNetworkAnalysisService {
     }
 
     // Detect patterns (3+ thefts from same source)
-    for (const [sourceId, edges] of theftEdgesBySource.entries()) {
+    for (const [_sourceId, edges] of theftEdgesBySource.entries()) {
       if (edges.length >= 3) {
         const patternId = crypto.randomBytes(16).toString('hex');
         const involvedNodes = edges.map(e => e.targetId);
@@ -264,7 +264,7 @@ export class SocialNetworkAnalysisService {
     const clusters: NetworkCluster[] = [];
     const visited = new Set<string>();
 
-    for (const [nodeId, node] of this.nodes.entries()) {
+    for (const [nodeId, _node] of this.nodes.entries()) {
       if (visited.has(nodeId)) continue;
 
       const clusterNodes = this.bfsCluster(nodeId, visited);

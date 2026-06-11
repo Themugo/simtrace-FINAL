@@ -2,13 +2,31 @@
 import crypto from "crypto";
 import {
   LawEnforcementAgency,
-  LawEnforcementDashboard,
+  
   PoliceHierarchy,
   PoliceReport,
   InterpolCase,
   CourtCase,
-  Device,
+  
 } from "../db/index.js";
+
+interface ApiKeyEntry {
+  key: string;
+  permissions: unknown;
+  expiresAt?: Date;
+  lastUsed: Date | null;
+}
+
+interface LawAgencyDoc {
+  apiKeys: ApiKeyEntry[];
+  permissions: Record<string, boolean>;
+  hierarchyUnits: string[];
+  totalCases: number;
+  activeCases: number;
+  resolvedCases: number;
+  arrestsMade: number;
+  verified: boolean;
+}
 
 // ── Law Enforcement Agency Management ───────────────────────────────────────────────────
 export async function createLawEnforcementAgency(data: Record<string, unknown>) {
@@ -99,7 +117,7 @@ export async function generateLawEnforcementApiKey(agencyId: string, permissions
 
   const apiKey = `sk_le_${crypto.randomBytes(32).toString("hex")}`;
 
-  (agency as any).apiKeys.push({
+  (agency as LawAgencyDoc).apiKeys.push({
     key: apiKey,
     permissions,
     expiresAt,
@@ -116,7 +134,7 @@ export async function revokeLawEnforcementApiKey(agencyId: string, apiKey: strin
   const agency = await LawEnforcementAgency.findOne({ agencyId });
   if (!agency) throw new Error("Law enforcement agency not found");
 
-  (agency as any).apiKeys = (agency as any).apiKeys.filter((k: { key: string }) => k.key !== apiKey);
+  (agency as LawAgencyDoc).apiKeys = (agency as LawAgencyDoc).apiKeys.filter((k: { key: string }) => k.key !== apiKey);
   agency.updatedAt = new Date();
   await agency.save();
 
@@ -131,7 +149,7 @@ export async function validateLawEnforcementApiKey(apiKey: string) {
 
   if (!agency) return { valid: false };
 
-  const keyObj = (agency as any).apiKeys.find((k: { key: string }) => k.key === apiKey);
+  const keyObj = (agency as LawAgencyDoc).apiKeys.find((k: { key: string }) => k.key === apiKey);
   if (!keyObj) return { valid: false };
 
   // Check expiration
@@ -155,7 +173,7 @@ export async function checkLawEnforcementPermission(agencyId: string, permission
   const agency = await LawEnforcementAgency.findOne({ agencyId, status: "active" });
   if (!agency) return { allowed: false, reason: "Law enforcement agency not found or inactive" };
 
-  if (!(agency as any).permissions[permission]) {
+  if (!(agency as LawAgencyDoc).permissions[permission]) {
     return { allowed: false, reason: `Permission '${permission}' not granted` };
   }
 
@@ -170,8 +188,8 @@ export async function linkHierarchyUnit(agencyId: string, hierarchyUnitId: strin
   const hierarchyUnit = await PoliceHierarchy.findById(hierarchyUnitId);
   if (!hierarchyUnit) throw new Error("Police hierarchy unit not found");
 
-  if (!(agency as any).hierarchyUnits.includes(hierarchyUnitId)) {
-    (agency as any).hierarchyUnits.push(hierarchyUnitId);
+  if (!(agency as LawAgencyDoc).hierarchyUnits.includes(hierarchyUnitId)) {
+    (agency as LawAgencyDoc).hierarchyUnits.push(hierarchyUnitId);
     agency.updatedBy = linkedBy;
     agency.updatedAt = new Date();
     await agency.save();
@@ -184,7 +202,7 @@ export async function unlinkHierarchyUnit(agencyId: string, hierarchyUnitId: str
   const agency = await LawEnforcementAgency.findOne({ agencyId });
   if (!agency) throw new Error("Law enforcement agency not found");
 
-  (agency as any).hierarchyUnits = (agency as any).hierarchyUnits.filter(
+  (agency as LawAgencyDoc).hierarchyUnits = (agency as LawAgencyDoc).hierarchyUnits.filter(
     (id: string) => id.toString() !== hierarchyUnitId.toString()
   );
   agency.updatedBy = unlinkedBy;
@@ -216,11 +234,11 @@ export async function getLawEnforcementStatistics(agencyId: string) {
   if (!agency) throw new Error("Law enforcement agency not found");
 
   return {
-    totalCases: (agency as any).totalCases,
-    activeCases: (agency as any).activeCases,
-    resolvedCases: (agency as any).resolvedCases,
-    arrestsMade: (agency as any).arrestsMade,
-    verified: (agency as any).verified,
+    totalCases: (agency as LawAgencyDoc).totalCases,
+    activeCases: (agency as LawAgencyDoc).activeCases,
+    resolvedCases: (agency as LawAgencyDoc).resolvedCases,
+    arrestsMade: (agency as LawAgencyDoc).arrestsMade,
+    verified: (agency as LawAgencyDoc).verified,
     status: agency.status,
   };
 }
@@ -255,3 +273,4 @@ export async function getLawEnforcementAgencyStatistics() {
     arrests: arrestsMade[0]?.total || 0,
   };
 }
+

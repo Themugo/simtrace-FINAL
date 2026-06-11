@@ -3,9 +3,9 @@ import crypto from "crypto";
 import {
   SellerReseller,
   DeviceRegistration,
-  OfficialEmail,
-  SecurityOtp,
-  Device,
+  
+  
+  
 } from "../db/index.js";
 
 interface ISellerDoc {
@@ -287,3 +287,4 @@ export async function getSellerResellerStatistics() {
     },
   };
 }
+

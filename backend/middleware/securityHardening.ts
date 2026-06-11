@@ -117,7 +117,6 @@ export const abuseDetectionMiddleware = async (req: Request, res: Response, next
 // CSRF protection for state-changing requests
 export const csrfProtectionMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const csrfToken = req.headers['x-csrf-token'];
-  const sessionToken = req.headers['authorization'];
   
   // Skip CSRF for GET requests
   if (req.method === 'GET') {
@@ -139,7 +138,7 @@ export const csrfProtectionMiddleware = (req: Request, res: Response, next: Next
 };
 
 // Security headers enhancement
-export const securityHeadersMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const securityHeadersMiddleware = (_req: Request, res: Response, next: NextFunction) => {
   // Additional security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');

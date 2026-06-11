@@ -58,7 +58,7 @@ export async function detectNearbyDevices(data: Record<string, unknown>) {
   if (!device) throw new Error("Device not found");
 
   // Get nearby devices from satellite pings in the area
-  const nearbyRadius = 500; // 500 meters
+  /* const nearbyRadius = 500; // 500 meters */
   const timeWindow = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
 
   const nearbyPings = await SatellitePing.find({

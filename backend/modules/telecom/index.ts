@@ -111,12 +111,12 @@ export async function flagSIMAsStolen(iccid: string, reportedBy: string, reason:
   return sim;
 }
 
-export async function getSIMCard(iccid: string): Promise<SIMCard | null> {
+export async function getSIMCard(_iccid: string): Promise<SIMCard | null> {
   // In production, fetch from database
   return null;
 }
 
-export async function listSIMCards(filters?: { status?: string; operator?: string }): Promise<SIMCard[]> {
+export async function listSIMCards(_filters?: { status?: string; operator?: string }): Promise<SIMCard[]> {
   // In production, fetch from database with filters
   return [];
 }
@@ -132,7 +132,7 @@ export async function createNetworkActivity(data: Omit<NetworkActivity, '_id'>):
   return activity;
 }
 
-export async function getNetworkActivity(iccid: string, startDate?: Date, endDate?: Date): Promise<NetworkActivity[]> {
+export async function getNetworkActivity(_iccid: string, _startDate?: Date, _endDate?: Date): Promise<NetworkActivity[]> {
   // In production, fetch from database with date range
   return [];
 }
@@ -224,13 +224,13 @@ export async function registerCellTower(data: Omit<CellTower, '_id'>): Promise<C
   return tower;
 }
 
-export async function getNearbyCellTowers(lat: number, lng: number, radiusKm: number = 10): Promise<CellTower[]> {
+export async function getNearbyCellTowers(_lat: number, _lng: number, _radiusKm: number = 10): Promise<CellTower[]> {
   // In production, query database for towers within radius
   return [];
 }
 
 // Provider Failover
-export async function checkProviderHealth(operator: string): Promise<{ healthy: boolean; latency: number; lastCheck: Date }> {
+export async function checkProviderHealth(_operator: string): Promise<{ healthy: boolean; latency: number; lastCheck: Date }> {
   // In production, ping provider API
   return {
     healthy: true,
@@ -248,7 +248,7 @@ export async function failoverToBackupProvider(primaryOperator: string): Promise
 }
 
 // Commission Calculation
-export async function calculateCommission(operator: string, period: { startDate: Date; endDate: Date }): Promise<{
+export async function calculateCommission(_operator: string, _period: { startDate: Date; endDate: Date }): Promise<{
   totalCommission: number;
   successfulRecoveries: number;
   ratePerRecovery: number;
@@ -313,7 +313,7 @@ async function checkForSIMSwap(imei: string, newIccid: string, location: { lat: 
 }
 
 // Statistics
-export async function getTelecomStatistics(operator?: string) {
+export async function getTelecomStatistics(_operator?: string) {
   const stats = {
     totalSIMs: 0,
     activeSIMs: 0,

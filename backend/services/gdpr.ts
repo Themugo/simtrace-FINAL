@@ -17,15 +17,6 @@ interface GdprRequestDoc {
   save(): Promise<GdprRequestDoc>;
 }
 
-interface DataResidencyDoc {
-  region: string;
-  storageLocations: string[];
-  gdprCompliant: boolean;
-  ccpaCompliant: boolean;
-  updatedAt?: Date;
-  save(): Promise<DataResidencyDoc>;
-}
-
 // ── GDPR Request Management ───────────────────────────────────────────────────────
 export async function createGdprRequest(data: Record<string, unknown>) {
   const { userId, requestType } = data as { userId: string; requestType: string };
@@ -237,9 +228,6 @@ export async function checkGdprCompliance(userId: string) {
       reason: "No data residency configured",
     };
   }
-
-  const isEuUser = residency.region === "eu";
-  const isUsUser = residency.region === "us";
 
   return {
     gdprCompliant: residency.gdprCompliant,

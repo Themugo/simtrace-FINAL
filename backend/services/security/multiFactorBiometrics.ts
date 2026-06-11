@@ -554,7 +554,7 @@ export class MultiFactorBiometricsService {
   /**
    * Assess image quality
    */
-  private assessImageQuality(imageData: string): number {
+  private assessImageQuality(_imageData: string): number {
     // Simulated quality assessment
     return 0.8 + Math.random() * 0.2;
   }
@@ -562,21 +562,21 @@ export class MultiFactorBiometricsService {
   /**
    * Assess audio quality
    */
-  private assessAudioQuality(audioData: string): number {
+  private assessAudioQuality(_audioData: string): number {
     return 0.8 + Math.random() * 0.2;
   }
 
   /**
    * Assess fingerprint quality
    */
-  private assessFingerprintQuality(fingerprintData: string): number {
+  private assessFingerprintQuality(_fingerprintData: string): number {
     return 0.8 + Math.random() * 0.2;
   }
 
   /**
    * Check liveness for face
    */
-  private checkLiveness(faceData: string): number {
+  private checkLiveness(_faceData: string): number {
     // Simulated liveness detection
     return 0.85 + Math.random() * 0.15;
   }
@@ -584,14 +584,14 @@ export class MultiFactorBiometricsService {
   /**
    * Check liveness for voice
    */
-  private checkVoiceLiveness(voiceData: string): number {
+  private checkVoiceLiveness(_voiceData: string): number {
     return 0.85 + Math.random() * 0.15;
   }
 
   /**
    * Check liveness for fingerprint
    */
-  private checkFingerprintLiveness(fingerprintData: string): number {
+  private checkFingerprintLiveness(_fingerprintData: string): number {
     return 0.85 + Math.random() * 0.15;
   }
 

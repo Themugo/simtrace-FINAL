@@ -156,14 +156,14 @@ router.get("/country/:country", authenticate, async (req: AuthRequest, res: Resp
   } catch (err) { next(err); }
 });
 
-router.get("/verified", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/verified", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const listings = await getVerifiedPartners();
     res.json({ listings, count: listings.length });
   } catch (err) { next(err); }
 });
 
-router.get("/pending", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/pending", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const listings = await getPendingVerifications();
     res.json({ listings, count: listings.length });
@@ -188,7 +188,7 @@ router.post("/listings/:id/inquire", authenticate, async (req: AuthRequest, res:
 });
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const stats = await getMarketplaceStatistics();
     res.json(stats);

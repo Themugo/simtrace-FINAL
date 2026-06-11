@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { Device, Subscription } from "../db/index.js";
+import { Device, } from "../db/index.js";
 import { authenticate } from "../middleware/auth.js";
 import { z } from "zod";
 
@@ -80,3 +80,4 @@ router.post(
 );
 
 export default router;
+

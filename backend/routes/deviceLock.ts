@@ -138,7 +138,7 @@ router.get("/device/:deviceId/status", authenticate, requireDeviceOwner("deviceI
   } catch (err) { next(err); }
 });
 
-router.post("/expire-temporary", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/expire-temporary", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await expireTemporaryLocks();
     res.json(result);

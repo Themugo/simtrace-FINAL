@@ -21,7 +21,7 @@ type AuthRequest = Request & {
 }
 
 // ── Public ────────────────────────────────────────────────────────────────────
-router.get("/plans", (req: Request, res: Response) => res.json({ plans: PLANS }));
+router.get("/plans", (_req: Request, res: Response) => res.json({ plans: PLANS }));
 
 // ── Authenticated ─────────────────────────────────────────────────────────────
 router.get("/subscription", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -203,7 +203,7 @@ router.post("/stripe-webhook", express.raw({ type: "application/json" }), async 
 });
 
 // ── Admin revenue ─────────────────────────────────────────────────────────────
-router.get("/revenue", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/revenue", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try { res.json(await getRevenueStats()); }
   catch (err) { next(err); }
 });

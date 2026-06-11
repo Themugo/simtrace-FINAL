@@ -14,7 +14,7 @@ interface AuthRequest extends Request {
 }
 
 // GET /api/admin/users
-router.get("/users", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/users", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const users = await User.find().select("-passwordHash -apiKey").sort({ createdAt: -1 }).lean();
 

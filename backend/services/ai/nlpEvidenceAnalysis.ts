@@ -87,7 +87,7 @@ export class NLPEvidenceAnalysisService {
     const sentiment = this.analyzeSentiment(document.content);
     const entities = this.extractEntities(document.content);
     const keyPhrases = this.extractKeyPhrases(document.content);
-    const topics = this.extractTopics(document.content, keyPhrases);
+    const topics = this._extractTopics(document.content, keyPhrases);
     const riskLevel = this.assessRiskLevel(document.content, document.documentType, sentiment);
     const confidence = 0.8 + Math.random() * 0.19; // 80-99%
     const summary = this.generateSummary(document.content, keyPhrases);
@@ -236,7 +236,7 @@ export class NLPEvidenceAnalysisService {
   /**
    * Extract topics
    */
-  private extractTopics(content: string, keyPhrases: string[]): string[] {
+  private _extractTopics(content: string, _keyPhrases: string[]): string[] {
     const topics: string[] = [];
     const lowerContent = content.toLowerCase();
 

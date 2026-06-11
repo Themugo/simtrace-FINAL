@@ -147,7 +147,7 @@ class PredictiveAnalyticsService {
   }
 
   private generateRecommendations(
-    riskScore: number,
+    _riskScore: number,
     riskLevel: string,
     factors: { locationRisk: number; timeRisk: number; patternRisk: number; historicalRisk: number }
   ): string[] {
@@ -181,51 +181,11 @@ class PredictiveAnalyticsService {
     return recommendations;
   }
 
-  private getDefaultRiskScore(deviceId: string, location: LocationData): TheftRiskScore {
-    const locationRisk = this.calculateLocationRisk(location);
-    const timeRisk = this.calculateTimeRisk(location);
-    const patternRisk = 0.5;
-    const historicalRisk = this.calculateHistoricalRisk(location);
-
-    const riskScore = (locationRisk * 0.3 + timeRisk * 0.3 + patternRisk * 0.2 + historicalRisk * 0.2);
-    const riskLevel = this.getRiskLevel(riskScore);
-
-    return {
-      deviceId,
-      riskScore,
-      riskLevel,
-      confidence: 0.3, // Low confidence without model
-      factors: {
-        locationRisk,
-        timeRisk,
-        patternRisk,
-        historicalRisk
-      },
-      recommendations: this.generateRecommendations(riskScore, riskLevel, {
-        locationRisk,
-        timeRisk,
-        patternRisk,
-        historicalRisk
-      })
-    };
-  }
-
   private hashLocation(location: { lat: number; lng: number }): string {
     // Simple geohash-like function
     const lat = Math.floor(location.lat * 100);
     const lng = Math.floor(location.lng * 100);
     return `${lat},${lng}`;
-  }
-
-  private encodeLocationType(type: string): number {
-    const types: { [key: string]: number } = {
-      'home': 0,
-      'work': 1,
-      'transit': 2,
-      'public': 3,
-      'unknown': 4
-    };
-    return types[type] || 4;
   }
 
   private calculateDistance(loc1: { lat: number; lng: number }, loc2: { lat: number; lng: number }): number {
@@ -255,3 +215,4 @@ class PredictiveAnalyticsService {
 }
 
 export const predictiveAnalyticsService = new PredictiveAnalyticsService();
+

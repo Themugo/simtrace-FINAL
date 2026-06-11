@@ -116,7 +116,7 @@ router.get("/dashboards", authenticate, async (req: AuthRequest, res: Response, 
   }
 });
 
-router.get("/dashboards/public", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/dashboards/public", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const dashboards = realTimeAnalyticsService.getPublicDashboards();
     res.json({ dashboards });
@@ -256,7 +256,7 @@ router.get("/alerts", authenticate, async (req: AuthRequest, res: Response, next
 
 // ── Statistics ───────────────────────────────────────────────────────────────────
 
-router.get("/statistics", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/statistics", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const statistics = realTimeAnalyticsService.getStatistics();
     res.json({ statistics });

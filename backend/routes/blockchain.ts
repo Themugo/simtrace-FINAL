@@ -15,9 +15,13 @@ import {
   recordDeviceBlacklisted,
   recordDnaVerified,
   recordCloneDetected,
-  recordCrossBorderRequest,
+  
   generateDeviceProof,
 } from "../services/blockchain.js";
+
+interface ZodErrorLike {
+  errors: Array<{ message: string; path: (string | number)[] }>;
+}
 
 const router = Router();
 
@@ -52,7 +56,7 @@ router.post("/event", authenticate, async (req: AuthRequest, res: Response, next
 
     res.status(201).json(ledgerEntry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -79,7 +83,7 @@ router.post("/verify", authenticate, async (req: Request, res: Response, next: N
 
     res.json(result);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -96,7 +100,7 @@ router.post("/:imei/sync-ceir", authenticate, requireAdmin, async (req: Request,
 });
 
 // ── GET /api/blockchain/stats ───────────────────────────────────────────────────────
-router.get("/stats", authenticate, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticate, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const stats = await getBlockchainStatistics();
     res.json(stats);
@@ -126,7 +130,7 @@ router.post("/register", authenticate, async (req: Request, res: Response, next:
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -144,7 +148,7 @@ router.post("/transfer", authenticate, async (req: Request, res: Response, next:
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -160,7 +164,7 @@ router.post("/theft-report", authenticate, async (req: AuthRequest, res: Respons
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -176,7 +180,7 @@ router.post("/recovered", authenticate, async (req: AuthRequest, res: Response, 
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -192,7 +196,7 @@ router.post("/blacklist", authenticate, async (req: AuthRequest, res: Response, 
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -209,7 +213,7 @@ router.post("/dna-verified", authenticate, async (req: AuthRequest, res: Respons
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
@@ -226,9 +230,10 @@ router.post("/clone-detected", authenticate, async (req: Request, res: Response,
 
     res.status(201).json(entry);
   } catch (err) {
-    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as any).errors });
+    if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
   }
 });
 
 export default router;
+

@@ -94,7 +94,7 @@ export async function createPaymentMethod(data: Record<string, unknown>) {
   if (!user) throw new Error("User not found");
 
   // Attach payment method to customer
-  let customerId = (user as any).stripeCustomerId;
+  let customerId = (user as { stripeCustomerId?: string }).stripeCustomerId;
 
   if (!customerId) {
     const customer = await stripe.customers.create({
@@ -104,7 +104,7 @@ export async function createPaymentMethod(data: Record<string, unknown>) {
     });
 
     customerId = customer.id;
-    (user as any).stripeCustomerId = customerId;
+    (user as unknown as { stripeCustomerId: string }).stripeCustomerId = customerId;
     await user.save();
   }
 
@@ -130,12 +130,12 @@ export async function getSavedPaymentMethods(userId: string) {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
-  if (!(user as any).stripeCustomerId) {
+  if (!(user as { stripeCustomerId?: string }).stripeCustomerId) {
     return [];
   }
 
   const paymentMethods = await stripe!.paymentMethods.list({
-    customer: (user as any).stripeCustomerId,
+    customer: (user as unknown as { stripeCustomerId: string }).stripeCustomerId,
     type: "card",
   });
 
@@ -154,21 +154,21 @@ export async function getSavedPaymentMethods(userId: string) {
 }
 
 // ── Delete Payment Method ─────────────────────────────────────────────────────────
-export async function deletePaymentMethod(userId: string, paymentMethodId: string) {
+export async function deletePaymentMethod(_userId: string, paymentMethodId: string) {
   if (!stripe) throw new Error("Stripe not configured");
 
-  const paymentMethod = await stripe.paymentMethods.detach(paymentMethodId);
+  await stripe.paymentMethods.detach(paymentMethodId);
   return { deleted: true, paymentMethodId };
 }
 
 // ── Set Default Payment Method ─────────────────────────────────────────────────────
-export async function setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
+export async function setDefaultPaymentMethod(_userId: string, paymentMethodId: string) {
   if (!stripe) throw new Error("Stripe not configured");
 
-  const user = await User.findById(userId);
+  const user = await User.findById(_userId);
   if (!user) throw new Error("User not found");
 
-  if (!(user as any).stripeCustomerId) throw new Error("No Stripe customer found");
+  if (!(user as { stripeCustomerId?: string }).stripeCustomerId) throw new Error("No Stripe customer found");
 
   // Update payment method metadata
   await stripe.paymentMethods.update(paymentMethodId, {
@@ -176,7 +176,7 @@ export async function setDefaultPaymentMethod(userId: string, paymentMethodId: s
   });
 
   // Update customer default payment method
-  await stripe.customers.update((user as any).stripeCustomerId, {
+  await stripe.customers.update((user as unknown as { stripeCustomerId: string }).stripeCustomerId, {
     invoice_settings: { default_payment_method: paymentMethodId },
   });
 
@@ -197,12 +197,12 @@ export async function chargeSavedPaymentMethod(data: Record<string, unknown>) {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
-  if (!(user as any).stripeCustomerId) throw new Error("No Stripe customer found");
+  if (!(user as { stripeCustomerId?: string }).stripeCustomerId) throw new Error("No Stripe customer found");
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(amount * 100),
     currency: currency.toLowerCase(),
-    customer: (user as any).stripeCustomerId,
+    customer: (user as unknown as { stripeCustomerId: string }).stripeCustomerId,
     payment_method: paymentMethodId,
     description: description || "SIMTrace payment",
     confirm: true,
@@ -241,12 +241,12 @@ export async function processRefund(paymentId: string, reason?: string) {
 
   const refund = await stripe!.refunds.create({
     payment_intent: paymentId,
-    reason: (reason || "requested_by_customer") as any,
+    reason: (reason || "requested_by_customer") as 'duplicate' | 'fraudulent' | 'requested_by_customer',
   });
 
   payment.status = "refunded";
-  (payment as any).refundId = refund.id;
-  (payment as any).refundedAt = new Date();
+  (payment as unknown as { refundId: string; refundedAt: Date }).refundId = refund.id;
+  (payment as unknown as { refundId: string; refundedAt: Date }).refundedAt = new Date();
   await payment.save();
 
   return payment;
@@ -291,13 +291,13 @@ export async function getCardTypeStatistics() {
   let totalAmount = 0;
 
   for (const payment of payments) {
-    const cardType = (payment as any).metadata?.cardType || "other";
+    const cardType = (payment as { metadata?: { cardType?: string } }).metadata?.cardType || "other";
     if (cardTypes[cardType as keyof typeof cardTypes] !== undefined) {
       cardTypes[cardType as keyof typeof cardTypes]++;
     } else {
       cardTypes.other++;
     }
-    totalAmount += (payment as any).amount;
+    totalAmount += (payment as { amount?: number }).amount || 0;
   }
 
   return {

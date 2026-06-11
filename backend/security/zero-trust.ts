@@ -222,11 +222,10 @@ class ZeroTrustSecurity {
   }
 
   // Get anomalies for user
-  getUserAnomalies(userId: string, limit = 20): SessionAnomaly[] {
-    const history = this.sessionHistory.get(userId) || [];
+  getUserAnomalies(_userId: string, limit = 20): SessionAnomaly[] {
     const userAnomalies: SessionAnomaly[] = [];
 
-    for (const anomaly of this.anomalies) {
+    for (const _ of this.anomalies) {
       // Check if anomaly is related to this user
       // This would need to be implemented based on your data model
     }

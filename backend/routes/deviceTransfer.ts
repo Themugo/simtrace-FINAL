@@ -148,7 +148,7 @@ router.get("/pending/:userId", authenticate, requireSelfOrAdmin("userId"), async
   } catch (err) { next(err); }
 });
 
-router.get("/disputed", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/disputed", authenticate, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const transfers = await getDisputedTransfers();
     res.json({ transfers, count: transfers.length });

@@ -2,7 +2,6 @@
 // PayPal payment processing for global markets
 
 import { PayPalPayment, User } from "../db/index.js";
-import crypto from "crypto";
 
 interface PayPalPaymentDoc {
   status: string;

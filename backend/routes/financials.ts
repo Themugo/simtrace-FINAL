@@ -135,7 +135,7 @@ router.get("/costs/:period", authenticate, requireAdmin, async (req: AuthRequest
 });
 
 // ── Auto-Update Projections ─────────────────────────────────────────────────────
-router.post("/projections/update", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/projections/update", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const projections = await updateCurrentProjections();
     res.json(projections);
@@ -143,7 +143,7 @@ router.post("/projections/update", authenticate, requireAdmin, async (req: AuthR
 });
 
 // ── Financial Dashboard ───────────────────────────────────────────────────────
-router.get("/dashboard", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get("/dashboard", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const dashboard = await getFinancialDashboard();
     res.json(dashboard);
@@ -151,7 +151,7 @@ router.get("/dashboard", authenticate, requireAdmin, async (req: AuthRequest, re
 });
 
 // ── Business Plan Projections ─────────────────────────────────────────────────
-router.post("/projections/business-plan", authenticate, requireAdmin, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post("/projections/business-plan", authenticate, requireAdmin, async (_req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const projections = await generateBusinessPlanProjections();
     res.status(201).json({ projections, count: projections.length });

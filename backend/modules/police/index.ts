@@ -1,5 +1,5 @@
 // Police Module - Core police integration functionality
-import { Device, TheftReport, User, Alert } from '../../db/index.js';
+import { Device, Alert } from '../../db/index.js';
 import { getIO } from '../../services/socket.js';
 import mongoose from 'mongoose';
 
@@ -77,12 +77,12 @@ export async function createPoliceStation(data: Omit<PoliceStation, '_id' | 'cre
   return station;
 }
 
-export async function getPoliceStation(stationId: string): Promise<PoliceStation | null> {
+export async function getPoliceStation(_stationId: string): Promise<PoliceStation | null> {
   // In production, fetch from database
   return null;
 }
 
-export async function listPoliceStations(filters?: { status?: string; jurisdiction?: string }): Promise<PoliceStation[]> {
+export async function listPoliceStations(_filters?: { status?: string; jurisdiction?: string }): Promise<PoliceStation[]> {
   // In production, fetch from database with filters
   return [];
 }
@@ -121,12 +121,12 @@ export async function createPoliceReport(data: Omit<PoliceReport, '_id' | 'repor
   return report;
 }
 
-export async function getPoliceReport(reportId: string): Promise<PoliceReport | null> {
+export async function getPoliceReport(_reportId: string): Promise<PoliceReport | null> {
   // In production, fetch from database
   return null;
 }
 
-export async function updatePoliceReport(reportId: string, updates: Partial<PoliceReport>): Promise<PoliceReport | null> {
+export async function updatePoliceReport(_reportId: string, _updates: Partial<PoliceReport>): Promise<PoliceReport | null> {
   // In production, update in database
   return null;
 }
@@ -174,7 +174,7 @@ export async function updateRecoveryStage(workflowId: string, stage: RecoveryWor
   return workflow;
 }
 
-export async function getRecoveryWorkflow(workflowId: string): Promise<RecoveryWorkflow | null> {
+export async function getRecoveryWorkflow(_workflowId: string): Promise<RecoveryWorkflow | null> {
   // In production, fetch from database
   return null;
 }
@@ -220,7 +220,7 @@ export async function createNationwideAlert(data: {
 }
 
 // Case Transfer System
-export async function transferCase(reportId: string, fromStationId: string, toStationId: string, reason: string): Promise<PoliceReport | null> {
+export async function transferCase(reportId: string, _fromStationId: string, toStationId: string, _reason: string): Promise<PoliceReport | null> {
   const report = await getPoliceReport(reportId);
   if (!report) return null;
 
@@ -244,7 +244,7 @@ function generateReportNumber(stationId: string): string {
 }
 
 // Statistics
-export async function getPoliceStatistics(stationId?: string) {
+export async function getPoliceStatistics(_stationId?: string) {
   const stats = {
     totalReports: 0,
     openCases: 0,
