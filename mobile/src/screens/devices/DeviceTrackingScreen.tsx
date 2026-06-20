@@ -112,7 +112,7 @@ export default function DeviceTrackingScreen({ route }: DeviceTrackingScreenProp
     } else {
       // Start tracking
       setLoading(true);
-      const success = await locationTrackingService.startTracking(deviceKey);
+      const success = await locationTrackingService.startTracking(imei, deviceKey);
       setLoading(false);
       
       if (success) {

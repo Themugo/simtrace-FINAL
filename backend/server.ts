@@ -4,6 +4,7 @@ import http, { Server as HttpServer } from "http";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { createRateLimiter } from "./services/rateLimit.js";
 import { auditLog } from "./middleware/audit.js";
 import mongoSanitize from "express-mongo-sanitize";
 import pino, { Logger } from "pino";
@@ -37,6 +38,8 @@ import billingRoutes   from "./routes/billing.js";
 import adsRoutes       from "./routes/ads.js";
 import partnerRoutes   from "./routes/partner.js";
 import adminRoutes     from "./routes/admin.js";
+import accountLockoutRoutes from "./routes/accountLockout.js";
+import twoFactorAuthRoutes  from "./routes/twoFactorAuth.js";
 import communityRoutes from "./routes/community.js";
 import lockRoutes      from "./routes/lock.js";
 import healthRoutes    from "./routes/health.js";
@@ -196,14 +199,19 @@ app.use(mongoSanitize({ replaceWith: "_" }));
 // Global: 200 req/15min per IP
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false }));
 
-// Auth: 20 req/15min (brute-force protection)
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: "Too many auth attempts" } });
+// Auth: 20 req/15min (brute-force protection). Redis-backed when REDIS_URL is
+// set, so the limit holds across multiple server instances — without this, an
+// attacker could bypass the limit entirely by round-robining requests across
+// instances, each keeping its own separate in-memory counter.
+const authLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 20, message: "Too many auth attempts", useRedis: true });
 
 // IMEI check: 30 req/min per IP (prevents blacklist enumeration)
 const imeiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: { error: "IMEI check rate limit exceeded — try again in a minute" } });
 
-// Track: 120 req/min per IP (mobile agents ping every 30s per device)
-const trackLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, message: { error: "Ping rate limit exceeded" } });
+// Track: 120 req/min per IP (mobile agents ping every 30s per device). Also
+// Redis-backed: this endpoint may accept unauthenticated pings depending on
+// TRACK_REQUIRE_AUTH, so cross-instance enforcement matters here too.
+const trackLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 120, message: "Ping rate limit exceeded", useRedis: true });
 
 // AI: 30 req/min (independent of per-user monthly quota)
 const aiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: { error: "AI rate limit exceeded" } });
@@ -270,6 +278,8 @@ app.use("/api/billing",               billingRoutes);
 app.use("/api/ads",                   adsRoutes);
 app.use("/api/partner",               partnerRoutes);
 app.use("/api/admin",                 adminRoutes);
+app.use("/api/admin/account-lockout", accountLockoutRoutes);
+app.use("/api/2fa",                   authLimiter, twoFactorAuthRoutes);
 app.use("/api/community",             communityRoutes);
 app.use("/api/marketplace",           marketplaceRoutes);
 app.use("/api/external-marketplace",  externalMarketplaceRoutes);
@@ -338,9 +348,22 @@ io.on("connection", (socket) => {
   socket.join(`user:${userId}`);
   if (role === "admin") socket.join("role:admin");
 
-  socket.on("subscribe_device", (imei: unknown) => {
-    if (typeof imei === "string" && /^\d{15,17}$/.test(imei)) {
+  socket.on("subscribe_device", async (imei: unknown) => {
+    if (typeof imei !== "string" || !/^\d{15,17}$/.test(imei)) return;
+    // Privileged roles may monitor any device (recovery/law-enforcement workflows).
+    if (role === "admin" || role === "super_admin" || role === "law_enforcement") {
       socket.join(`device:${imei}`);
+      return;
+    }
+    try {
+      const { Device } = await import("./db/index.js");
+      const device = await Device.findOne({ imei }).select("owner").lean() as { owner?: unknown } | null;
+      if (device && String(device.owner ?? "") === String(userId)) {
+        socket.join(`device:${imei}`);
+      }
+      // Silently no-op on mismatch/not-found — don't leak device existence to the client.
+    } catch (err) {
+      logger.warn({ err, imei }, "subscribe_device ownership check failed");
     }
   });
 

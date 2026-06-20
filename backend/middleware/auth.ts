@@ -133,14 +133,23 @@ export function requireOrgAdmin(paramName: string = "id") {
 export function authenticateSocket(socket: Socket, next: (err?: Error) => void) {
   const token = socket.handshake.auth?.token as string | undefined;
   if (!token) return next(new Error("Authentication required"));
+  let payload: JwtPayload;
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    socket.data.userId = payload.id;
-    socket.data.role = payload.role;
-    next();
+    payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
   } catch {
-    next(new Error("Invalid token"));
+    return next(new Error("Invalid token"));
   }
+  // Stateful check, mirrors HTTP authenticate(): a logged-out / password-reset
+  // token must not still be able to open a live socket connection.
+  User.findById(payload.id).then((user) => {
+    if (!user) return next(new Error("Invalid token"));
+    if ((user.tokenVersion ?? 0) !== (payload.tokenVersion ?? 0)) {
+      return next(new Error("Token has been revoked"));
+    }
+    socket.data.userId = payload.id;
+    socket.data.role = user.role ?? payload.role;
+    next();
+  }).catch(() => next(new Error("Authentication failed")));
 }
 
 // ── Token helpers ─────────────────────────────────────────────────────────────

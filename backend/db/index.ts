@@ -39,6 +39,11 @@ interface IUser {
   tokenVersion?: number;
   authProvider?: 'local' | 'google';
   providerId?: string;
+  loginAttempts?: number;
+  lockedUntil?: Date;
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string;
+  twoFactorBackupCodes?: string[];
   createdAt: Date;
 }
 
@@ -55,6 +60,11 @@ const userSchema = new mongoose.Schema<IUser>({
   mustChangePassword: { type: Boolean, default: false },
   authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   providerId: { type: String, index: true, sparse: true },
+  loginAttempts: { type: Number, default: 0 },
+  lockedUntil: { type: Date },
+  twoFactorEnabled: { type: Boolean, default: false },
+  twoFactorSecret: { type: String, select: false },
+  twoFactorBackupCodes: { type: [String], select: false },
   createdAt: { type: Date, default: Date.now },
 });
 export const User = mongoose.model<IUser>('User', userSchema);

@@ -4,6 +4,7 @@ import crypto     from "crypto";
 import { z }      from "zod";
 import { User, Subscription, PasswordReset } from "../db/index.js";
 import { signToken, authenticate }            from "../middleware/auth.js";
+import { isAccountLocked, recordFailedLogin, resetLoginAttempts, getLockoutRemainingTime } from "../services/accountLockout.js";
 
 const router = Router();
 
@@ -78,9 +79,30 @@ router.post("/login", async (req: Request, res: Response, next: NextFunction) =>
   try {
     const { email, password } = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(req.body);
     const user = await User.findOne({ email: email.toLowerCase() });
+
+    // Check lockout before touching the password, so a locked-out account
+    // doesn't even get a bcrypt.compare timing signal.
+    if (user && (await isAccountLocked(user._id.toString()))) {
+      const remainingMs = await getLockoutRemainingTime(user._id.toString());
+      const remainingMinutes = remainingMs ? Math.ceil(remainingMs / 60000) : 15;
+      return res.status(423).json({
+        error: `Account temporarily locked due to too many failed login attempts. Try again in ${remainingMinutes} minute(s).`,
+      });
+    }
+
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+      if (user) {
+        const { locked } = await recordFailedLogin(user._id.toString());
+        if (locked) {
+          return res.status(423).json({
+            error: "Account locked due to too many failed login attempts. Try again in 15 minutes.",
+          });
+        }
+      }
       return res.status(401).json({ error: "Invalid credentials" });
     }
+
+    await resetLoginAttempts(user._id.toString());
     res.json({ token: signToken(user as unknown as { _id: string; role: string; email: string; tokenVersion?: number }), user: sanitize(user as unknown as Record<string, unknown>) });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });

@@ -40,8 +40,12 @@ export const Permissions = {
 };
 
 // Role definitions with permissions
+// NOTE: keys match the actual lowercase role strings stored on User.role
+// throughout this app (see db/index.ts's role enum) — using uppercase here
+// would cause every hasPermission()/rbacMiddleware() check to silently fail
+// closed, since lookups are keyed by the role string as actually stored.
 export const Roles: Record<string, any> = {
-  USER: {
+  user: {
     permissions: [
       Permissions.DEVICE_CREATE,
       Permissions.DEVICE_READ,
@@ -52,9 +56,9 @@ export const Roles: Record<string, any> = {
       Permissions.ALERT_UPDATE,
     ],
   },
-  
-  ADMIN: {
-    inherits: ['USER'],
+
+  admin: {
+    inherits: ['user'],
     permissions: [
       Permissions.DEVICE_DELETE,
       Permissions.ALERT_DELETE,
@@ -63,8 +67,8 @@ export const Roles: Record<string, any> = {
       Permissions.ADMIN_VIEW_METRICS,
     ],
   },
-  
-  TELECOM: {
+
+  telecom: {
     permissions: [
       Permissions.DEVICE_READ,
       Permissions.TELECOM_LOOKUP,
@@ -73,17 +77,17 @@ export const Roles: Record<string, any> = {
       Permissions.PARTNER_WEBHOOK_CONFIG,
     ],
   },
-  
-  LAW_ENFORCEMENT: {
+
+  law_enforcement: {
     permissions: [
       Permissions.DEVICE_READ,
       Permissions.ALERT_READ,
       Permissions.TELECOM_LOOKUP,
     ],
   },
-  
-  SUPER_ADMIN: {
-    inherits: ['ADMIN'],
+
+  super_admin: {
+    inherits: ['admin'],
     permissions: [
       Permissions.USER_CREATE,
       Permissions.USER_UPDATE,
@@ -196,12 +200,12 @@ export function getRolePermissions(role: string): string[] {
 // Check role hierarchy
 export function isRoleHigherOrEqual(userRole: string, requiredRole: string): boolean {
   const roleHierarchy: Record<string, number> = {
-    USER: 1,
-    TELECOM: 2,
-    LAW_ENFORCEMENT: 2,
-    ADMIN: 3,
-    SUPER_ADMIN: 4,
+    user: 1,
+    telecom: 2,
+    law_enforcement: 2,
+    admin: 3,
+    super_admin: 4,
   };
-  
+
   return (roleHierarchy[userRole] || 0) >= (roleHierarchy[requiredRole] || 0);
 }

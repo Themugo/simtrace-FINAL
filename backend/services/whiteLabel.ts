@@ -3,6 +3,7 @@
 
 import crypto from "crypto";
 import { WhiteLabelInstance, User, Partner, Subscription } from "../db/index.js";
+import { assertSafeWebhookUrl, UnsafeWebhookUrlError } from "../security/ssrf-guard.js";
 
 interface WhiteLabelDoc {
   instanceId: string;
@@ -424,6 +425,8 @@ export async function updateWebhook(instanceId: string, webhookUrl: string) {
   if (!instance) throw new Error("White label instance not found");
   const doc = instance as unknown as WhiteLabelDoc;
 
+  await assertSafeWebhookUrl(webhookUrl);
+
   doc.webhookUrl = webhookUrl;
   doc.webhookSecret = crypto.randomBytes(32).toString("hex");
   instance.updatedAt = new Date();
@@ -442,6 +445,13 @@ export async function testWebhook(instanceId: string) {
 
   if (!doc.webhookUrl) {
     throw new Error("No webhook URL configured");
+  }
+
+  try {
+    await assertSafeWebhookUrl(doc.webhookUrl);
+  } catch (err) {
+    if (err instanceof UnsafeWebhookUrlError) throw err;
+    throw new Error("Could not validate webhook URL");
   }
 
   const testPayload = {

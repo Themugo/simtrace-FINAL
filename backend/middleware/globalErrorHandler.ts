@@ -3,6 +3,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response, NextFunction } from 'express';
+import { Sentry } from '../sentry.js';
 
 // Error codes
 export const ErrorCodes = {
@@ -86,7 +87,17 @@ export function globalErrorHandler(err: unknown, req: Request, res: Response, _n
   
   // Set status code
   const statusCode = Number((err as Record<string, unknown>).statusCode) || 500;
-  
+
+  // Report genuine server errors to Sentry (if configured). 4xx client/validation
+  // errors are expected traffic, not incidents, so they're excluded to avoid noise.
+  if (statusCode >= 500) {
+    try {
+      Sentry.captureException(error);
+    } catch {
+      // Never let monitoring itself break error handling.
+    }
+  }
+
   res.status(statusCode).json(errorResponse);
 }
 

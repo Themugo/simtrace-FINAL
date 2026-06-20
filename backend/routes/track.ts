@@ -4,6 +4,7 @@ import { Ping, Device } from "../db/index.js";
 import { getIO } from "../services/socket.js";
 import { runIntelligence } from "../services/intelligence.js";
 import pino from "pino";
+import { uploadImage, cloudinaryConfigured } from "../services/cloudinary.js";
 
 const log = pino({ level: "info" }).child({ service: "track" });
 
@@ -52,6 +53,10 @@ const pingSchema = z.object({
   accuracy:  z.number().optional(),
   simIccid:  z.string().optional(),
   networkOp: z.string().optional(),
+  // Evidence photo, base64 data URI (e.g. captured on a panic-button trigger).
+  // Capped at ~7MB base64 (~5MB binary) to bound payload size on an endpoint
+  // that may accept unauthenticated pings depending on TRACK_REQUIRE_AUTH.
+  image: z.string().max(7 * 1024 * 1024).optional(),
   fingerprint: z.object({
     networkMac:   z.string().optional(),
     bluetoothMac: z.string().optional(),
@@ -66,6 +71,22 @@ router.post("/", deviceKeyAuth, async (req: PingRequest, res: Response, next: Ne
   try {
     const data = pingSchema.parse(req.body);
 
+    // Upload evidence photo if provided. Best-effort: a failed/unconfigured
+    // upload should never block the location ping itself from being recorded.
+    let imageUrl: string | undefined;
+    if (data.image && cloudinaryConfigured()) {
+      if (!/^data:image\/(jpeg|jpg|png|webp);base64,/.test(data.image)) {
+        log.warn({ imei: data.imei }, "Evidence photo rejected: not a recognized base64 image data URI");
+      } else {
+        try {
+          const uploaded = await uploadImage(data.image, `simtrace/evidence/${data.imei}`);
+          imageUrl = uploaded?.url;
+        } catch (err) {
+          log.warn({ err, imei: data.imei }, "Evidence photo upload failed");
+        }
+      }
+    }
+
     // 1. Persist ping
     const ping = await Ping.create({
       imei:      data.imei,
@@ -74,6 +95,7 @@ router.post("/", deviceKeyAuth, async (req: PingRequest, res: Response, next: Ne
       accuracy:  data.accuracy,
       simIccid:  data.simIccid,
       networkOp: data.networkOp,
+      imageUrl,
       ipAddress: req.ip,
       verified:  req.pingVerified ?? false,
     });

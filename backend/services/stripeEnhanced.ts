@@ -13,11 +13,11 @@ const SUPPORTED_CURRENCIES = [
 ];
 
 // ── Card Type Detection ───────────────────────────────────────────────────────────
-function getCardType(paymentMethod: Record<string, unknown>): string {
-  const card = paymentMethod.card as Record<string, unknown> | undefined;
+function getCardType(paymentMethod: Stripe.PaymentMethod): string {
+  const card = paymentMethod.card;
   if (!card) return "unknown";
 
-  const brand = card.brand as string;
+  const brand = card.brand;
   if (brand === "visa") return "visa";
   if (brand === "mastercard") return "mastercard";
   if (brand === "amex") return "amex";
@@ -139,15 +139,15 @@ export async function getSavedPaymentMethods(userId: string) {
     type: "card",
   });
 
-  return paymentMethods.data.map((pm: Record<string, unknown>) => {
-    const card = pm.card as Record<string, unknown>;
+  return paymentMethods.data.map((pm: Stripe.PaymentMethod) => {
+    const card = pm.card;
     return {
-      id: pm.id as string,
+      id: pm.id,
       cardType: getCardType(pm),
-      last4: card.last4 as string,
-      brand: card.brand as string,
-      expMonth: card.exp_month as number,
-      expYear: card.exp_year as number,
+      last4: card?.last4,
+      brand: card?.brand,
+      expMonth: card?.exp_month,
+      expYear: card?.exp_year,
       isDefault: (pm.metadata as Record<string, string>)?.default === "true",
     };
   });

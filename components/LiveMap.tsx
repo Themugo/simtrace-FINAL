@@ -100,6 +100,9 @@ export default function LiveMap({ token, deviceImeis = [], showAll = false, styl
     if (!token) return;
     const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || BASE, { auth: { token } });
 
+    // Effect re-runs (and reconnects) whenever deviceImeis/showAll change (see deps
+    // below), so this handler always sees current values on each fresh connection —
+    // it doesn't need to handle the "already connected" case separately.
     socket.on("connect", () => {
       deviceImeis.forEach(imei => socket.emit("subscribe_device", imei));
       if (showAll) socket.emit("subscribe_all_admin");
@@ -120,7 +123,7 @@ export default function LiveMap({ token, deviceImeis = [], showAll = false, styl
     return () => {
       socket.disconnect();
     };
-  }, [token]);
+  }, [token, showAll, deviceImeis.join(",")]);
 
   const markerList = Object.entries(positions).filter(([, p]) => p.lat && p.lng);
   const stolenList = markerList.filter(([, p]) => p.status === "stolen" || p.status === "blacklisted");

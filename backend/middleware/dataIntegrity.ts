@@ -30,7 +30,8 @@ export async function withTransaction<T>(operation: (session: mongoose.ClientSes
 
 // Migration validation
 export async function validateMigration(collection: string, expectedSchema: ExpectedSchema): Promise<boolean> {
-  const collectionInfo = await mongoose.connection.db.collection(collection);
+  if (!mongoose.connection.db) throw new Error('Database not connected');
+  const collectionInfo = mongoose.connection.db.collection(collection);
   const indexes = await collectionInfo.indexes();
   
   // Validate indexes
@@ -63,6 +64,7 @@ export async function performRestoreDrill(backupPath: string): Promise<boolean> 
 
 // Data consistency check
 export async function checkDataConsistency(collection: string, query: Record<string, unknown>, expectedCount: number): Promise<boolean> {
+  if (!mongoose.connection.db) throw new Error('Database not connected');
   const count = await mongoose.connection.db.collection(collection).countDocuments(query);
   
   if (count !== expectedCount) {
@@ -97,13 +99,15 @@ export function validateSchema(document: Record<string, unknown>, schema: Record
 // Data migration helper
 export async function migrateData(collection: string, migrationFn: (doc: Record<string, unknown>) => Promise<unknown>): Promise<number> {
   return withTransaction(async (session) => {
-    const documents = await mongoose.connection.db.collection(collection).find({}).session(session).toArray();
+    if (!mongoose.connection.db) throw new Error('Database not connected');
+    const db = mongoose.connection.db;
+    const documents = await db.collection(collection).find({}, { session }).toArray();
     
     for (const doc of documents) {
       const migrated = await migrationFn(doc);
-      await mongoose.connection.db.collection(collection).updateOne(
+      await db.collection(collection).updateOne(
         { _id: doc._id },
-        { $set: migrated },
+        { $set: migrated as Record<string, unknown> },
         { session }
       );
     }
@@ -115,13 +119,15 @@ export async function migrateData(collection: string, migrationFn: (doc: Record<
 // Rollback helper
 export async function rollbackMigration(collection: string, rollbackFn: (doc: Record<string, unknown>) => Promise<unknown>): Promise<number> {
   return withTransaction(async (session) => {
-    const documents = await mongoose.connection.db.collection(collection).find({}).session(session).toArray();
+    if (!mongoose.connection.db) throw new Error('Database not connected');
+    const db = mongoose.connection.db;
+    const documents = await db.collection(collection).find({}, { session }).toArray();
     
     for (const doc of documents) {
       const rolledBack = await rollbackFn(doc);
-      await mongoose.connection.db.collection(collection).updateOne(
+      await db.collection(collection).updateOne(
         { _id: doc._id },
-        { $set: rolledBack },
+        { $set: rolledBack as Record<string, unknown> },
         { session }
       );
     }

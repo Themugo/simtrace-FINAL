@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import healthRoutes from '../routes/health.js';
+import { connectDB, User } from '../db/index.js';
+import { signToken } from '../middleware/auth.js';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 const app = express();
 app.use(express.json());
@@ -26,14 +29,62 @@ describe('Health Routes', () => {
     }
   });
 
-  it('should return integrations summary', async () => {
+  // /integrations reveals which third-party services are configured (booleans
+  // only, never secret values) — useful recon for an attacker, so it's
+  // admin-only, not world-readable.
+  it('should reject unauthenticated requests to integrations summary', async () => {
     const response = await request(app).get('/api/v1/health/integrations');
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(401);
   });
 
   it('should return 404 for unknown routes', async () => {
     const response = await request(app).get('/api/v1/health/unknown');
     expect(response.status).toBe(404);
     expect(response.body).toHaveProperty('error');
+  });
+});
+
+const describeMongo = process.env.MONGO_URI ? describe : describe.skip;
+
+describeMongo('Health Routes — integrations summary (admin auth)', () => {
+  let mongoServer: MongoMemoryServer;
+
+  beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    process.env.MONGO_URI = mongoServer.getUri();
+    process.env.JWT_SECRET = 'test-secret-key';
+    await connectDB();
+  });
+
+  afterAll(async () => {
+    await mongoServer?.stop();
+  });
+
+  it('allows an admin to fetch the integrations summary', async () => {
+    const admin = await User.create({
+      name: 'Admin', email: 'admin-health-test@example.com',
+      passwordHash: 'x', role: 'admin',
+    });
+    const token = signToken({ _id: admin._id.toString(), role: 'admin', email: admin.email });
+
+    const response = await request(app)
+      .get('/api/v1/health/integrations')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('rejects a non-admin user even with a valid token', async () => {
+    const user = await User.create({
+      name: 'Regular User', email: 'regular-health-test@example.com',
+      passwordHash: 'x', role: 'user',
+    });
+    const token = signToken({ _id: user._id.toString(), role: 'user', email: user.email });
+
+    const response = await request(app)
+      .get('/api/v1/health/integrations')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(403);
   });
 });

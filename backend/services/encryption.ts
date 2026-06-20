@@ -1,20 +1,32 @@
 // services/encryption.ts - Data encryption at rest service
 import CryptoJS from 'crypto-js';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
+function getEncryptionKey(): string {
+  const key = process.env.ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error(
+      "ENCRYPTION_KEY is not set. This module refuses to fall back to a " +
+      "default key — a hardcoded fallback would be visible to anyone who can " +
+      "read this source file, making any 'encrypted' data trivially " +
+      "decryptable. Set ENCRYPTION_KEY to a strong random value before using " +
+      "this module."
+    );
+  }
+  return key;
+}
 
 /**
  * Encrypt data using AES-256
  */
 export function encrypt(data: string): string {
-  return CryptoJS.AES.encrypt(data, ENCRYPTION_KEY).toString();
+  return CryptoJS.AES.encrypt(data, getEncryptionKey()).toString();
 }
 
 /**
  * Decrypt data using AES-256
  */
 export function decrypt(encryptedData: string): string {
-  const bytes = CryptoJS.AES.decrypt(encryptedData, ENCRYPTION_KEY);
+  const bytes = CryptoJS.AES.decrypt(encryptedData, getEncryptionKey());
   return bytes.toString(CryptoJS.enc.Utf8);
 }
 

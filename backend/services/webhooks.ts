@@ -3,6 +3,7 @@
 
 import { WebhookSubscription, WebhookDeliveryLog, User } from "../db/index.js";
 import crypto from "crypto";
+import { assertSafeWebhookUrl } from "../security/ssrf-guard.js";
 
 // ── Webhook Subscription Management ───────────────────────────────────────────────
 export async function createWebhookSubscription(data: { userId: string; url: string; events: string[]; secret?: string }) {
@@ -15,6 +16,8 @@ export async function createWebhookSubscription(data: { userId: string; url: str
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
+
+  await assertSafeWebhookUrl(url);
 
   // Generate secret if not provided
   const webhookSecret = secret || crypto.randomBytes(32).toString("hex");
@@ -47,6 +50,10 @@ export async function getWebhookSubscriptionsByUser(userId: string) {
 export async function updateWebhookSubscription(subscriptionId: string, updates: Record<string, unknown>) {
   const subscription = await WebhookSubscription.findById(subscriptionId);
   if (!subscription) throw new Error("Webhook subscription not found");
+
+  if (typeof updates.url === "string") {
+    await assertSafeWebhookUrl(updates.url);
+  }
 
   const allowedUpdates = ["url", "events", "active"];
   for (const key of allowedUpdates) {
@@ -112,6 +119,8 @@ type SubscriptionDoc = {
 };
 
 async function deliverWebhook(subscription: SubscriptionDoc, event: string, payload: Record<string, unknown>) {
+  await assertSafeWebhookUrl(subscription.url);
+
   const signature = generateSignature(payload, subscription.secret);
 
   const response = await fetch(subscription.url, {

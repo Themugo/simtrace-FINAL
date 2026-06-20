@@ -517,8 +517,10 @@ export async function addInvestigator(workflowId: string, investigatorId: string
   const workflow = await RecoveryWorkflow.findById(workflowId);
   if (!workflow) throw new Error("Recovery workflow not found");
 
-  if (!(workflow as IRecoveryWorkflowFields).investigators.includes(investigatorId)) {
-    (workflow as IRecoveryWorkflowFields).investigators.push(investigatorId);
+  const investigators = (workflow as IRecoveryWorkflowFields).investigators;
+  const alreadyAssigned = investigators.some((id) => id.toString() === investigatorId);
+  if (!alreadyAssigned) {
+    investigators.push(new mongoose.Types.ObjectId(investigatorId));
     workflow.updatedAt = new Date();
     await workflow.save();
   }

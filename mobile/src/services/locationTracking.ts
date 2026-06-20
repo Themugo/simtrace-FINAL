@@ -2,7 +2,8 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
-import { apiClient } from '../api/client';
+import apiClient from '../api/client';
+import { deviceKeyStorageService } from './deviceKeyStorage';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 const LOCATION_UPDATE_INTERVAL = 30000; // 30 seconds
@@ -10,15 +11,16 @@ const LOCATION_UPDATE_INTERVAL = 30000; // 30 seconds
 export interface LocationData {
   latitude: number;
   longitude: number;
-  accuracy: number;
-  altitude?: number;
-  speed?: number;
+  accuracy: number | null;
+  altitude?: number | null;
+  speed?: number | null;
   timestamp: number;
-  deviceKey: string;
+  imei: string;
 }
 
 class LocationTrackingService {
   private isTracking: boolean = false;
+  private imei: string | null = null;
   private deviceKey: string | null = null;
   private locationUpdateInterval: NodeJS.Timeout | null = null;
 
@@ -36,7 +38,7 @@ class LocationTrackingService {
   }
 
   // Start location tracking
-  async startTracking(deviceKey: string): Promise<boolean> {
+  async startTracking(imei: string, deviceKey: string): Promise<boolean> {
     if (this.isTracking) {
       console.log('Location tracking already active');
       return true;
@@ -48,8 +50,14 @@ class LocationTrackingService {
       return false;
     }
 
+    this.imei = imei;
     this.deviceKey = deviceKey;
     this.isTracking = true;
+
+    // Persist for the background task callback, which may run in a separate JS
+    // context after the app is suspended and can't read this instance's memory.
+    await deviceKeyStorageService.storeDeviceKey(deviceKey);
+    await deviceKeyStorageService.storeDeviceMetadata({ imei });
 
     // Start foreground location updates
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
@@ -67,13 +75,14 @@ class LocationTrackingService {
   }
 
   // Stop location tracking
-  async stopTracking(): Promise<void> {
+  async stopTracking(): Promise<boolean> {
     if (!this.isTracking) {
       console.log('Location tracking not active');
-      return;
+      return true;
     }
 
     this.isTracking = false;
+    this.imei = null;
     this.deviceKey = null;
 
     // Stop location updates
@@ -86,12 +95,13 @@ class LocationTrackingService {
     }
 
     console.log('Location tracking stopped');
+    return true;
   }
 
   // Start periodic location updates
   private startPeriodicUpdates(): void {
     this.locationUpdateInterval = setInterval(async () => {
-      if (!this.isTracking || !this.deviceKey) return;
+      if (!this.isTracking || !this.imei || !this.deviceKey) return;
 
       try {
         const location = await Location.getCurrentPositionAsync({
@@ -105,7 +115,7 @@ class LocationTrackingService {
           altitude: location.coords.altitude,
           speed: location.coords.speed,
           timestamp: Date.now(),
-          deviceKey: this.deviceKey,
+          imei: this.imei,
         });
       } catch (error) {
         console.error('Error getting location:', error);
@@ -117,13 +127,15 @@ class LocationTrackingService {
   private async sendLocationUpdate(locationData: LocationData): Promise<void> {
     try {
       await apiClient.post('/track', {
-        imei: locationData.deviceKey,
+        imei: locationData.imei,
         lat: locationData.latitude,
         lng: locationData.longitude,
         accuracy: locationData.accuracy,
         altitude: locationData.altitude,
         speed: locationData.speed,
         ts: new Date(locationData.timestamp).toISOString(),
+      }, {
+        headers: { 'X-Device-Key': this.deviceKey ?? '' },
       });
       console.log('Location update sent successfully');
     } catch (error) {
@@ -159,6 +171,7 @@ class LocationTrackingService {
   async getTrackingStatus(): Promise<{
     isTracking: boolean;
     hasPermissions: boolean;
+    imei: string | null;
     deviceKey: string | null;
   }> {
     const hasPermissions = await Location.getBackgroundPermissionsAsync()
@@ -168,31 +181,50 @@ class LocationTrackingService {
     return {
       isTracking: this.isTracking,
       hasPermissions,
+      imei: this.imei,
       deviceKey: this.deviceKey,
     };
   }
 }
 
 // Register background task
-TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
+TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: { data: unknown; error: { message: string } | null }) => {
   if (error) {
     console.error('Background location task error:', error);
     return;
   }
 
   if (data) {
-    const { locations } = data as any;
+    const { locations } = data as {
+      locations?: Array<{
+        coords: { latitude: number; longitude: number; accuracy: number | null };
+        timestamp: number;
+      }>;
+    };
     if (locations && locations.length > 0) {
       const location = locations[0];
       console.log('Background location update:', location);
-      
-      // Send to backend
+
+      // Send to backend — read the persisted imei/deviceKey directly since this
+      // callback can run in a separate JS context after the app is suspended,
+      // where the LocationTrackingService singleton's in-memory fields may be gone.
       try {
+        const [imei, deviceKey] = await Promise.all([
+          deviceKeyStorageService.getDeviceMetadata().then(m => m?.imei as string | undefined),
+          deviceKeyStorageService.getDeviceKey(),
+        ]);
+        if (!imei || !deviceKey) {
+          console.warn('Background location update skipped: missing imei/deviceKey');
+          return;
+        }
         await apiClient.post('/track', {
+          imei,
           lat: location.coords.latitude,
           lng: location.coords.longitude,
           accuracy: location.coords.accuracy,
           ts: new Date(location.timestamp).toISOString(),
+        }, {
+          headers: { 'X-Device-Key': deviceKey },
         });
       } catch (error) {
         console.error('Error sending background location:', error);

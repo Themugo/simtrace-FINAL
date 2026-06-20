@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { authenticate } from "../middleware/auth.js";
 import { Partner } from "../db/index.js";
 import { generateApiKey, bulkImeiCheck, getPartnerStats, validatePartnerKey } from "../services/partner.js";
+import { assertSafeWebhookUrl, UnsafeWebhookUrlError } from "../security/ssrf-guard.js";
 
 const router = Router();
 
@@ -111,6 +112,12 @@ router.post("/imei/bulk", partnerAuth, async (req: Request, res: Response, next:
 router.patch("/:id/webhook", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { webhookUrl } = z.object({ webhookUrl: z.string().url() }).parse(req.body);
+    try {
+      await assertSafeWebhookUrl(webhookUrl);
+    } catch (err) {
+      if (err instanceof UnsafeWebhookUrlError) return res.status(400).json({ error: err.message });
+      throw err;
+    }
     const partner = await Partner.findOneAndUpdate(
       { _id: req.params.id, user: req.user!.id },
       { webhookUrl, webhookSecret: generateApiKey() },
@@ -144,6 +151,13 @@ router.post("/:id/webhook-test", authenticate, async (req: AuthRequest, res: Res
     const partner = await Partner.findOne({ _id: req.params.id, user: req.user!.id });
     if (!partner)          return res.status(404).json({ error: "Partner not found" });
     if (!partner.webhookUrl) return res.status(400).json({ error: "No webhook URL configured" });
+
+    try {
+      await assertSafeWebhookUrl(partner.webhookUrl);
+    } catch (err) {
+      if (err instanceof UnsafeWebhookUrlError) return res.status(400).json({ error: err.message });
+      throw err;
+    }
 
     const testPayload = {
       event:     "test.ping",

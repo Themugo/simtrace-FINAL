@@ -1,6 +1,7 @@
 // services/partner.ts — SimTrace Telecom & Agency Integration Engine
 import crypto from "crypto";
 import { Partner, Device, Alert, } from "../db/index.js";
+import { assertSafeWebhookUrl } from "../security/ssrf-guard.js";
 
 type PartnerInfo = {
   _id: { toString(): string };
@@ -70,6 +71,7 @@ export async function deliverWebhook(partner: PartnerInfo, event: unknown) {
     .digest("hex");
 
   try {
+    await assertSafeWebhookUrl(partner.webhookUrl);
     const res = await fetch(partner.webhookUrl, {
       method: "POST",
       headers: {

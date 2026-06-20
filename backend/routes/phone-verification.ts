@@ -1,12 +1,17 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { User, Subscription } from "../db/index.js";
 import { signToken } from "../middleware/auth.js";
+import { getRedisClient } from "../services/redis.js";
 import { z } from "zod";
 
 const router = Router();
 
-// Store verification codes (in production, use Redis)
-const verificationCodes = new Map<string, { code: string; expiresAt: Date }>();
+// Verification codes live in Redis (5 min TTL), not in-process memory: an
+// in-memory Map breaks as soon as there's more than one server instance (the
+// code generated on instance A is invisible to instance B handling the confirm
+// request) and loses all pending codes on every restart/deploy.
+const CODE_TTL_SECONDS = 5 * 60;
+const codeKey = (phoneNumber: string) => `phone-verify:${phoneNumber}`;
 
 // Generate 6-digit verification code
 function generateVerificationCode(): string {
@@ -67,17 +72,18 @@ router.post(
         .parse(req.body);
 
       // Check if phone number already has a recent code
-      const existing = verificationCodes.get(phoneNumber);
-      if (existing && existing.expiresAt > new Date()) {
+      const redis = getRedisClient();
+      const existing = await redis.get(codeKey(phoneNumber));
+      if (existing) {
         return res.status(429).json({
           error: "Verification code already sent. Please wait 5 minutes.",
         });
       }
 
-      // Generate and store verification code
+      // Generate and store verification code (Redis TTL handles expiry)
       const code = generateVerificationCode();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-      verificationCodes.set(phoneNumber, { code, expiresAt });
+      await redis.set(codeKey(phoneNumber), code, "EX", CODE_TTL_SECONDS);
+      const expiresAt = new Date(Date.now() + CODE_TTL_SECONDS * 1000);
 
       // Send SMS
       await sendSMS(phoneNumber, code);
@@ -108,21 +114,15 @@ router.post(
         .parse(req.body);
 
       // Verify code
-      const stored = verificationCodes.get(phoneNumber);
+      const redis = getRedisClient();
+      const stored = await redis.get(codeKey(phoneNumber));
       if (!stored) {
         return res.status(400).json({
-          error: "No verification code found. Please request a new code.",
+          error: "No verification code found or it has expired. Please request a new code.",
         });
       }
 
-      if (stored.expiresAt < new Date()) {
-        verificationCodes.delete(phoneNumber);
-        return res.status(400).json({
-          error: "Verification code has expired. Please request a new code.",
-        });
-      }
-
-      if (stored.code !== code) {
+      if (stored !== code) {
         return res.status(400).json({ error: "Invalid verification code" });
       }
 
@@ -151,7 +151,7 @@ router.post(
       }
 
       // Clear verification code
-      verificationCodes.delete(phoneNumber);
+      await redis.del(codeKey(phoneNumber));
 
       // Generate token
       const token = signToken(user as unknown as { _id: string; role: string; email: string; tokenVersion?: number });

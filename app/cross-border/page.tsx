@@ -40,7 +40,7 @@ export default function CrossBorderPage() {
 
   useEffect(() => {
     loadRequests();
-  }, []);
+  }, [user?.role]);
 
   async function loadRequests() {
     setLoading(true);

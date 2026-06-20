@@ -1,10 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { integrationSummary } from '../services/integrations.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/health/integrations - which integrations are plugged in (keys present)
-router.get('/integrations', (_req: Request, res: Response) => {
+// Admin-only: doesn't leak secret values, but tells an attacker exactly which
+// third-party services (payments, SMS, AI, etc.) are live on this instance and
+// which aren't — useful reconnaissance that shouldn't be world-readable.
+router.get('/integrations', authenticate, requireAdmin, (_req: Request, res: Response) => {
   res.json(integrationSummary());
 });
 

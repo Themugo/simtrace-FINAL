@@ -101,7 +101,7 @@ export async function disableTwoFactorAuth(userId: string): Promise<void> {
  * Verify 2FA during login
  */
 export async function verifyTwoFactorAuth(userId: string, token: string): Promise<TwoFactorVerifyResult> {
-  const user = await User.findById(userId);
+  const user = await User.findById(userId).select("+twoFactorSecret +twoFactorBackupCodes");
 
   if (!user) {
     return { valid: false, message: 'User not found' };

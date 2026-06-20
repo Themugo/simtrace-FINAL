@@ -14,7 +14,20 @@ class SecretsManager {
   private useEnvVars: boolean;
 
   constructor(config: SecretConfig = {}) {
-    this.encryptionKey = config.encryptionKey || process.env.SECRET_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+    const key = config.encryptionKey || process.env.SECRET_ENCRYPTION_KEY;
+    if (!key) {
+      // Generating a random fallback here is actively dangerous: it would differ
+      // on every process restart, silently making any previously-encrypted value
+      // permanently undecryptable with no error until decrypt() is called. Fail
+      // loudly at construction time instead.
+      throw new Error(
+        "SECRET_ENCRYPTION_KEY is not set. SecretsManager requires a stable 32-byte " +
+        "hex key (generate one with crypto.randomBytes(32).toString('hex') and store " +
+        "it in your secret manager / env — do not regenerate it, every existing " +
+        "encrypted secret depends on this exact key)."
+      );
+    }
+    this.encryptionKey = key;
     this.useEnvVars = config.useEnvVars !== false;
   }
 
@@ -77,7 +90,10 @@ class SecretsManager {
     return crypto.randomBytes(length).toString('hex');
   }
 
-  // Hash a secret (for passwords, API keys, etc.)
+  // Hash a secret (for high-entropy values like API keys/tokens only).
+  // NOT for user passwords: this is unsalted SHA-256, vulnerable to rainbow-table
+  // and brute-force attacks against low-entropy input. User passwords must use
+  // bcrypt (see routes/auth.ts), never this method.
   hashSecret(secret: string): string {
     return crypto.createHash('sha256').update(secret).digest('hex');
   }
