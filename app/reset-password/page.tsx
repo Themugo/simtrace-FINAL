@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import SimTraceLogo from "../../components/SimTraceLogo";
+import PasswordInput from "../../components/PasswordInput";
 import { saveToken } from "../../lib/api";
 
 function ResetForm() {
@@ -89,8 +90,7 @@ function ResetForm() {
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div>
               <label className="label">New password</label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 minLength={8}
                 placeholder="Min 8 characters"
@@ -100,8 +100,7 @@ function ResetForm() {
             </div>
             <div>
               <label className="label">Confirm new password</label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 placeholder="Same password again"
                 value={form.confirm}

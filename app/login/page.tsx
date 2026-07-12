@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth";
 import SimTraceLogo from "../../components/SimTraceLogo";
+import PasswordInput from "../../components/PasswordInput";
 
 export default function LoginPage() {
   const { login }   = useAuth();
@@ -48,7 +49,7 @@ export default function LoginPage() {
                 Password
                 <Link href="/forgot-password" style={{ color: "var(--muted)", fontSize: "0.78rem", fontWeight: 400 }}>Forgot password?</Link>
               </label>
-              <input type="password" required placeholder="••••••••" {...f("password")} />
+              <PasswordInput required placeholder="••••••••" {...f("password")} />
             </div>
 
             {error && (

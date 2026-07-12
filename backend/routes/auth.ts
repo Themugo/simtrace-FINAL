@@ -2,9 +2,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import bcrypt     from "bcryptjs";
 import crypto     from "crypto";
 import { z }      from "zod";
-import { User, Subscription, PasswordReset } from "../db/index.js";
+import { User, Subscription, PasswordReset, EmailVerification } from "../db/index.js";
 import { signToken, authenticate }            from "../middleware/auth.js";
 import { isAccountLocked, recordFailedLogin, resetLoginAttempts, getLockoutRemainingTime } from "../services/accountLockout.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../services/email.js";
 
 const router = Router();
 
@@ -68,6 +69,20 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
     }
     
     res.status(201).json({ token: signToken(user as unknown as { _id: string; role: string; email: string; tokenVersion?: number }), user: sanitize(user as unknown as Record<string, unknown>) });
+
+    // Fire-and-forget, same pattern as forgot-password — never blocks the
+    // response, and a failure here shouldn't prevent account creation/login.
+    setImmediate(async () => {
+      try {
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        await EmailVerification.create({ user: user._id, token: rawToken, expiresAt });
+        const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${rawToken}`;
+        await sendVerificationEmail(user.email, user.name, verifyUrl);
+      } catch (err) {
+        console.error("[register] verification email error:", err instanceof Error ? err.message : String(err));
+      }
+    });
   } catch (err) {
     if (err instanceof Error && err.name === "ZodError") return res.status(400).json({ error: (err as unknown as ZodErrorLike).errors });
     next(err);
@@ -184,7 +199,7 @@ router.post("/forgot-password", async (req: Request, res: Response, next: NextFu
 
         const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${rawToken}`;
 
-        await sendResetEmail(user.email, user.name, resetUrl);
+        await sendPasswordResetEmail(user.email, user.name, resetUrl);
       } catch (err) {
         console.error("[forgot-password] Error:", err instanceof Error ? err.message : String(err));
       }
@@ -225,6 +240,42 @@ router.post("/reset-password", async (req: Request, res: Response, next: NextFun
   }
 });
 
+// ── GET /api/auth/verify-email?token=... ─────────────────────────────────────
+router.get("/verify-email", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = String(req.query.token || "");
+    if (token.length !== 64) return res.status(400).json({ error: "Invalid verification link" });
+
+    const record = await EmailVerification.findOne({ token, used: false });
+    if (!record) return res.status(400).json({ error: "Invalid or already-used verification link" });
+    if (record.expiresAt < new Date()) return res.status(400).json({ error: "Verification link has expired. Request a new one." });
+
+    await User.findByIdAndUpdate(record.user, { emailVerified: true });
+    record.used = true;
+    await record.save();
+
+    res.json({ message: "Email verified successfully." });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/auth/resend-verification (authenticated) ───────────────────────
+router.post("/resend-verification", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await User.findById(req.user!.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.emailVerified) return res.json({ message: "Email is already verified." });
+
+    await EmailVerification.deleteMany({ user: user._id }); // invalidate previous links
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await EmailVerification.create({ user: user._id, token: rawToken, expiresAt });
+    const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${rawToken}`;
+    await sendVerificationEmail(user.email, user.name, verifyUrl);
+
+    res.json({ message: "Verification email sent." });
+  } catch (err) { next(err); }
+});
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function sanitize(user: Record<string, unknown>): SanitizedUser {
   return {
@@ -236,50 +287,6 @@ function sanitize(user: Record<string, unknown>): SanitizedUser {
     phoneVerified: user.phoneVerified as boolean | undefined,
     mustChangePassword: user.mustChangePassword as boolean | undefined,
   };
-}
-
-async function sendResetEmail(to: string, name: string, resetUrl: string): Promise<void> {
-  if (!process.env.SENDGRID_API_KEY) {
-    // Dev fallback — log to console
-    console.log(`[Password Reset] Link for ${to}: ${resetUrl}`);
-    return;
-  }
-
-  const html = `
-    <div style="font-family: Inter, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px; background: #0f1117; color: #f1f5f9; border-radius: 12px;">
-      <div style="margin-bottom: 24px;">
-        <span style="font-size: 24px; font-weight: 900; letter-spacing: 0.05em;">SIM<span style="color: #0ea5e9;">TRACE</span>™</span>
-      </div>
-      <h2 style="margin: 0 0 12px; font-size: 20px;">Reset your password</h2>
-      <p style="color: #94a3b8; margin: 0 0 24px; line-height: 1.6;">
-        Hi ${name}, we received a request to reset your SimTrace password. Click the button below to set a new password.
-        This link expires in <strong style="color: #f1f5f9;">1 hour</strong>.
-      </p>
-      <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(135deg, #0ea5e9, #6366f1); color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 9px; font-weight: 700; font-size: 15px;">
-        Reset Password
-      </a>
-      <p style="color: #475569; font-size: 13px; margin: 24px 0 0; line-height: 1.6;">
-        If you didn't request this, ignore this email — your password won't change.<br>
-        If you're concerned, contact <a href="mailto:${process.env.SUPPORT_EMAIL || "support@simtrace.local"}" style="color: #0ea5e9;">${process.env.SUPPORT_EMAIL || "support@simtrace.local"}</a>
-      </p>
-    </div>
-  `;
-
-  const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
-    method:  "POST",
-    headers: { Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`, "Content-Type": "application/json" },
-    body:    JSON.stringify({
-      personalizations: [{ to: [{ email: to }] }],
-      from:    { email: process.env.FROM_EMAIL || "noreply@simtrace.local", name: "SimTrace" },
-      subject: "Reset your SimTrace password",
-      content: [
-        { type: "text/plain", value: `Hi ${name}, reset your password here: ${resetUrl}\n\nThis link expires in 1 hour.` },
-        { type: "text/html",  value: html },
-      ],
-    }),
-  });
-
-  if (!res.ok) console.error("[SendGrid] Email failed:", res.status, await res.text());
 }
 
 // ── POST /api/auth/refresh — extend session with a fresh token ────────────────

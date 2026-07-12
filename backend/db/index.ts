@@ -393,6 +393,23 @@ const resetSchema = new mongoose.Schema<IPasswordReset>({
 resetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 export const PasswordReset = mongoose.model<IPasswordReset>('PasswordReset', resetSchema);
 
+// Email verification tokens (registration) — same shape/TTL pattern as PasswordReset
+interface IEmailVerification {
+  user: mongoose.Types.ObjectId;
+  token: string;
+  expiresAt: Date;
+  used: boolean;
+}
+
+const emailVerificationSchema = new mongoose.Schema<IEmailVerification>({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  token: { type: String, required: true, unique: true },
+  expiresAt: { type: Date, required: true },
+  used: { type: Boolean, default: false },
+});
+emailVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+export const EmailVerification = mongoose.models.EmailVerification || mongoose.model<IEmailVerification>('EmailVerification', emailVerificationSchema);
+
 // ────────────────────────────────────────────────────────────────────────────
 // TELEMETRY COLLECTIONS
 // ────────────────────────────────────────────────────────────────────────────

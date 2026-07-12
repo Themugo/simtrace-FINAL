@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth";
 import SimTraceLogo from "../../components/SimTraceLogo";
+import PasswordInput from "../../components/PasswordInput";
 
 const STEPS = ["Account", "Security", "Done"];
 
@@ -103,7 +104,7 @@ export default function RegisterPage() {
               </button>
               <div>
                 <label className="label">Create password *</label>
-                <input type="password" required autoFocus placeholder="Minimum 8 characters" {...f("password")} />
+                <PasswordInput required autoFocus placeholder="Minimum 8 characters" {...f("password")} />
                 {/* Strength indicator */}
                 {form.password.length > 0 && (
                   <div style={{ display: "flex", gap: 3, marginTop: 6 }}>
@@ -122,7 +123,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="label">Confirm password *</label>
-                <input type="password" required placeholder="Same password again" {...f("confirm")} />
+                <PasswordInput required placeholder="Same password again" {...f("confirm")} />
               </div>
               {error && <div style={{ background: "rgba(251,113,133,0.1)", border: "1px solid rgba(251,113,133,0.2)", borderRadius: "var(--r)", padding: "0.6rem 0.9rem", color: "var(--rose)", fontSize: "0.88rem" }}>{error}</div>}
               <button type="submit" className="btn-primary" disabled={loading} style={{ width: "100%", justifyContent: "center", height: 46 }}>
@@ -140,7 +141,7 @@ export default function RegisterPage() {
               <div style={{ fontSize: "3rem", marginBottom: "0.75rem" }}>🎉</div>
               <h2 style={{ marginBottom: "0.4rem" }}>Welcome to SimTrace!</h2>
               <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginBottom: "1rem" }}>
-                Your account is ready. Redirecting to your devices…
+                Your account is ready. We've sent a verification link to {form.email || "your email"} — redirecting to your devices…
               </p>
               <div style={{ height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ height: "100%", background: "linear-gradient(90deg,var(--sky),var(--indigo))", animation: "fill 1.5s linear forwards", width: "0%" }} />
