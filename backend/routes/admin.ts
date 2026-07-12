@@ -18,12 +18,25 @@ router.get("/users", authenticate, requireAdmin, async (_req: AuthRequest, res: 
   try {
     const users = await User.find().select("-passwordHash -apiKey").sort({ createdAt: -1 }).lean();
 
-    const enriched = await Promise.all(users.map(async u => {
-      const [sub, deviceCount] = await Promise.all([
-        Subscription.findOne({ user: u._id }).select("plan status extraDevices").lean(),
-        Device.countDocuments({ owner: u._id }),
-      ]);
-      return { ...u, subscription: sub, deviceCount };
+    // Batch these instead of one Subscription.findOne + one Device.countDocuments
+    // PER USER (was 1 + 2N queries -- hundreds of round trips once the user
+    // table has any real size). Fetch all subscriptions for these users and
+    // all device counts via a single aggregation, then merge in memory.
+    const userIds = users.map(u => u._id);
+    const [subs, deviceCounts] = await Promise.all([
+      Subscription.find({ user: { $in: userIds } }).select("user plan status extraDevices").lean(),
+      Device.aggregate([
+        { $match: { owner: { $in: userIds } } },
+        { $group: { _id: "$owner", count: { $sum: 1 } } },
+      ]),
+    ]);
+    const subByUser = new Map(subs.map(s => [String(s.user), s]));
+    const countByUser = new Map(deviceCounts.map((d: any) => [String(d._id), d.count]));
+
+    const enriched = users.map(u => ({
+      ...u,
+      subscription: subByUser.get(String(u._id)) || null,
+      deviceCount: countByUser.get(String(u._id)) || 0,
     }));
 
     res.json(enriched);

@@ -160,7 +160,7 @@ export default function HomePage() {
 
       {/* ── 7 FEATURE ICONS (matches brand image) ────────────────────────── */}
       <section style={{ padding: "0 0 3rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "0.5rem", maxWidth: 860, margin: "0 auto" }}>
+        <div className="feature-icon-grid">
           {FEATURES.map(f => (
             <Link key={f.label} href={f.href} style={{ textDecoration: "none", textAlign: "center", padding: "1rem 0.4rem", borderRadius: "var(--r-lg)", transition: "background 0.2s" }}
               onMouseOver={e => e.currentTarget.style.background = "var(--surface)"}
@@ -175,7 +175,7 @@ export default function HomePage() {
       </section>
 
       {/* ── ANIMATED STATS ───────────────────────────────────────────────── */}
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "1px", background: "var(--border)", borderRadius: "var(--r-xl)", overflow: "hidden", marginBottom: "4rem", border: "1px solid var(--border)" }}>
+      <section className="stat-grid" style={{ marginBottom: "4rem" }}>
         {[
           [stats?.total ?? 0,           "",   "Devices Protected", "var(--sky)"],
           [stats?.openReports ?? 0,     "",   "Active Cases",      "var(--rose)"],
@@ -257,7 +257,7 @@ export default function HomePage() {
             Create Free Account
           </Link>
           <Link href="/telecom-portal" style={{ display: "inline-flex", alignItems: "center", padding: "0.85rem 2rem", background: "transparent", border: "1px solid rgba(251,191,36,0.3)", borderRadius: "var(--r)", color: "var(--amber)", fontWeight: 600, textDecoration: "none", fontSize: "0.95rem" }}>
-            🏛️ Telecom Partners →
+            📶 Telecom Partners →
           </Link>
         </div>
       </section>

@@ -17,6 +17,24 @@ export default function Nav() {
 
   useEffect(() => { setMobileOpen(false); setAdminMenu(false); }, [pathname]);
 
+  // Lock background scroll while the mobile drawer is open, and let Escape
+  // close it (and the admin dropdown) -- neither worked before.
+  useEffect(() => {
+    if (mobileOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prevOverflow; };
+    }
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { setMobileOpen(false); setAdminMenu(false); }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -88,7 +106,7 @@ export default function Nav() {
         backdropFilter: 'blur(16px)',
         borderBottom: `1px solid ${scrolled ? 'var(--border)' : 'transparent'}`,
         display: 'flex', alignItems: 'center',
-        padding: '0 1.25rem',
+        padding: '0 max(1.25rem, env(safe-area-inset-right)) 0 max(1.25rem, env(safe-area-inset-left))',
         transition: 'background 0.2s, border-color 0.2s',
         gap: '1.5rem',
       }}>
@@ -162,18 +180,36 @@ export default function Nav() {
           )}
         </div>
 
-        <button onClick={() => setMobileOpen(o => !o)} className="nav-hamburger"
-          style={{ background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text2)', borderRadius: 'var(--r)', padding: '6px 10px', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, marginLeft: 'auto' }}>
+        <button
+          onClick={() => setMobileOpen(o => !o)}
+          className="nav-hamburger"
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
+          aria-controls="nav-mobile-drawer"
+          style={{
+            background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text2)',
+            borderRadius: 'var(--r)', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1,
+            marginLeft: 'auto', width: 44, height: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
           {mobileOpen ? '✕' : '☰'}
         </button>
       </nav>
 
       {mobileOpen && (
-        <div className="nav-drawer" onClick={() => setMobileOpen(false)}>
+        <div
+          id="nav-mobile-drawer"
+          className="nav-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+          onClick={() => setMobileOpen(false)}
+        >
           <div onClick={e => e.stopPropagation()} style={{
             position: 'fixed', top: 60, left: 0, right: 0, bottom: 0,
             background: 'var(--bg)', borderTop: '1px solid var(--border)',
-            overflowY: 'auto', padding: '0.75rem',
+            overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+            padding: '0.75rem max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left))',
             display: 'flex', flexDirection: 'column', gap: '2px',
             animation: 'slideIn 0.2s ease',
           }}>

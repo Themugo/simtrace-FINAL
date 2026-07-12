@@ -1,7 +1,5 @@
 // services/twoFactorAuth.ts - Two-Factor Authentication service
-// @ts-expect-error no types
 import speakeasy from 'speakeasy';
-// @ts-expect-error no types
 import QRCode from 'qrcode';
 import { User } from '../db/index.js';
 
@@ -21,9 +19,9 @@ export interface TwoFactorVerifyResult {
  */
 export function generateSecret(user: Record<string, unknown>): TwoFactorSetup {
   const secret = speakeasy.generateSecret({
-    name: 'SimTrace',
+    name: `SimTrace (${user.email as string})`,
     issuer: 'SimTrace',
-    user: user.email as string,
+    otpauth_url: true,
   });
 
   return {

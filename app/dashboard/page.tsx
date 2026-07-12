@@ -338,7 +338,7 @@ export default function DashboardPage() {
           <div style={{ display:"flex", flexDirection:"column", gap:"1rem" }}>
             {stats && <DeviceStatusBar stats={stats} />}
             {revenue && <RevenueSnapshot revenue={revenue} />}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"0.6rem" }}>
+            <div className="grid-3" style={{ gap:"0.6rem" }}>
               {QUICK_LINKS.map(l => (
                 <Link key={l.label} href={l.href}
                   style={{ background:"var(--bg2)", border:`1px solid ${l.color}22`, borderRadius:10, padding:"0.85rem", textDecoration:"none", display:"flex", flexDirection:"column", gap:"0.4rem", transition:"border-color 0.2s" }}
@@ -375,7 +375,7 @@ export default function DashboardPage() {
 
       {/* ── Revenue tab ── */}
       {tab === "revenue" && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"1rem" }}>
+        <div className="grid-2" style={{ gap:"1rem" }}>
           {revenue && <RevenueSnapshot revenue={revenue} />}
           <div className="card">
             <div style={{ fontSize:"0.72rem", color:"var(--muted)", marginBottom:"0.85rem", textTransform:"uppercase", letterSpacing:"0.08em", fontWeight:600 }}>Quick Actions</div>

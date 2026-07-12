@@ -19,7 +19,9 @@ router.get("/", authenticate, async (req: AuthRequest, res: Response, next: Next
     const filter  = req.user!.role === "admin" ? {} : { owner: req.user!.id };
     const devices = await Device.find(filter)
       .populate("owner", "name email")
-      .sort({ lastSeen: -1 });
+      .sort({ lastSeen: -1 })
+      .limit(500); // safety cap for the admin "all devices" case -- a real
+                   // pagination UI is a bigger follow-up if this is ever hit
     res.json(devices);
   } catch (err) { next(err); }
 });

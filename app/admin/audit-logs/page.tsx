@@ -132,7 +132,7 @@ export default function AdminAuditLogsPage() {
       )}
 
       {stats && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+        <div className="grid-2" style={{ gap: "1rem", marginBottom: "1.5rem" }}>
           <div className="card">
             <h3 style={{ marginBottom: "1rem" }}>Top Actions</h3>
             {stats.logsByAction.map(({ action, count }) => (

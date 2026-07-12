@@ -83,7 +83,7 @@ export default function FinancialDashboardPage() {
       {dashboard && (
         <div style={{ display: "grid", gap: "2rem" }}>
           {/* Current Period Metrics */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+          <div className="grid-4" style={{ gap: "1rem" }}>
             <div style={{ background: "var(--surface)", padding: "1.5rem", borderRadius: "var(--r)", border: "1px solid var(--border)" }}>
               <div style={{ color: "var(--muted)", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Total Revenue</div>
               <div style={{ fontSize: "1.5rem", fontWeight: 800 }}>
@@ -113,7 +113,7 @@ export default function FinancialDashboardPage() {
           {/* Revenue Breakdown */}
           <div style={{ background: "var(--surface)", padding: "1.5rem", borderRadius: "var(--r)", border: "1px solid var(--border)" }}>
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1.5rem" }}>Revenue Breakdown</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "1rem" }}>
+            <div className="grid-4" style={{ gap: "1rem" }}>
               <div>
                 <div style={{ color: "var(--muted)", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Subscriptions</div>
                 <div style={{ fontSize: "1.125rem", fontWeight: 600 }}>
@@ -167,7 +167,7 @@ export default function FinancialDashboardPage() {
           {/* Cost Breakdown */}
           <div style={{ background: "var(--surface)", padding: "1.5rem", borderRadius: "var(--r)", border: "1px solid var(--border)" }}>
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1.5rem" }}>Cost Breakdown</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
+            <div className="grid-3" style={{ gap: "1rem" }}>
               <div>
                 <div style={{ color: "var(--muted)", fontSize: "0.875rem", marginBottom: "0.5rem" }}>Infrastructure</div>
                 <div style={{ fontSize: "1.125rem", fontWeight: 600 }}>

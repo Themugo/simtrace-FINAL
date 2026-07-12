@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "references": [
+    { "path": "../packages/types" }
+  ],
+  "include": [
+    "**/*.ts",
+    "__tests__/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}

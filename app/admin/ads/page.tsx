@@ -159,7 +159,7 @@ export default function AdminAdsPage() {
           </div>
 
           {/* Subscription breakdown */}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"1rem" }}>
+          <div className="grid-2" style={{ gap:"1rem" }}>
             <div className="card">
               <div style={{ fontSize:"0.72rem", color:"var(--muted)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"0.85rem" }}>Subscription Mix</div>
               {(revenue.subscriptions || []).map(s => {
@@ -230,7 +230,7 @@ export default function AdminAdsPage() {
                       {ad.status === "paused"  && <button onClick={() => setAdStatus(ad._id,"active")}  className="btn-success" style={{ fontSize:"0.78rem", padding:"3px 10px" }}>Resume</button>}
                     </div>
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"0.5rem" }}>
+                  <div className="grid-4" style={{ gap:"0.5rem" }}>
                     {([
                       ["Impressions", ad.impressions?.toLocaleString() || 0, "var(--text2)"],
                       ["Clicks",      ad.clicks?.toLocaleString() || 0,      "var(--sky)"  ],

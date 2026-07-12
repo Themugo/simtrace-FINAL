@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express, { Express, Request, Response, NextFunction } from "express";
 import http, { Server as HttpServer } from "http";
+import compression from "compression";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -194,6 +195,14 @@ app.use(express.json({ limit: "50kb" }));
 // ── NoSQL injection protection ────────────────────────────────────────────────
 // Strips keys with $ or . from user input — blocks $where/$gt injection attacks
 app.use(mongoSanitize({ replaceWith: "_" }));
+
+// gzip/brotli response compression -- was a listed dependency that was never
+// actually wired up. Skip it on the SSE streaming AI routes: compression
+// buffers res.write() chunks, which would turn live token-by-token streaming
+// into delayed bursts and defeat the point of streaming.
+app.use(compression({
+  filter: (req, res) => !req.path.startsWith("/api/ai") && compression.filter(req, res),
+}));
 
 // ── Rate limiters ─────────────────────────────────────────────────────────────
 // Global: 200 req/15min per IP

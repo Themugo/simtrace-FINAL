@@ -103,7 +103,7 @@ export default function AdminRevenuePage() {
         ))}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"1.25rem", marginBottom:"1.25rem" }}>
+      <div className="grid-2" style={{ gap:"1.25rem", marginBottom:"1.25rem" }}>
         {/* Plan breakdown */}
         <div className="card">
           <h3 style={{ marginBottom:"1rem" }}>Subscribers by Plan</h3>
