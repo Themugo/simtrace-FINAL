@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const { register }  = useAuth();
   const router        = useRouter();
   const [step,    setStep]    = useState(0); // 0=account 1=security
+  const [contactMethod, setContactMethod] = useState<"email" | "phone">("email");
   const [form,    setForm]    = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,8 +30,9 @@ export default function RegisterPage() {
 
   function next(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim())  { setError("Please enter your name"); return; }
-    if (!form.email.trim()) { setError("Please enter your email"); return; }
+    if (!form.name.trim()) { setError("Please enter your name"); return; }
+    if (contactMethod === "email" && !form.email.trim()) { setError("Please enter your email"); return; }
+    if (contactMethod === "phone" && !form.phone.trim()) { setError("Please enter your mobile number"); return; }
     setStep(1);
   }
 
@@ -40,7 +42,7 @@ export default function RegisterPage() {
     if (form.password !== form.confirm)  { setError("Passwords don't match"); return; }
     setLoading(true); setError("");
     try {
-      await register(form.name, form.email, form.password, form.phone);
+      await register(form.name, form.password, contactMethod === "email" ? { email: form.email } : { phone: form.phone });
       setStep(2);
       setTimeout(() => router.push("/devices"), 1500);
     } catch (err: any) { setError(err.message); }
@@ -74,19 +76,57 @@ export default function RegisterPage() {
                 <span style={{ fontWeight: 700, color: "var(--sky)" }}>G</span> Continue with Google
               </a>
               <div style={{ display: googleEnabled ? "flex" : "none", alignItems: "center", gap: "0.75rem", color: "var(--dim)", fontSize: "0.8rem" }}>
-                <span style={{ flex: 1, height: 1, background: "var(--border2)" }} /> or register with email <span style={{ flex: 1, height: 1, background: "var(--border2)" }} />
+                <span style={{ flex: 1, height: 1, background: "var(--border2)" }} /> or register manually <span style={{ flex: 1, height: 1, background: "var(--border2)" }} />
               </div>
               <div>
                 <label className="label">Full name *</label>
                 <input required autoFocus placeholder="Jane Kamau" {...f("name")} />
               </div>
-              <div>
-                <label className="label">Email address *</label>
-                <input type="email" required placeholder="jane@example.com" {...f("email")} />
+
+              {/* Continue with Email / Continue with Mobile Number */}
+              <div style={{ display: "flex", gap: "0.4rem", background: "var(--surface)", padding: 3, borderRadius: "var(--r)" }}>
+                {(["email", "phone"] as const).map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { setContactMethod(m); setError(""); }}
+                    style={{
+                      flex: 1, padding: "0.55rem 0.5rem", borderRadius: "calc(var(--r) - 2px)", border: "none",
+                      cursor: "pointer", fontSize: "0.85rem", fontWeight: 600,
+                      background: contactMethod === m ? "var(--card)" : "transparent",
+                      color: contactMethod === m ? "var(--text)" : "var(--muted)",
+                      boxShadow: contactMethod === m ? "var(--shadow-sm)" : "none",
+                      transition: "background 0.15s, color 0.15s",
+                    }}
+                  >
+                    {m === "email" ? "📧 Email" : "📱 Mobile Number"}
+                  </button>
+                ))}
               </div>
+
+              {contactMethod === "email" ? (
+                <div>
+                  <label className="label">Email address *</label>
+                  <input type="email" required autoFocus placeholder="jane@example.com" {...f("email")} />
+                </div>
+              ) : (
+                <div>
+                  <label className="label">Mobile number *</label>
+                  <input type="tel" required autoFocus placeholder="+254 712 345 678" {...f("phone")} />
+                  <p className="text-muted" style={{ fontSize: "0.78rem", marginTop: "0.3rem" }}>We'll text you a code to confirm this number.</p>
+                </div>
+              )}
+
               <div>
-                <label className="label">Mobile number <span style={{ color: "var(--dim)", fontWeight: 400 }}>— for SMS theft alerts</span></label>
-                <input type="tel" placeholder="+254 712 345 678" {...f("phone")} />
+                <label className="label">
+                  {contactMethod === "email" ? "Mobile number" : "Email address"}{" "}
+                  <span style={{ color: "var(--dim)", fontWeight: 400 }}>
+                    (optional{contactMethod === "email" ? " — for SMS theft alerts" : ""})
+                  </span>
+                </label>
+                {contactMethod === "email"
+                  ? <input type="tel" placeholder="+254 712 345 678" {...f("phone")} />
+                  : <input type="email" placeholder="jane@example.com" {...f("email")} />}
               </div>
               {error && <div style={{ background: "rgba(251,113,133,0.1)", border: "1px solid rgba(251,113,133,0.2)", borderRadius: "var(--r)", padding: "0.6rem 0.9rem", color: "var(--rose)", fontSize: "0.88rem" }}>{error}</div>}
               <button type="submit" className="btn-primary" style={{ width: "100%", justifyContent: "center", height: 46 }}>
@@ -141,7 +181,9 @@ export default function RegisterPage() {
               <div style={{ fontSize: "3rem", marginBottom: "0.75rem" }}>🎉</div>
               <h2 style={{ marginBottom: "0.4rem" }}>Welcome to SimTrace!</h2>
               <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginBottom: "1rem" }}>
-                Your account is ready. We've sent a verification link to {form.email || "your email"} — redirecting to your devices…
+                Your account is ready. {contactMethod === "email"
+                  ? `We've sent a verification link to ${form.email || "your email"}`
+                  : `We've texted a confirmation code to ${form.phone || "your number"}`} — redirecting to your devices…
               </p>
               <div style={{ height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ height: "100%", background: "linear-gradient(90deg,var(--sky),var(--indigo))", animation: "fill 1.5s linear forwards", width: "0%" }} />

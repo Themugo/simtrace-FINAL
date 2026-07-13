@@ -5,9 +5,11 @@ import { api, saveToken, clearToken } from './api';
 interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   role: string;
   phone?: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
   station?: string;
   operator?: string;
 }
@@ -15,8 +17,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<User>;
-  register: (name: string, email: string, password: string, phone?: string) => Promise<User>;
+  login: (identifier: string, password: string) => Promise<User>;
+  register: (name: string, password: string, contact: { email?: string; phone?: string }) => Promise<User>;
   logout: () => void;
 }
 
@@ -46,15 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(iv);
   }, [user]);
 
-  async function login(email: string, password: string): Promise<User> {
-    const data = await api.login({ email, password });
+  async function login(identifier: string, password: string): Promise<User> {
+    const isEmail = identifier.includes('@');
+    const data = await api.login(isEmail ? { email: identifier, password } : { phone: identifier, password });
     saveToken(data.token);
     setUser(data.user);
     return data.user;
   }
 
-  async function register(name: string, email: string, password: string, phone?: string): Promise<User> {
-    const data = await api.register({ name, email, password, ...(phone ? { phone } : {}) });
+  async function register(name: string, password: string, contact: { email?: string; phone?: string }): Promise<User> {
+    const data = await api.register({ name, password, ...contact });
     saveToken(data.token);
     setUser(data.user);
     return data.user;

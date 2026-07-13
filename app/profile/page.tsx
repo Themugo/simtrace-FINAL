@@ -75,6 +75,19 @@ export default function ProfilePage() {
   const [pwSaving, setPwSaving]= useState(false);
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
   const [notifSaving, setNotifSaving] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
+
+  async function handleResendVerification() {
+    setResendState("sending");
+    try {
+      await api.resendVerification();
+      setResendState("sent");
+      toast.add("Verification sent — check your " + (user?.email ? "email" : "phone"), "success");
+    } catch (err: any) {
+      setResendState("idle");
+      toast.add(err.message || "Could not resend verification", "error");
+    }
+  }
 
   useEffect(() => {
     if (!authLoading && !user) { router.push("/login"); return; }
@@ -135,11 +148,25 @@ export default function ProfilePage() {
         </div>
         <div>
           <h1 style={{ marginBottom:3 }}>{user.name}</h1>
-          <div style={{ display:"flex", alignItems:"center", gap:"0.5rem" }}>
-            <span style={{ color:"var(--muted)", fontSize:"0.88rem" }}>{user.email}</span>
+          <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", flexWrap: "wrap" }}>
+            <span style={{ color:"var(--muted)", fontSize:"0.88rem" }}>{user.email || user.phone}</span>
             <span className={`badge badge-${plan === "pro" ? "info" : plan === "business" ? "indigo" : plan === "enterprise" ? "warn" : "muted"}`} style={{ textTransform:"capitalize" }}>
               {plan}
             </span>
+            {(user.email || user.phone) && (
+              (user.email ? user.emailVerified : user.phoneVerified) ? (
+                <span className="badge badge-ok">✓ Verified</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendState === "sending"}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--amber)", fontSize: "0.8rem", fontWeight: 600 }}
+                >
+                  {resendState === "sending" ? "Sending…" : resendState === "sent" ? "✓ Sent" : "⚠ Unverified — resend"}
+                </button>
+              )
+            )}
           </div>
         </div>
       </div>
@@ -171,8 +198,8 @@ export default function ProfilePage() {
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" />
             </div>
             <div>
-              <label className="label">Email address</label>
-              <input value={user.email} disabled style={{ opacity:0.5, cursor:"not-allowed" }} />
+              <label className="label">{user.email ? "Email address" : "Mobile number"}</label>
+              <input value={user.email || user.phone || ""} disabled style={{ opacity:0.5, cursor:"not-allowed" }} />
             </div>
             <div>
               <label className="label">Mobile number <span style={{ color:"var(--dim)", fontWeight:400 }}>— for SMS theft alerts</span></label>

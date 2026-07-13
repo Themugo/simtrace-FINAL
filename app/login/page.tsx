@@ -41,8 +41,8 @@ export default function LoginPage() {
         <div className="card" style={{ boxShadow: "var(--shadow-lg)" }}>
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div>
-              <label className="label">Email address</label>
-              <input type="email" required placeholder="you@example.com" {...f("email")} />
+              <label className="label">Email or mobile number</label>
+              <input type="text" required autoComplete="username" placeholder="you@example.com or +254 712 345 678" {...f("email")} />
             </div>
             <div>
               <label className="label" style={{ display: "flex", justifyContent: "space-between" }}>

@@ -28,7 +28,7 @@ export async function connectDB(): Promise<void> {
 // ── User ──────────────────────────────────────────────────────────────────────
 interface IUser {
   name: string;
-  email: string;
+  email?: string;
   passwordHash: string;
   role: 'user' | 'admin' | 'super_admin' | 'telecom' | 'law_enforcement';
   phone?: string;
@@ -49,11 +49,15 @@ interface IUser {
 
 const userSchema = new mongoose.Schema<IUser>({
   name: { type: String, required: true, trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true },
+  // Registration now allows EITHER email or phone as the account identifier
+  // (was: email required). sparse:true lets many users omit either field
+  // without the unique index rejecting them as duplicate nulls; the
+  // validator below still requires at least one to be present.
+  email: { type: String, unique: true, sparse: true, lowercase: true },
   passwordHash: { type: String },
   role: { type: String, enum: ['user', 'admin', 'super_admin', 'telecom', 'law_enforcement'], default: 'user' },
   tokenVersion: { type: Number, default: 0 },
-  phone: { type: String },
+  phone: { type: String, unique: true, sparse: true },
   apiKey: { type: String, index: true, sparse: true },
   emailVerified: { type: Boolean, default: false },
   phoneVerified: { type: Boolean, default: false },
@@ -66,6 +70,12 @@ const userSchema = new mongoose.Schema<IUser>({
   twoFactorSecret: { type: String, select: false },
   twoFactorBackupCodes: { type: [String], select: false },
   createdAt: { type: Date, default: Date.now },
+});
+userSchema.pre('validate', function (next) {
+  if (!this.email && !this.phone) {
+    return next(new Error('Either email or phone is required'));
+  }
+  next();
 });
 export const User = mongoose.model<IUser>('User', userSchema);
 

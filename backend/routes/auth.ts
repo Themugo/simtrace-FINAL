@@ -6,6 +6,7 @@ import { User, Subscription, PasswordReset, EmailVerification } from "../db/inde
 import { signToken, authenticate }            from "../middleware/auth.js";
 import { isAccountLocked, recordFailedLogin, resetLoginAttempts, getLockoutRemainingTime } from "../services/accountLockout.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../services/email.js";
+import { sendOtpCode } from "../services/otp.js";
 
 const router = Router();
 
@@ -24,7 +25,8 @@ interface AuthRequest extends Request {
 interface SanitizedUser {
   id: string;
   name: string;
-  email: string;
+  email?: string;
+  phone?: string;
   role: string;
   emailVerified?: boolean;
   phoneVerified?: boolean;
@@ -37,9 +39,9 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
   try {
     const { name, email, password, phone, deviceInfo } = z.object({
       name: z.string().min(2).max(80).trim(),
-      email: z.string().email().toLowerCase(),
+      email: z.string().email().toLowerCase().optional(),
       password: z.string().min(8).max(128),
-      phone: z.string().optional(),
+      phone: z.string().min(7).optional(),
       deviceInfo: z.object({
         imei: z.string().optional(),
         serialNumber: z.string().optional(),
@@ -47,11 +49,16 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
         model: z.string().optional(),
         deviceDNA: z.string().optional(),
       }).optional(),
-    }).parse(req.body);
-    
-    if (await User.findOne({ email })) return res.status(409).json({ error: "Email already registered" });
+    }).refine(d => d.email || d.phone, { message: "Email or mobile number is required" }).parse(req.body);
+
+    if (email && await User.findOne({ email })) return res.status(409).json({ error: "Email already registered" });
+    if (phone && await User.findOne({ phone })) return res.status(409).json({ error: "Mobile number already registered" });
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, passwordHash, role: "user", phone, phoneVerified: !!phone });
+    // phoneVerified always starts false -- it was previously set to !!phone,
+    // which marked a number "verified" just because it was supplied, with no
+    // actual verification ever happening. Real verification now happens via
+    // the SMS OTP fired below + POST /api/verify/check.
+    const user = await User.create({ name, email, passwordHash, role: "user", phone, phoneVerified: false });
     await Subscription.create({ user: user._id, plan: "free", status: "active" });
     
     // Auto-register device if device info provided from intelligent onboarding
@@ -73,14 +80,23 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
     // Fire-and-forget, same pattern as forgot-password — never blocks the
     // response, and a failure here shouldn't prevent account creation/login.
     setImmediate(async () => {
-      try {
-        const rawToken = crypto.randomBytes(32).toString("hex");
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-        await EmailVerification.create({ user: user._id, token: rawToken, expiresAt });
-        const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${rawToken}`;
-        await sendVerificationEmail(user.email, user.name, verifyUrl);
-      } catch (err) {
-        console.error("[register] verification email error:", err instanceof Error ? err.message : String(err));
+      if (user.email) {
+        try {
+          const rawToken = crypto.randomBytes(32).toString("hex");
+          const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+          await EmailVerification.create({ user: user._id, token: rawToken, expiresAt });
+          const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${rawToken}`;
+          await sendVerificationEmail(user.email, user.name, verifyUrl);
+        } catch (err) {
+          console.error("[register] verification email error:", err instanceof Error ? err.message : String(err));
+        }
+      }
+      if (user.phone) {
+        try {
+          await sendOtpCode("sms", user.phone); // confirmed later via POST /api/verify/check
+        } catch (err) {
+          console.error("[register] phone OTP error:", err instanceof Error ? err.message : String(err));
+        }
       }
     });
   } catch (err) {
@@ -92,8 +108,15 @@ router.post("/register", async (req: Request, res: Response, next: NextFunction)
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post("/login", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(req.body);
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const { email, phone, password } = z.object({
+      email: z.string().email().optional(),
+      phone: z.string().min(7).optional(),
+      password: z.string().min(1),
+    }).refine(d => d.email || d.phone, { message: "Email or phone is required" }).parse(req.body);
+
+    const user = email
+      ? await User.findOne({ email: email.toLowerCase() })
+      : await User.findOne({ phone });
 
     // Check lockout before touching the password, so a locked-out account
     // doesn't even get a bcrypt.compare timing signal.
@@ -199,7 +222,7 @@ router.post("/forgot-password", async (req: Request, res: Response, next: NextFu
 
         const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${rawToken}`;
 
-        await sendPasswordResetEmail(user.email, user.name, resetUrl);
+        await sendPasswordResetEmail(user.email!, user.name, resetUrl);
       } catch (err) {
         console.error("[forgot-password] Error:", err instanceof Error ? err.message : String(err));
       }
@@ -259,20 +282,32 @@ router.get("/verify-email", async (req: Request, res: Response, next: NextFuncti
 });
 
 // ── POST /api/auth/resend-verification (authenticated) ───────────────────────
+// Resends whichever verification(s) are still outstanding — email link,
+// SMS OTP, or both, depending on what the account has and hasn't confirmed.
 router.post("/resend-verification", authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const user = await User.findById(req.user!.id);
     if (!user) return res.status(404).json({ error: "User not found" });
-    if (user.emailVerified) return res.json({ message: "Email is already verified." });
 
-    await EmailVerification.deleteMany({ user: user._id }); // invalidate previous links
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await EmailVerification.create({ user: user._id, token: rawToken, expiresAt });
-    const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${rawToken}`;
-    await sendVerificationEmail(user.email, user.name, verifyUrl);
+    const actions: string[] = [];
 
-    res.json({ message: "Verification email sent." });
+    if (user.email && !user.emailVerified) {
+      await EmailVerification.deleteMany({ user: user._id }); // invalidate previous links
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await EmailVerification.create({ user: user._id, token: rawToken, expiresAt });
+      const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${rawToken}`;
+      await sendVerificationEmail(user.email, user.name, verifyUrl);
+      actions.push("email");
+    }
+
+    if (user.phone && !user.phoneVerified) {
+      await sendOtpCode("sms", user.phone);
+      actions.push("sms");
+    }
+
+    if (actions.length === 0) return res.json({ message: "Everything on your account is already verified." });
+    res.json({ message: `Verification sent via ${actions.join(" and ")}.`, channels: actions });
   } catch (err) { next(err); }
 });
 
@@ -281,7 +316,8 @@ function sanitize(user: Record<string, unknown>): SanitizedUser {
   return {
     id: user._id as string,
     name: user.name as string,
-    email: user.email as string,
+    email: user.email as string | undefined,
+    phone: user.phone as string | undefined,
     role: user.role as string,
     emailVerified: user.emailVerified as boolean | undefined,
     phoneVerified: user.phoneVerified as boolean | undefined,

@@ -38,6 +38,7 @@ export const api = {
   register: (body: any) => request('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   login: (body: any) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   me: () => request('/api/auth/me'),
+  resendVerification: () => request('/api/auth/resend-verification', { method: 'POST' }),
 
   // IMEI
   imeiLookup: (imei: string) => request(`/api/imei/${imei}`),
