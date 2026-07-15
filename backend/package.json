@@ -36,7 +36,7 @@
     "ioredis": "^5.4.0",
     "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
-    "mongoose": "^8.8.0",
+    "mongoose": "^9.7.4",
     "neo4j-driver": "^5.0.0",
     "opossum": "^5.0.1",
     "pino": "^9.3.2",
