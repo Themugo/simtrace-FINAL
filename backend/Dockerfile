@@ -1,5 +1,5 @@
 # ── Build stage ────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --ignore-scripts
@@ -7,7 +7,7 @@ COPY . .
 RUN npx tsc
 
 # ── Production stage ───────────────────────────────────────────────────────────
-FROM node:20-alpine AS production
+FROM node:25-alpine AS production
 WORKDIR /app
 
 RUN addgroup -g 1001 -S nodejs && adduser -S simtrace -u 1001 -G nodejs
