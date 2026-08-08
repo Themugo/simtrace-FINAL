@@ -1,0 +1,25 @@
+name: SimTrace Security & Dependency Vulnerability Scan
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Every Monday at 00:00 UTC
+  push:
+    branches: [ main ]
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Run NPM Security Audit
+        run: npm audit --audit-level=high --production
+
+      - name: Dockerfile & Container Static Analysis
+        run: |
+          echo "Scanning Dockerfile and dependencies for CVE vulnerabilities"

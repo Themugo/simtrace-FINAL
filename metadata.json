@@ -1,0 +1,6 @@
+{
+  "name": "SIMTRACE™ Control Centre",
+  "description": "Sovereign Device Security Control Centre, threat detection, IMEI intelligence, telecom core synchronization, and recovery network.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "SIMTrace",
+    "slug": "simtrace",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.simtrace.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SIMTrace needs your location to track your devices and provide accurate alerts.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SIMTrace needs your location to track your devices even when the app is in background.",
+        "NSCameraUsageDescription": "SIMTrace needs camera access to scan QR codes for device pairing.",
+        "NSFaceIDUsageDescription": "SIMTrace uses Face ID for secure authentication.",
+        "NSContactsUsageDescription": "SIMTrace needs access to verify your phone number for account creation."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.simtrace.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "USE_BIOMETRIC_AUTH",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "READ_PHONE_STATE",
+        "READ_SMS",
+        "RECEIVE_SMS",
+        "READ_PHONE_NUMBERS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-local-authentication",
+      "expo-secure-store",
+      "expo-notifications",
+      "expo-location"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://localhost:3000/api",
+      "socketUrl": "http://localhost:3000"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@simtrace/scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Operational and deployment scripts for the SimTrace platform",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}

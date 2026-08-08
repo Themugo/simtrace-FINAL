@@ -1,0 +1,139 @@
+{
+  "dashboard": {
+    "title": "SimTrace API Performance",
+    "uid": "simtrace-api-performance",
+    "tags": ["simtrace", "api", "performance"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate by Endpoint",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_request_total[5m])",
+            "legendFormat": "{{method}} {{route}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Response Time Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Response Time by Endpoint",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{route}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Error Rate by Status Code",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_request_total[5m])",
+            "legendFormat": "{{status}}"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Slow Requests (> 1s)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_request_duration_seconds_bucket{le=\"1\"}[5m])",
+            "legendFormat": "Slow Requests"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "API Endpoints - Request Count",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "sum by (route) (rate(http_request_total[5m]))",
+            "legendFormat": "{{route}}"
+          }
+        ],
+        "transformations": [
+          {
+            "type": "sort by",
+            "field": "Value"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "API Endpoints - Error Rate",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "sum by (route) (rate(http_request_total{status=~\"5..\"}[5m])) / sum by (route) (rate(http_request_total[5m])) * 100",
+            "legendFormat": "{{route}}"
+          }
+        ],
+        "transformations": [
+          {
+            "type": "sort by",
+            "field": "Value"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "API Endpoints - p95 Latency",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum by (route, le) (rate(http_request_duration_seconds_bucket[5m])))",
+            "legendFormat": "{{route}}"
+          }
+        ],
+        "transformations": [
+          {
+            "type": "sort by",
+            "field": "Value"
+          }
+        ]
+      }
+    ]
+  }
+}

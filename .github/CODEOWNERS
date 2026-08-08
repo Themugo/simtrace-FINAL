@@ -1,0 +1,8 @@
+# Default ownership for entire repo
+* @Themugo
+
+# Backend-specific
+/backend/ @Themugo
+
+# Frontend-specific
+/app/ @Themugo
